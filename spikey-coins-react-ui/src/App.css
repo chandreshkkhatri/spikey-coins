@@ -1,0 +1,45 @@
+main {
+    height: calc(100vh - 57px);
+    overflow: auto;
+}
+
+.sidenav-ul {}
+
+.sidenav-li {
+    display: block;
+}
+
+.sidenav a {
+    text-decoration: none;
+}
+
+.no-margin {
+    margin: 0 !important
+}
+
+.inline-block {
+    display: inline;
+}
+
+.sidenav {
+    display: inline-block;
+    height: calc(100vh - 57px);
+    /* border-right: 1px dotted; */
+    width: calc(15% - 1px);
+    background: #e2e2e2;
+}
+
+.main-content {
+    display: inline-block;
+    height: calc(100vh - 57px);
+    width: 85%;
+    background: #e2e2e2;
+}
+
+.left {
+    float: left
+}
+
+.right {
+    float: right
+}
