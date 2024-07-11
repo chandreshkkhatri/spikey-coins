@@ -4,7 +4,7 @@ import './App.css'
 import './w3-styles.css'
 import './colors.css'
 
-import BinanceTicker from './components/BinanceTicker'
+import Ticker from './components/Ticker'
 
 class App extends Component {
 
@@ -21,23 +21,35 @@ class App extends Component {
             <div>
               <div className="sidenav">
                 <div>
-                  <ul className="sidenav-ul">
-                    <li className="sidenav-li"><Link to="/binance">Binance</Link></li>
+                  <ul>
+                    <li className="sidenav-li">
+                      <h3>Pages</h3>
+                      <Link to="/ticker">Ticker</Link>
+                    </li>
+                    <br />
+                    <li className="sidenav-li">
+                      <h3>Options</h3>
+                      <label>Exchange</label><br />
+                      <select name="exchange">
+                        <option value="binance">Binance</option>
+                      </select>
+                    </li>
+                    <br />
                   </ul>
                 </div>
               </div>
               <div className="main-content right">
                 <div>
                   <Switch>
-                    <Route exact path='/binance' component={BinanceTicker}></Route>
-                    <Route render={() => <Redirect to='/binance' />}></Route>
+                    <Route exact path='/ticker' component={Ticker}></Route>
+                    <Route render={() => <Redirect to='/ticker' />}></Route>
                   </Switch>
                 </div>
               </div>
             </div>
           </Router>
         </main>
-      </div>
+      </div >
     );
   }
 }

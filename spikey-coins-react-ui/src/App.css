@@ -3,7 +3,12 @@ main {
     overflow: auto;
 }
 
-.sidenav-ul {}
+.sidenav {
+    display: inline-block;
+    height: calc(100vh - 57px);
+    width: calc(15% - 1px);
+    background: #e2e2e2;
+}
 
 .sidenav-li {
     display: block;
@@ -21,19 +26,15 @@ main {
     display: inline;
 }
 
-.sidenav {
-    display: inline-block;
-    height: calc(100vh - 57px);
-    /* border-right: 1px dotted; */
-    width: calc(15% - 1px);
-    background: #e2e2e2;
-}
-
 .main-content {
     display: inline-block;
     height: calc(100vh - 57px);
     width: 85%;
     background: #e2e2e2;
+}
+
+.instrument-table {
+    height: calc(100vh - 60px);
 }
 
 .left {
