@@ -7,9 +7,9 @@ const binance = require("../utils/api").binance;
 class Ticker extends Component {
   state = { tickerArray: [] };
   componentDidMount() {
-    this.getBinanceSpikes();
+    this.getSpikes();
   }
-  getBinanceSpikes = async () => {
+  getSpikes = async () => {
     binance.get24hrTicker().then(async (res) => {
       let raw_data = res.data;
       console.log(raw_data)

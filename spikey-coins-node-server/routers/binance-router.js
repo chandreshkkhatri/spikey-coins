@@ -2,31 +2,9 @@ const express = require("express");
 const router = express.Router();
 const Binance = require("node-binance-api");
 const cors = require("cors");
-const axios = require("axios");
-// var bodyParser = require('body-parser');
-// router.use(bodyParser.json()); // for parsing application/json
-// router.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
 
 router.use(cors());
 const binance = new Binance();
-// const api = {
-//     api_endpoint: 'https://api.binance.com',
-//     testConnectivity() {
-//         return axios.get(this.api_endpoint + '/api/v1/ping')
-//     },
-//     getServerTime() {
-//         return axios.get(this.api_endpoint + '/api/v1/time')
-//     },
-//     getExchangeInfo() {
-//         return axios.get(this.api_endpoint + '/api/v1/exchangeInfo')
-//     },
-//     getCandleStickData(symbol, interval, limit) {
-//         return axios.get(`${this.api_endpoint}/api/v1/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`) //&startTime=${startTime}&endTime=${endTime}
-//     },
-//     get24hrTicker() {
-//         return axios.get(this.api_endpoint + '/api/v1/ticker/24hr')
-//     }
-// }
 
 router.get("/", (req, res) => {
   res.send("Hi, this is the binance router for proxy server");
