@@ -20,31 +20,27 @@ class App extends Component {
           <Router>
             <div>
               <div className="sidenav">
-                <div>
-                  <ul>
-                    <li className="sidenav-li">
-                      <h3>Pages</h3>
-                      <Link to="/ticker">Ticker</Link>
-                    </li>
-                    <br />
-                    <li className="sidenav-li">
-                      <h3>Options</h3>
-                      <label>Exchange</label><br />
-                      <select name="exchange">
-                        <option value="binance">Binance</option>
-                      </select>
-                    </li>
-                    <br />
-                  </ul>
-                </div>
+                <ul>
+                  <li className="sidenav-li">
+                    <h3>Pages</h3>
+                    <Link to="/ticker">Ticker</Link>
+                  </li>
+                  <br />
+                  <li className="sidenav-li">
+                    <h3>Options</h3>
+                    <label>Exchange</label><br />
+                    <select name="exchange">
+                      <option value="binance">Binance</option>
+                    </select>
+                  </li>
+                  <br />
+                </ul>
               </div>
               <div className="main-content right">
-                <div>
-                  <Switch>
-                    <Route exact path='/ticker' component={Ticker}></Route>
-                    <Route render={() => <Redirect to='/ticker' />}></Route>
-                  </Switch>
-                </div>
+                <Switch>
+                  <Route exact path='/ticker' component={Ticker}></Route>
+                  <Route render={() => <Redirect to='/ticker' />}></Route>
+                </Switch>
               </div>
             </div>
           </Router>
