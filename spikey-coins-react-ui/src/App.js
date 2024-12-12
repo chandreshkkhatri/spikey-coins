@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { BrowserRouter as Router, Route, Link, Switch, Redirect } from 'react-router-dom'
+import { BrowserRouter as Router, Route, Switch, Redirect } from 'react-router-dom'
 import './App.css'
 import './w3-styles.css'
 import './colors.css'
@@ -23,15 +23,13 @@ class App extends Component {
                 <ul>
                   <li className="sidenav-li">
                     <h3>Pages</h3>
-                    <Link to="/ticker">Ticker</Link>
+                  </li>
+                  <li className="sidenav-li">
+                    <button>Get Ticker</button>
                   </li>
                   <br />
                   <li className="sidenav-li">
-                    <h3>Options</h3>
-                    <label>Exchange</label><br />
-                    <select name="exchange">
-                      <option value="binance">Binance</option>
-                    </select>
+                    <button>Get Normalized Volume</button>
                   </li>
                   <br />
                 </ul>
