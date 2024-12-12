@@ -17,7 +17,7 @@ class Ticker extends Component {
       for (let it in raw_data) {
         let symbol = raw_data[it]['s'];
         let l = symbol.length;
-        if (symbol.substring(l - 3, l) === "BTC") {
+        if (symbol.substring(l - 4, l) === "USDT") {
           data.push(raw_data[it]);
         }
       }
@@ -35,7 +35,7 @@ class Ticker extends Component {
       {
         Header: <b className="left">Volume</b>,
         id: "quoteVolume",
-        accessor: (d) => Math.floor(Number(d.v)),
+        accessor: (d) => Math.floor(Number(d.v)*100*d.c)/100,
       },
       {
         Header: <b className="left">Price</b>,
