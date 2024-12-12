@@ -39,7 +39,7 @@ class Ticker extends Component {
       },
       {
         Header: <b className="left">Price</b>,
-        accessor: "p",
+        accessor: "c",
       },
       {
         Header: <b className="left">Change(%)</b>,
