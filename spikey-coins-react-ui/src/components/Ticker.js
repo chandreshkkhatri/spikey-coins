@@ -15,7 +15,7 @@ class Ticker extends Component {
       console.log(raw_data)
       let data = [];
       for (let it in raw_data) {
-        let symbol = raw_data[it]['symbol'];
+        let symbol = raw_data[it]['s'];
         let l = symbol.length;
         if (symbol.substring(l - 3, l) === "BTC") {
           data.push(raw_data[it]);
@@ -30,20 +30,20 @@ class Ticker extends Component {
     let columns = [
       {
         Header: <b className="left">Symbol</b>,
-        accessor: "symbol",
+        accessor: "s",
       },
       {
         Header: <b className="left">Volume</b>,
         id: "quoteVolume",
-        accessor: (d) => Math.floor(Number(d.quoteVolume)),
+        accessor: (d) => Math.floor(Number(d.v)),
       },
       {
         Header: <b className="left">Price</b>,
-        accessor: "lastPrice",
+        accessor: "p",
       },
       {
         Header: <b className="left">Change(%)</b>,
-        accessor: "priceChangePercent",
+        accessor: "P",
       },
     ];
     return (
