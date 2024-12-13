@@ -1,5 +1,0 @@
-{
-    "poloniex_endpoint": "http://localhost:8000/poloniex",
-    "binance_endpoint": "http://localhost:8000/binance",
-    "bittrex_endpoint": "http://localhost:8000/bittrex"
-}

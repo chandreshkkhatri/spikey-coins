@@ -5,13 +5,13 @@ import './w3-styles.css'
 import './colors.css'
 
 import Ticker from './components/Ticker'
-const binance = require("./utils/api").binance;
+const { api } = require("./utils/api");
 
 function App() {
   const [tickerArray, setTickerArray] = useState([]);
 
   const getSpikes = async () => {
-    binance.get24hrTicker().then(async (res) => {
+    api.get24hrTicker().then(async (res) => {
       let raw_data = res.data;
       console.log(raw_data)
       let data = [];
@@ -25,10 +25,6 @@ function App() {
       await setTickerArray(data);
     });
   };
-
-  React.useEffect(() => {
-    getSpikes();
-  }, []);
 
   return (
     <div>
@@ -46,7 +42,7 @@ function App() {
                   <h3>Pages</h3>
                 </li>
                 <li className="sidenav-li">
-                  <button>Get Ticker</button>
+                  <button onClick={getSpikes}>Get Ticker</button>
                 </li>
                 <br />
                 <li className="sidenav-li">

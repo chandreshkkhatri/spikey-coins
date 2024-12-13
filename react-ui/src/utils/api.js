@@ -1,23 +1,13 @@
 import axios from "axios";
-const cred = require("./cred.json");
+const config = require("./config.json");
 
-const binance_endpoint = cred.binance_endpoint;
+const api_endpoint = config.base_url;
 
-const binance = {
-  api_endpoint: binance_endpoint,
-  getServerTime() {
-    return axios.get(this.api_endpoint + "/time");
-  },
-  getCandleStickData(symbol, interval, limit) {
-    return axios.get(
-      `${
-        this.api_endpoint
-      }/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`
-    ); //&startTime=${startTime}&endTime=${endTime}
-  },
+const api = {
+  api_endpoint: api_endpoint,
   get24hrTicker() {
-    return axios.get(this.api_endpoint + "/ticker/24hr");
+    return axios.get(this.api_endpoint + "binance/ticker/24hr");
   },
 };
 
-export { binance };
+export { api };
