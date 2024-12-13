@@ -1,31 +1,8 @@
-import React, { useState } from "react";
+import React from "react";
 import ReactTable from "react-table";
 import "react-table/react-table.css";
 
-const binance = require("../utils/api").binance;
-
-function Ticker() {
-  const [tickerArray, setTickerArray] = useState([]);
-
-  const getSpikes = async () => {
-    binance.get24hrTicker().then(async (res) => {
-      let raw_data = res.data;
-      console.log(raw_data)
-      let data = [];
-      for (let it in raw_data) {
-        let symbol = raw_data[it]['s'];
-        let l = symbol.length;
-        if (symbol.substring(l - 4, l) === "USDT") {
-          data.push(raw_data[it]);
-        }
-      }
-      await setTickerArray(data);
-    });
-  };
-
-  React.useEffect(() => {
-    getSpikes();
-  }, []);
+function Ticker({ tickerArray }) {
 
   let columns = [
     {
