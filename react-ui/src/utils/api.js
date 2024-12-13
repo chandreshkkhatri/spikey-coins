@@ -8,8 +8,8 @@ const api = {
   get24hrTicker() {
     return axios.get(this.api_endpoint + "api/ticker/24hr");
   },
-  getNormalizedVolume() {
-    return axios.get(this.api_endpoint + "api/ticker/normalizedVolume");
+  refreshMarketcapData() {
+    return axios.get(this.api_endpoint + "api/ticker/refreshMarketcapData");
   },
 };
 

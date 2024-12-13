@@ -45,8 +45,9 @@ router.get("/", (req, res) => {
 router.get("/24hr", (req, res) => {
   res.send(latestTickerData);
 });
-router.get("/normalizedVolume", (req, res) => {
-  res.send(latestTickerData);
+router.get("/refreshMarketcapData", (req, res) => {
+  // TODO: refresh coinmarketcap data
+  res.send("refreshed marketcap data");
 });
 router.get("/marketCap", async (req, res) => {
   const coinIds = coingeckoIds.map(item => item.id).join(",");

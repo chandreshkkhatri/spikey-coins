@@ -26,10 +26,11 @@ function App() {
     });
   };
 
-  const getNormalizedVolume = async () => {
-    const res = await api.getNormalizedVolume();
-    console.log(res);
-  }
+  const refreshMarketcapData = async () => {
+    api.refreshMarketcapData().then(async (res) => {
+      await getSpikes();
+    });
+  };
 
   return (
     <div>
@@ -51,7 +52,7 @@ function App() {
                 </li>
                 <br />
                 <li className="sidenav-li">
-                  <button onClick={getNormalizedVolume}>Get Normalized Volume</button>
+                  <button onClick={refreshMarketcapData}>Refresh Marketcap Data</button>
                 </li>
                 <br />
               </ul>
