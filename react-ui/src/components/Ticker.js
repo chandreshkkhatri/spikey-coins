@@ -22,6 +22,16 @@ function Ticker({ tickerArray }) {
       Header: <b className="left">Change(%)</b>,
       accessor: "P",
     },
+    {
+      Header: <b className="left">Normalized Volume</b>,
+      id: "normalizedVolume",
+      accessor: (d) => {
+        if (!d.market_cap) {
+          return 0
+        }
+        return Math.floor(Number(d.v) * 100000 * d.c / d.market_cap) / 100
+      },
+    }
   ];
   return (
     <div>
