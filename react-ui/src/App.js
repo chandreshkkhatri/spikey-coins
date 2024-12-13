@@ -5,7 +5,7 @@ import './w3-styles.css'
 import './colors.css'
 
 import Ticker from './components/Ticker'
-const { api } = require("./utils/api");
+import { api } from './utils/api';
 
 function App() {
   const [tickerArray, setTickerArray] = useState([]);
@@ -13,7 +13,6 @@ function App() {
   const getSpikes = async () => {
     api.get24hrTicker().then(async (res) => {
       let raw_data = res.data;
-      console.log(raw_data)
       let data = [];
       for (let it in raw_data) {
         let symbol = raw_data[it]['s'];
@@ -22,9 +21,15 @@ function App() {
           data.push(raw_data[it]);
         }
       }
+      console.log(data)
       await setTickerArray(data);
     });
   };
+
+  const getNormalizedVolume = async () => {
+    const res = await api.getNormalizedVolume();
+    console.log(res);
+  }
 
   return (
     <div>
@@ -46,7 +51,7 @@ function App() {
                 </li>
                 <br />
                 <li className="sidenav-li">
-                  <button>Get Normalized Volume</button>
+                  <button onClick={getNormalizedVolume}>Get Normalized Volume</button>
                 </li>
                 <br />
               </ul>

@@ -6,7 +6,10 @@ const api_endpoint = config.base_url;
 const api = {
   api_endpoint: api_endpoint,
   get24hrTicker() {
-    return axios.get(this.api_endpoint + "binance/ticker/24hr");
+    return axios.get(this.api_endpoint + "api/ticker/24hr");
+  },
+  getNormalizedVolume() {
+    return axios.get(this.api_endpoint + "api/ticker/normalizedVolume");
   },
 };
 

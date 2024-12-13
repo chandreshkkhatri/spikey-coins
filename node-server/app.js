@@ -3,10 +3,10 @@ const cors = require('cors')
 const port = 8000
 const app = express()
 
-const binanceRouter = require('./routers/binance-router')
+const tickerRouter = require('./routers/ticker-router')
 
 app.use(cors())
-app.use('/binance', binanceRouter)
+app.use('/api/ticker', tickerRouter)
 
 app.get('/', (req, res) => {
     res.send(`Hi, you've reached the proxy server. We tunnel your requests to byass cors issues`)
