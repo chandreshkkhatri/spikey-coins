@@ -12,7 +12,7 @@ function Ticker({ tickerArray }) {
     {
       Header: <b className="left">Volume</b>,
       id: "quoteVolume",
-      accessor: (d) => Math.floor(Number(d.v) * 100 * d.c) / 100,
+      accessor: (d) => Math.floor(Number(d.v) * d.c) / 1000000,
     },
     {
       Header: <b className="left">Price</b>,
@@ -23,7 +23,7 @@ function Ticker({ tickerArray }) {
       accessor: "P",
     },
     {
-      Header: <b className="left">Normalized Volume</b>,
+      Header: <b className="left">Normalized Volume Score</b>,
       id: "normalizedVolume",
       accessor: (d) => {
         if (!d.market_cap) {
