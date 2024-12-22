@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom'
+import { BrowserRouter as Router } from 'react-router-dom'
 import './App.css'
 import './w3-styles.css'
 import './colors.css'
 
-import Ticker from './components/Ticker'
+import AppRoutes from './components/AppRoutes';
 import { api } from './utils/api';
 
 function App() {
@@ -62,10 +62,7 @@ function App() {
               </ul>
             </div>
             <div className="main-content right">
-              <Routes>
-                <Route exact path='/ticker' element={<Ticker tickerArray={tickerArray} />}></Route>
-                <Route render={() => <Navigate to='/ticker' />}></Route>
-              </Routes>
+              <AppRoutes tickerArray={tickerArray}/>
             </div>
           </div>
         </Router>
