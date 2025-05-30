@@ -1,12 +1,20 @@
 {
-  "name": "proxy-server",
+  "name": "spikey-coins-proxy-server",
   "version": "1.0.0",
-  "description": "",
+  "description": "Proxy server for Spikey Coins application to handle crypto ticker data and bypass CORS issues",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon app.js"
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [
+    "crypto",
+    "ticker",
+    "proxy",
+    "binance",
+    "coingecko"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {

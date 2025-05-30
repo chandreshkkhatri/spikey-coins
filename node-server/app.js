@@ -1,15 +1,32 @@
-const express = require('express')
-const cors = require('cors')
-const port = 8000
-const app = express()
+const express = require("express");
+const cors = require("cors");
 
-const tickerRouter = require('./routers/ticker-router')
+// Configuration
+const PORT = process.env.PORT || 8000;
+const app = express();
 
-app.use(cors())
-app.use('/api/ticker', tickerRouter)
+// Import routers
+const tickerRouter = require("./routers/ticker-router");
 
-app.get('/', (req, res) => {
-    res.send(`Hi, you've reached the proxy server. We tunnel your requests to byass cors issues`)
-})
+// Middleware
+app.use(cors());
+app.use(express.json());
 
-app.listen(port, () => console.log(`Example app listening to port ${port}!`))
+// Routes
+app.use("/api/ticker", tickerRouter);
+
+// Health check endpoint
+app.get("/", (req, res) => {
+  res.json({
+    message: "Spikey Coins Proxy Server",
+    description: "Tunneling requests to bypass CORS issues",
+    status: "healthy",
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`🚀 Proxy server listening on port ${PORT}`);
+  console.log(`📊 Ticker API available at http://localhost:${PORT}/api/ticker`);
+});
