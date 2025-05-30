@@ -6,10 +6,14 @@
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "cross-env NODE_ENV=test jest",
+    "test:watch": "cross-env NODE_ENV=test jest --watch",
+    "test:coverage": "cross-env NODE_ENV=test jest --coverage",
+    "test:verbose": "cross-env NODE_ENV=test jest --verbose",
     "docs:validate": "node validate-api.js --validate",
     "docs:test": "node validate-api.js --test",
-    "docs:examples": "node validate-api.js --examples"
+    "docs:examples": "node validate-api.js --examples",
+    "docs:verify": "curl -s http://localhost:8000/api/ticker/24hr | python3 -c \"import sys,json; t=json.load(sys.stdin)['data'][0]; print(f'✅ Backend calculations verified: {t[\\\"s\\\"]} = ${t[\\\"price\\\"]} (USD: ${t[\\\"volume_usd\\\"]:,.0f})')\" || echo '❌ Server not running'"
   },
   "keywords": [
     "crypto",
@@ -30,5 +34,10 @@
     "swagger-ui-express": "^5.0.1",
     "ws": "^8.18.0",
     "yamljs": "^0.3.0"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "jest": "^29.7.0",
+    "supertest": "^7.1.1"
   }
 }

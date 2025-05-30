@@ -381,82 +381,142 @@ components:
   schemas:
     TickerData:
       type: object
-      description: 24-hour ticker statistics for a cryptocurrency pair
+      description: |
+        24-hour ticker statistics for a cryptocurrency pair with backend-calculated metrics.
+        
+        **Backend Processing**: All calculations are performed server-side for optimal performance.
+        This includes volume conversions, percentage calculations, and range positioning.
       properties:
+        # Original Binance WebSocket fields (maintained for backward compatibility)
         s:
           type: string
           description: Symbol
           example: "BTCUSDT"
         c:
           type: string
-          description: Close price (last price)
+          description: Close price (last price) - original Binance field
           example: "67234.56"
         o:
           type: string
-          description: Open price
+          description: Open price - original Binance field
           example: "66789.12"
         h:
           type: string
-          description: High price
+          description: High price - original Binance field
           example: "68000.00"
         l:
           type: string
-          description: Low price
+          description: Low price - original Binance field
           example: "66500.00"
         v:
           type: string
-          description: Total traded base asset volume
+          description: Total traded base asset volume - original Binance field
           example: "12345.67890000"
         q:
           type: string
-          description: Total traded quote asset volume
+          description: Total traded quote asset volume - original Binance field
           example: "830123456.78900000"
         P:
           type: string
-          description: Price change percent
+          description: Price change percent - original Binance field
           example: "0.67"
         p:
           type: string
-          description: Price change
+          description: Price change - original Binance field
           example: "445.44"
         C:
           type: integer
           format: int64
-          description: Statistics close time
+          description: Statistics close time - original Binance field
           example: 1717062899999
         O:
           type: integer
           format: int64
-          description: Statistics open time
+          description: Statistics open time - original Binance field
           example: 1716976500000
+        
+        # Backend-calculated short-term changes (from candlestick data)
         change_1h:
           type: number
           format: float
-          description: Price change percentage over 1 hour
+          description: Price change percentage over 1 hour (calculated from 15m candlesticks)
           example: 1.23
           nullable: true
         change_4h:
           type: number
           format: float
-          description: Price change percentage over 4 hours
+          description: Price change percentage over 4 hours (calculated from 15m candlesticks)
           example: -2.34
           nullable: true
         change_8h:
           type: number
           format: float
-          description: Price change percentage over 8 hours
+          description: Price change percentage over 8 hours (calculated from 15m candlesticks)
           example: 3.45
           nullable: true
         change_12h:
           type: number
           format: float
-          description: Price change percentage over 12 hours
+          description: Price change percentage over 12 hours (calculated from 15m candlesticks)
           example: -1.67
           nullable: true
+        
+        # Backend-calculated additional metrics
+        price:
+          type: number
+          format: float
+          description: Current price as number (converted from string for easier frontend usage)
+          example: 67234.56
+        change_24h:
+          type: number
+          format: float
+          description: 24-hour price change percentage as number (converted from string)
+          example: 0.67
+        high_24h:
+          type: number
+          format: float
+          description: 24-hour high price as number (converted from string)
+          example: 68000.00
+        low_24h:
+          type: number
+          format: float
+          description: 24-hour low price as number (converted from string)
+          example: 66500.00
+        volume_base:
+          type: number
+          format: float
+          description: Base asset volume as number (converted from string)
+          example: 12345.68
+        volume_usd:
+          type: number
+          format: float
+          description: Volume in USD (calculated as volume_base * current_price)
+          example: 830123456.78
+        range_position_24h:
+          type: number
+          format: float
+          description: |
+            Position within 24h price range as percentage (0-100).
+            Shows where current price sits between low (0%) and high (100%).
+          example: 75.5
+          minimum: 0
+          maximum: 100
+          nullable: true
+        normalized_volume_score:
+          type: number
+          format: float
+          description: |
+            Volume significance score relative to market cap.
+            Calculated as (volume_usd * 100000) / market_cap / 100.
+            Higher values indicate more significant trading activity.
+          example: 1.25
+          nullable: true
+        
+        # Market cap data (from CoinMarketCap integration)
         market_cap:
           type: number
           format: float
-          description: Market capitalization (if available)
+          description: Market capitalization (if available from coin data)
           example: 1234567890123.45
           nullable: true
 
