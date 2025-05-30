@@ -40,16 +40,6 @@ function Ticker({ tickerArray, loading, error }) {
     return price.toFixed(8);
   };
 
-  /**
-   * Calculate normalized volume score
-   */
-  const calculateNormalizedVolume = (item) => {
-    if (!item.market_cap || !item.v || !item.c) return 0;
-    const volumeUSD = Number(item.v) * Number(item.c);
-    const score = (volumeUSD * 100000) / Number(item.market_cap);
-    return score / 100; // Return number instead of string
-  };
-
   // Memoize columns to prevent unnecessary re-renders
   const columns = useMemo(
     () => [
@@ -65,38 +55,110 @@ function Ticker({ tickerArray, loading, error }) {
       },
       {
         Header: <b className="left">Price (USD)</b>,
-        accessor: "c",
+        accessor: "price", // Use pre-calculated numeric price
         width: 120,
-        // Convert string to number for proper sorting
-        sortMethod: (a, b) => {
-          const numA = Number(a);
-          const numB = Number(b);
-          return numA > numB ? 1 : -1;
-        },
         Cell: ({ value }) => (
           <span style={{ fontFamily: "monospace" }}>${formatPrice(value)}</span>
         ),
       },
       {
         Header: <b className="left">24h Change</b>,
-        accessor: "P",
+        accessor: "change_24h", // Use pre-calculated numeric change
         width: 100,
-        // Convert string percentage to number for proper sorting
+        Cell: ({ value }) => formatPercentage(value),
+      },
+      {
+        Header: <b className="left">12h Change</b>,
+        accessor: "change_12h",
+        width: 100,
         sortMethod: (a, b) => {
           const numA = Number(a);
           const numB = Number(b);
+          if (isNaN(numA) && isNaN(numB)) return 0;
+          if (isNaN(numA)) return 1;
+          if (isNaN(numB)) return -1;
           return numA > numB ? 1 : -1;
         },
-        Cell: ({ value }) => formatPercentage(value),
+        Cell: ({ value }) => {
+          if (value === null || value === undefined) {
+            return (
+              <span style={{ color: "#777", fontSize: "0.8em" }}>N/A</span>
+            );
+          }
+          return formatPercentage(value);
+        },
+      },
+      {
+        Header: <b className="left">8h Change</b>,
+        accessor: "change_8h",
+        width: 100,
+        sortMethod: (a, b) => {
+          const numA = Number(a);
+          const numB = Number(b);
+          if (isNaN(numA) && isNaN(numB)) return 0;
+          if (isNaN(numA)) return 1;
+          if (isNaN(numB)) return -1;
+          return numA > numB ? 1 : -1;
+        },
+        Cell: ({ value }) => {
+          if (value === null || value === undefined) {
+            return (
+              <span style={{ color: "#777", fontSize: "0.8em" }}>N/A</span>
+            );
+          }
+          return formatPercentage(value);
+        },
+      },
+      {
+        Header: <b className="left">4h Change</b>,
+        accessor: "change_4h",
+        width: 100,
+        sortMethod: (a, b) => {
+          const numA = Number(a);
+          const numB = Number(b);
+          if (isNaN(numA) && isNaN(numB)) return 0;
+          if (isNaN(numA)) return 1;
+          if (isNaN(numB)) return -1;
+          return numA > numB ? 1 : -1;
+        },
+        Cell: ({ value }) => {
+          if (value === null || value === undefined) {
+            return (
+              <span style={{ color: "#777", fontSize: "0.8em" }}>N/A</span>
+            );
+          }
+          return formatPercentage(value);
+        },
+      },
+      {
+        Header: <b className="left">1h Change</b>,
+        accessor: "change_1h",
+        width: 100,
+        sortMethod: (a, b) => {
+          const numA = Number(a);
+          const numB = Number(b);
+          if (isNaN(numA) && isNaN(numB)) return 0;
+          if (isNaN(numA)) return 1;
+          if (isNaN(numB)) return -1;
+          return numA > numB ? 1 : -1;
+        },
+        Cell: ({ value }) => {
+          if (value === null || value === undefined) {
+            return (
+              <span style={{ color: "#777", fontSize: "0.8em" }}>N/A</span>
+            );
+          }
+          return formatPercentage(value);
+        },
       },
       {
         Header: <b className="left">24h High/Low</b>,
         id: "highLow",
         width: 130,
-        accessor: (d) => Number(d.h), // Sort by high price
+        accessor: (d) => d.high_24h, // Sort by pre-calculated high price
         Cell: ({ original }) => {
-          const high = Number(original.h);
-          const low = Number(original.l);
+          const high = original.high_24h;
+          const low = original.low_24h;
           return (
             <div style={{ fontFamily: "monospace", fontSize: "0.9em" }}>
               <div style={{ color: "#4CAF50" }}>${formatPrice(high)}</div>
@@ -106,14 +168,24 @@ function Ticker({ tickerArray, loading, error }) {
         },
       },
       {
-        Header: <b className="left">Volume (USD)</b>,
-        id: "volumeUSD",
-        width: 120,
-        accessor: (d) => {
-          const volumeUSD = Number(d.v) * Number(d.c);
-          return volumeUSD;
+        Header: <b className="left">24h Range %</b>,
+        accessor: "range_position_24h", // Use pre-calculated range position
+        width: 110,
+        Cell: ({ value }) => {
+          let color = "#ff9800"; // Orange for mid-range
+          if (value < 25) color = "#f44336"; // Red for low range
+          if (value > 75) color = "#4CAF50"; // Green for high range
+          return (
+            <span style={{ color, fontWeight: "bold" }}>
+              {value.toFixed(1)}%
+            </span>
+          );
         },
-        // This already returns a number, so sorting should work correctly
+      },
+      {
+        Header: <b className="left">Volume (USD)</b>,
+        accessor: "volume_usd", // Use pre-calculated USD volume
+        width: 120,
         Cell: ({ value }) => (
           <span style={{ fontFamily: "monospace" }}>
             ${formatNumber(value)}
@@ -122,9 +194,8 @@ function Ticker({ tickerArray, loading, error }) {
       },
       {
         Header: <b className="left">Volume (Base)</b>,
-        id: "volumeBase",
+        accessor: "volume_base", // Use pre-calculated base volume
         width: 120,
-        accessor: (d) => Number(d.v) || 0,
         Cell: ({ value }) => (
           <span style={{ fontFamily: "monospace" }}>{formatNumber(value)}</span>
         ),
@@ -148,12 +219,8 @@ function Ticker({ tickerArray, loading, error }) {
       },
       {
         Header: <b className="left">Norm. Volume Score</b>,
-        id: "normalizedVolume",
+        accessor: "normalized_volume_score", // Use pre-calculated score
         width: 150,
-        accessor: (d) => {
-          const score = calculateNormalizedVolume(d);
-          return Number(score); // Ensure it returns a number for sorting
-        },
         Cell: ({ value }) => (
           <span
             style={{
@@ -205,7 +272,8 @@ function Ticker({ tickerArray, loading, error }) {
         <div>Showing {tickerArray.length} USDT trading pairs</div>
         <div style={{ fontSize: "0.8em", marginTop: "5px" }}>
           💡 Filter tips: Use &gt;100 for greater than, &lt;50 for less than, or
-          10-100 for ranges
+          10-100 for ranges. Now includes 1h, 4h, 8h, 12h change columns for
+          intraday analysis!
         </div>
       </div>
 
@@ -215,7 +283,7 @@ function Ticker({ tickerArray, loading, error }) {
         defaultPageSize={20}
         defaultSorted={[
           {
-            id: "P", // Sort by 24h change percentage
+            id: "change_24h", // Sort by 24h change percentage using pre-calculated field
             desc: true, // Show biggest gainers first
           },
         ]}

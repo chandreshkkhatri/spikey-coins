@@ -1,0 +1,658 @@
+openapi: 3.0.3
+info:
+  title: Spikey Coins Proxy Server API
+  description: |
+    A comprehensive proxy server for cryptocurrency data that tunnels requests to bypass CORS issues.
+
+    This API provides real-time cryptocurrency ticker data, candlestick charts, and market cap information
+    sourced from Binance WebSocket streams and CoinGecko REST API.
+
+    ## Features
+    - Real-time 24hr ticker data with short-term price changes (1h, 4h, 8h, 12h)
+    - Historical candlestick data (15-minute intervals)
+    - Market cap data from CoinGecko
+    - Rate limiting protection
+    - CORS enabled for frontend integration
+
+    ## Data Sources
+    - **Binance WebSocket**: Real-time ticker and candlestick data
+    - **CoinGecko API**: Market cap and additional coin information
+
+    ## Rate Limiting
+    The server implements rate limiting to respect external API limits:
+    - Maximum 50 requests per minute to protect against rate limit violations
+    - Automatic backoff and retry mechanisms
+  version: 1.0.0
+  contact:
+    name: Spikey Coins Team
+  license:
+    name: ISC
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: https://your-production-domain.com
+    description: Production server (replace with actual domain)
+
+paths:
+  /:
+    get:
+      summary: Health Check
+      description: Returns server status and basic information
+      tags:
+        - Health
+      responses:
+        "200":
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Spikey Coins Proxy Server"
+                  description:
+                    type: string
+                    example: "Tunneling requests to bypass CORS issues"
+                  status:
+                    type: string
+                    example: "healthy"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2025-05-30T10:30:00.000Z"
+
+  /api/ticker:
+    get:
+      summary: Ticker Router Health Check
+      description: Returns ticker router status and statistics
+      tags:
+        - Health
+        - Ticker
+      responses:
+        "200":
+          description: Ticker router status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Ticker router is running"
+                  status:
+                    type: string
+                    example: "healthy"
+                  tickerDataCount:
+                    type: integer
+                    description: Number of ticker symbols being tracked
+                    example: 1500
+                  candlestickSymbols:
+                    type: integer
+                    description: Number of symbols with candlestick data
+                    example: 8
+                  rateLimiting:
+                    type: object
+                    properties:
+                      requestsInCurrentWindow:
+                        type: integer
+                        description: Number of requests made in current window
+                        example: 15
+                      maxRequestsPerWindow:
+                        type: integer
+                        description: Maximum requests allowed per window
+                        example: 50
+                      windowResetTime:
+                        type: string
+                        format: date-time
+                        description: When the current rate limit window resets
+                        example: "2025-05-30T10:31:00.000Z"
+
+  /api/ticker/24hr:
+    get:
+      summary: Get 24-Hour Ticker Data
+      description: |
+        Returns comprehensive 24-hour ticker statistics for all tracked cryptocurrency pairs.
+
+        Each ticker includes:
+        - Real-time price data
+        - 24-hour price change and volume
+        - Short-term price changes (1h, 4h, 8h, 12h) calculated from 15-minute candlestick data
+        - Market cap data (where available)
+
+        The data is continuously updated via Binance WebSocket streams.
+      tags:
+        - Ticker
+      responses:
+        "200":
+          description: Successful response with ticker data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TickerData"
+                  count:
+                    type: integer
+                    description: Number of ticker symbols returned
+                    example: 1500
+                  candlestickSymbols:
+                    type: integer
+                    description: Number of symbols with candlestick data available
+                    example: 8
+                  timestamp:
+                    type: string
+                    format: date-time
+                    description: When the data was retrieved
+                    example: "2025-05-30T10:30:00.000Z"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/ticker/candlestick:
+    get:
+      summary: Get Candlestick Summary
+      description: |
+        Returns a summary of all available candlestick data symbols.
+
+        This endpoint provides an overview of which cryptocurrency pairs have candlestick data available,
+        along with the number of candles and the latest timestamp for each symbol.
+      tags:
+        - Candlestick
+      responses:
+        "200":
+          description: Successful response with candlestick summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  symbols:
+                    type: array
+                    items:
+                      type: string
+                    description: List of symbols with candlestick data
+                    example: ["BTCUSDT", "ETHUSDT", "BNBUSDT"]
+                  summary:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        symbol:
+                          type: string
+                          example: "BTCUSDT"
+                        candleCount:
+                          type: integer
+                          description: Number of candlesticks available
+                          example: 48
+                        latestTime:
+                          type: integer
+                          format: int64
+                          description: Timestamp of the latest candlestick (Unix timestamp)
+                          example: 1717062000000
+                  count:
+                    type: integer
+                    description: Number of symbols with candlestick data
+                    example: 8
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2025-05-30T10:30:00.000Z"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/ticker/candlestick/{symbol}:
+    get:
+      summary: Get Candlestick Data for Symbol
+      description: |
+        Returns detailed candlestick data for a specific cryptocurrency symbol.
+
+        The data includes:
+        - 15-minute interval candlesticks
+        - Up to 48 candlesticks (covering 12 hours)
+        - OHLCV (Open, High, Low, Close, Volume) data
+        - Timestamps for each candlestick
+
+        This data is used for calculating short-term price changes and can be used for charting.
+      tags:
+        - Candlestick
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          description: The cryptocurrency symbol (e.g., BTCUSDT, ETHUSDT)
+          schema:
+            type: string
+            example: "BTCUSDT"
+      responses:
+        "200":
+          description: Successful response with candlestick data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  symbol:
+                    type: string
+                    example: "BTCUSDT"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/CandlestickData"
+                  count:
+                    type: integer
+                    description: Number of candlesticks returned
+                    example: 48
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2025-05-30T10:30:00.000Z"
+        "404":
+          description: Symbol not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "No candlestick data available for UNKNOWN"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/ticker/marketCap:
+    get:
+      summary: Get Market Cap Data
+      description: |
+        Fetches current market capitalization data from CoinGecko API.
+
+        This endpoint returns comprehensive market data including:
+        - Current price in USD
+        - Market capitalization
+        - 24-hour trading volume
+        - Price changes over various timeframes
+        - Market cap ranking
+
+        **Note**: Requires COINGECKO_API_KEY environment variable to be configured.
+      tags:
+        - Market Data
+      responses:
+        "200":
+          description: Successful response with market cap data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/MarketCapData"
+                  count:
+                    type: integer
+                    description: Number of coins returned
+                    example: 100
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2025-05-30T10:30:00.000Z"
+        "400":
+          description: Bad request - No coin IDs available
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "No coin IDs available for market cap lookup"
+        "500":
+          description: Internal server error or missing API key
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "CoinGecko API key is not configured"
+
+  /api/ticker/refreshMarketcapData:
+    get:
+      summary: Refresh Market Cap Data
+      description: |
+        Placeholder endpoint for refreshing market cap data.
+
+        **Note**: This feature is not yet implemented. Currently returns a message 
+        indicating the feature is under development.
+      tags:
+        - Market Data
+      responses:
+        "200":
+          description: Feature not implemented response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Market cap data refresh feature is not yet implemented"
+
+components:
+  schemas:
+    TickerData:
+      type: object
+      description: 24-hour ticker statistics for a cryptocurrency pair
+      properties:
+        s:
+          type: string
+          description: Symbol
+          example: "BTCUSDT"
+        c:
+          type: string
+          description: Close price (last price)
+          example: "67234.56"
+        o:
+          type: string
+          description: Open price
+          example: "66789.12"
+        h:
+          type: string
+          description: High price
+          example: "68000.00"
+        l:
+          type: string
+          description: Low price
+          example: "66500.00"
+        v:
+          type: string
+          description: Total traded base asset volume
+          example: "12345.67890000"
+        q:
+          type: string
+          description: Total traded quote asset volume
+          example: "830123456.78900000"
+        P:
+          type: string
+          description: Price change percent
+          example: "0.67"
+        p:
+          type: string
+          description: Price change
+          example: "445.44"
+        C:
+          type: integer
+          format: int64
+          description: Statistics close time
+          example: 1717062899999
+        O:
+          type: integer
+          format: int64
+          description: Statistics open time
+          example: 1716976500000
+        change_1h:
+          type: number
+          format: float
+          description: Price change percentage over 1 hour
+          example: 1.23
+          nullable: true
+        change_4h:
+          type: number
+          format: float
+          description: Price change percentage over 4 hours
+          example: -2.34
+          nullable: true
+        change_8h:
+          type: number
+          format: float
+          description: Price change percentage over 8 hours
+          example: 3.45
+          nullable: true
+        change_12h:
+          type: number
+          format: float
+          description: Price change percentage over 12 hours
+          example: -1.67
+          nullable: true
+        market_cap:
+          type: number
+          format: float
+          description: Market capitalization (if available)
+          example: 1234567890123.45
+          nullable: true
+
+    CandlestickData:
+      type: object
+      description: Candlestick data for a specific time interval
+      properties:
+        symbol:
+          type: string
+          description: Symbol name
+          example: "BTCUSDT"
+        openTime:
+          type: integer
+          format: int64
+          description: Kline open time (Unix timestamp)
+          example: 1717061100000
+        closeTime:
+          type: integer
+          format: int64
+          description: Kline close time (Unix timestamp)
+          example: 1717061999999
+        open:
+          type: string
+          description: Open price
+          example: "67000.00"
+        high:
+          type: string
+          description: High price
+          example: "67250.00"
+        low:
+          type: string
+          description: Low price
+          example: "66950.00"
+        close:
+          type: string
+          description: Close price
+          example: "67150.00"
+        volume:
+          type: string
+          description: Volume
+          example: "123.45678900"
+        interval:
+          type: string
+          description: Kline interval
+          example: "15m"
+
+    MarketCapData:
+      type: object
+      description: Market capitalization data from CoinGecko
+      properties:
+        id:
+          type: string
+          description: CoinGecko coin ID
+          example: "bitcoin"
+        symbol:
+          type: string
+          description: Coin symbol
+          example: "btc"
+        name:
+          type: string
+          description: Coin name
+          example: "Bitcoin"
+        image:
+          type: string
+          description: Coin image URL
+          example: "https://assets.coingecko.com/coins/images/1/large/bitcoin.png"
+        current_price:
+          type: number
+          format: float
+          description: Current price in USD
+          example: 67234.56
+        market_cap:
+          type: number
+          format: float
+          description: Market capitalization
+          example: 1234567890123.45
+        market_cap_rank:
+          type: integer
+          description: Market cap ranking
+          example: 1
+        fully_diluted_valuation:
+          type: number
+          format: float
+          description: Fully diluted valuation
+          example: 1345678901234.56
+          nullable: true
+        total_volume:
+          type: number
+          format: float
+          description: 24h trading volume
+          example: 12345678901.23
+        high_24h:
+          type: number
+          format: float
+          description: 24h high price
+          example: 68000.00
+        low_24h:
+          type: number
+          format: float
+          description: 24h low price
+          example: 66500.00
+        price_change_24h:
+          type: number
+          format: float
+          description: 24h price change
+          example: 445.44
+        price_change_percentage_24h:
+          type: number
+          format: float
+          description: 24h price change percentage
+          example: 0.67
+        market_cap_change_24h:
+          type: number
+          format: float
+          description: 24h market cap change
+          example: 8765432109.87
+        market_cap_change_percentage_24h:
+          type: number
+          format: float
+          description: 24h market cap change percentage
+          example: 0.71
+        circulating_supply:
+          type: number
+          format: float
+          description: Circulating supply
+          example: 19765432.1
+        total_supply:
+          type: number
+          format: float
+          description: Total supply
+          example: 21000000.0
+          nullable: true
+        max_supply:
+          type: number
+          format: float
+          description: Maximum supply
+          example: 21000000.0
+          nullable: true
+        ath:
+          type: number
+          format: float
+          description: All-time high price
+          example: 73750.07
+        ath_change_percentage:
+          type: number
+          format: float
+          description: Change from all-time high (percentage)
+          example: -8.84
+        ath_date:
+          type: string
+          format: date-time
+          description: All-time high date
+          example: "2024-03-14T07:10:36.635Z"
+        atl:
+          type: number
+          format: float
+          description: All-time low price
+          example: 67.81
+        atl_change_percentage:
+          type: number
+          format: float
+          description: Change from all-time low (percentage)
+          example: 99145.67
+        atl_date:
+          type: string
+          format: date-time
+          description: All-time low date
+          example: "2013-07-06T00:00:00.000Z"
+        last_updated:
+          type: string
+          format: date-time
+          description: Last updated timestamp
+          example: "2025-05-30T10:29:45.123Z"
+
+    ErrorResponse:
+      type: object
+      description: Standard error response
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: Error message
+          example: "Failed to retrieve data"
+
+tags:
+  - name: Health
+    description: Health check and status endpoints
+  - name: Ticker
+    description: Real-time cryptocurrency ticker data
+  - name: Candlestick
+    description: Historical candlestick chart data
+  - name: Market Data
+    description: Market capitalization and additional market information
+
+externalDocs:
+  description: GitHub Repository
+  url: https://github.com/your-username/spikey-coins

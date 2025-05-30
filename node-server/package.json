@@ -6,7 +6,10 @@
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "docs:validate": "node validate-api.js --validate",
+    "docs:test": "node validate-api.js --test",
+    "docs:examples": "node validate-api.js --examples"
   },
   "keywords": [
     "crypto",
@@ -24,6 +27,8 @@
     "dotenv": "^16.4.7",
     "express": "^4.16.4",
     "nodemon": "^1.18.9",
-    "ws": "^8.18.0"
+    "swagger-ui-express": "^5.0.1",
+    "ws": "^8.18.0",
+    "yamljs": "^0.3.0"
   }
 }
