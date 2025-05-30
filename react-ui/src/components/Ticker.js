@@ -47,7 +47,7 @@ function Ticker({ tickerArray, loading, error }) {
     if (!item.market_cap || !item.v || !item.c) return 0;
     const volumeUSD = Number(item.v) * Number(item.c);
     const score = (volumeUSD * 100000) / Number(item.market_cap);
-    return (score / 100).toFixed(2);
+    return score / 100; // Return number instead of string
   };
 
   // Memoize columns to prevent unnecessary re-renders
@@ -67,6 +67,12 @@ function Ticker({ tickerArray, loading, error }) {
         Header: <b className="left">Price (USD)</b>,
         accessor: "c",
         width: 120,
+        // Convert string to number for proper sorting
+        sortMethod: (a, b) => {
+          const numA = Number(a);
+          const numB = Number(b);
+          return numA > numB ? 1 : -1;
+        },
         Cell: ({ value }) => (
           <span style={{ fontFamily: "monospace" }}>${formatPrice(value)}</span>
         ),
@@ -75,7 +81,29 @@ function Ticker({ tickerArray, loading, error }) {
         Header: <b className="left">24h Change</b>,
         accessor: "P",
         width: 100,
+        // Convert string percentage to number for proper sorting
+        sortMethod: (a, b) => {
+          const numA = Number(a);
+          const numB = Number(b);
+          return numA > numB ? 1 : -1;
+        },
         Cell: ({ value }) => formatPercentage(value),
+      },
+      {
+        Header: <b className="left">24h High/Low</b>,
+        id: "highLow",
+        width: 130,
+        accessor: (d) => Number(d.h), // Sort by high price
+        Cell: ({ original }) => {
+          const high = Number(original.h);
+          const low = Number(original.l);
+          return (
+            <div style={{ fontFamily: "monospace", fontSize: "0.9em" }}>
+              <div style={{ color: "#4CAF50" }}>${formatPrice(high)}</div>
+              <div style={{ color: "#f44336" }}>${formatPrice(low)}</div>
+            </div>
+          );
+        },
       },
       {
         Header: <b className="left">Volume (USD)</b>,
@@ -85,6 +113,7 @@ function Ticker({ tickerArray, loading, error }) {
           const volumeUSD = Number(d.v) * Number(d.c);
           return volumeUSD;
         },
+        // This already returns a number, so sorting should work correctly
         Cell: ({ value }) => (
           <span style={{ fontFamily: "monospace" }}>
             ${formatNumber(value)}
@@ -92,10 +121,20 @@ function Ticker({ tickerArray, loading, error }) {
         ),
       },
       {
+        Header: <b className="left">Volume (Base)</b>,
+        id: "volumeBase",
+        width: 120,
+        accessor: (d) => Number(d.v) || 0,
+        Cell: ({ value }) => (
+          <span style={{ fontFamily: "monospace" }}>{formatNumber(value)}</span>
+        ),
+      },
+      {
         Header: <b className="left">Market Cap</b>,
         id: "marketCap",
         width: 120,
         accessor: (d) => d.market_cap || 0,
+        // This already returns a number, so sorting should work correctly
         Cell: ({ value }) => (
           <span
             style={{
@@ -111,7 +150,10 @@ function Ticker({ tickerArray, loading, error }) {
         Header: <b className="left">Norm. Volume Score</b>,
         id: "normalizedVolume",
         width: 150,
-        accessor: (d) => calculateNormalizedVolume(d),
+        accessor: (d) => {
+          const score = calculateNormalizedVolume(d);
+          return Number(score); // Ensure it returns a number for sorting
+        },
         Cell: ({ value }) => (
           <span
             style={{
@@ -120,7 +162,7 @@ function Ticker({ tickerArray, loading, error }) {
                 value > 1 ? "#4CAF50" : value > 0.5 ? "#FF9800" : "inherit",
             }}
           >
-            {value}
+            {value.toFixed(2)}
           </span>
         ),
       },
@@ -160,7 +202,11 @@ function Ticker({ tickerArray, loading, error }) {
   return (
     <div>
       <div style={{ padding: "10px 0", color: "#666" }}>
-        Showing {tickerArray.length} USDT trading pairs
+        <div>Showing {tickerArray.length} USDT trading pairs</div>
+        <div style={{ fontSize: "0.8em", marginTop: "5px" }}>
+          💡 Filter tips: Use &gt;100 for greater than, &lt;50 for less than, or
+          10-100 for ranges
+        </div>
       </div>
 
       <ReactTable
@@ -169,8 +215,8 @@ function Ticker({ tickerArray, loading, error }) {
         defaultPageSize={20}
         defaultSorted={[
           {
-            id: "volumeUSD",
-            desc: true,
+            id: "P", // Sort by 24h change percentage
+            desc: true, // Show biggest gainers first
           },
         ]}
         className="instrument-table -striped -highlight"
@@ -181,11 +227,35 @@ function Ticker({ tickerArray, loading, error }) {
         showPaginationBottom={true}
         pageSizeOptions={[10, 20, 50, 100]}
         filterable={true}
-        defaultFilterMethod={(filter, row) =>
-          String(row[filter.id])
-            .toLowerCase()
-            .includes(filter.value.toLowerCase())
-        }
+        defaultFilterMethod={(filter, row) => {
+          const value = row[filter.id];
+          const filterValue = filter.value.toLowerCase();
+
+          // For string values, use includes
+          if (typeof value === "string") {
+            return value.toLowerCase().includes(filterValue);
+          }
+
+          // For numbers, support range filtering (e.g., ">100", "<50", "50-100")
+          if (typeof value === "number") {
+            if (filterValue.startsWith(">")) {
+              const threshold = Number(filterValue.slice(1));
+              return !isNaN(threshold) && value > threshold;
+            }
+            if (filterValue.startsWith("<")) {
+              const threshold = Number(filterValue.slice(1));
+              return !isNaN(threshold) && value < threshold;
+            }
+            if (filterValue.includes("-")) {
+              const [min, max] = filterValue.split("-").map(Number);
+              return !isNaN(min) && !isNaN(max) && value >= min && value <= max;
+            }
+            // Default: convert both to string and use includes
+            return String(value).toLowerCase().includes(filterValue);
+          }
+
+          return String(value).toLowerCase().includes(filterValue);
+        }}
       />
     </div>
   );
