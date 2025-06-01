@@ -1,7 +1,9 @@
 {
   "name": "spikey-coins-ui",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
+  "description": "React UI for Spikey Coins cryptocurrency tracker",
+  "homepage": ".",
   "dependencies": {
     "axios": "^0.18.1",
     "https-proxy-agent": "^2.2.1",
@@ -14,10 +16,11 @@
     "react-websocket": "^2.0.0"
   },
   "scripts": {
-    "start": "export SET NODE_OPTIONS=--openssl-legacy-provider && react-scripts start",
-    "build": "react-scripts build",
+    "start": "NODE_OPTIONS=--openssl-legacy-provider react-scripts start",
+    "build": "NODE_OPTIONS=--openssl-legacy-provider react-scripts build",
     "test": "react-scripts test --env=jsdom",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "serve": "npm run build && serve -s build"
   },
   "browserslist": [
     ">0.2%",

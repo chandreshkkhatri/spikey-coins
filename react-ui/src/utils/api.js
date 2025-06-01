@@ -1,16 +1,59 @@
 import axios from "axios";
-const config = require("./config.json");
+import config from "./config.json";
 
-const api_endpoint = config.base_url;
+// API configuration
+const API_BASE_URL = config.base_url;
 
-const api = {
-  api_endpoint: api_endpoint,
-  get24hrTicker() {
-    return axios.get(this.api_endpoint + "api/ticker/24hr");
+// Create axios instance with default config
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 10000,
+  headers: {
+    "Content-Type": "application/json",
   },
-  refreshMarketcapData() {
-    return axios.get(this.api_endpoint + "api/ticker/refreshMarketcapData");
+});
+
+// API methods
+export const api = {
+  /**
+   * Get 24-hour ticker data from Binance
+   * @returns {Promise} Axios response with ticker data
+   */
+  async get24hrTicker() {
+    try {
+      const response = await apiClient.get("/api/ticker/24hr");
+      return response;
+    } catch (error) {
+      console.error("Error fetching 24hr ticker data:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Refresh market cap data
+   * @returns {Promise} Axios response
+   */
+  async refreshMarketcapData() {
+    try {
+      const response = await apiClient.get("/api/ticker/refreshMarketcapData");
+      return response;
+    } catch (error) {
+      console.error("Error refreshing market cap data:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get market cap data from CoinGecko
+   * @returns {Promise} Axios response with market cap data
+   */
+  async getMarketCapData() {
+    try {
+      const response = await apiClient.get("/api/ticker/marketCap");
+      return response;
+    } catch (error) {
+      console.error("Error fetching market cap data:", error);
+      throw error;
+    }
   },
 };
-
-export { api };

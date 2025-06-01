@@ -1,3 +1,6 @@
 {
-    "base_url": "http://localhost:8000/"
+    "base_url": "http://localhost:8000/",
+    "api_timeout": 10000,
+    "default_page_size": 20,
+    "refresh_interval": 30000
 }
