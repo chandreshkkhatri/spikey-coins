@@ -13,7 +13,7 @@ const path = require("path");
 const app = express();
 
 // Enable strict routing so /candlestick and /candlestick/ are different
-app.set('strict routing', true);
+app.set("strict routing", true);
 
 // Middleware
 app.use(cors());
@@ -169,7 +169,7 @@ mockTickerRouter.get("/candlestick", (req, res, next) => {
     return res.status(404).json({
       success: false,
       error: "Symbol parameter is required",
-      path: req.originalUrl
+      path: req.originalUrl,
     });
   }
   try {
@@ -202,7 +202,7 @@ mockTickerRouter.get("/candlestick/", (req, res) => {
   res.status(404).json({
     success: false,
     error: "Symbol parameter is required",
-    path: req.originalUrl
+    path: req.originalUrl,
   });
 });
 
@@ -213,12 +213,13 @@ mockTickerRouter.use((req, res, next) => {
   if (
     req.path === "/candlestick/" ||
     req.path === "/candlestick//" ||
-    (/^\/candlestick\/.+\/$/.test(req.path))
+    /^\/candlestick\/.+\/$/.test(req.path)
   ) {
     return res.status(404).json({
       success: false,
-      error: "Invalid endpoint format (trailing slash or empty symbol not allowed)",
-      path: req.originalUrl
+      error:
+        "Invalid endpoint format (trailing slash or empty symbol not allowed)",
+      path: req.originalUrl,
     });
   }
   next();

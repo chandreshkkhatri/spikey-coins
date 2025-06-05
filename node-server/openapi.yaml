@@ -383,7 +383,7 @@ components:
       type: object
       description: |
         24-hour ticker statistics for a cryptocurrency pair with backend-calculated metrics.
-        
+
         **Backend Processing**: All calculations are performed server-side for optimal performance.
         This includes volume conversions, percentage calculations, and range positioning.
       properties:
@@ -434,7 +434,7 @@ components:
           format: int64
           description: Statistics open time - original Binance field
           example: 1716976500000
-        
+
         # Backend-calculated short-term changes (from candlestick data)
         change_1h:
           type: number
@@ -460,7 +460,7 @@ components:
           description: Price change percentage over 12 hours (calculated from 15m candlesticks)
           example: -1.67
           nullable: true
-        
+
         # Backend-calculated additional metrics
         price:
           type: number
@@ -511,7 +511,7 @@ components:
             Higher values indicate more significant trading activity.
           example: 1.25
           nullable: true
-        
+
         # Market cap data (from CoinMarketCap integration)
         market_cap:
           type: number
