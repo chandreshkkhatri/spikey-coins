@@ -233,12 +233,12 @@ function updateTickerData(responseData) {
     } else {
       // Add new ticker data
       latestTickerData.push(item);
+    }
 
-      // Add market cap data if available
-      if (item.s.endsWith(USDT_SUFFIX) && coinmarketcapMap.has(item.s)) {
-        const marketCapData = coinmarketcapMap.get(item.s);
-        item.market_cap = marketCapData.market_cap;
-      }
+    // Add market cap data if available
+    if (item.s.endsWith(USDT_SUFFIX) && coinmarketcapMap.has(item.s)) {
+      const marketCapData = coinmarketcapMap.get(item.s);
+      item.market_cap = marketCapData.market_cap;
     }
 
     // Add short-term changes if candlestick data is available
