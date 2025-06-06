@@ -346,6 +346,6 @@ describe("Market Cap Update", () => {
     // we acknowledge this test is a placeholder for the logic.
     // A true test would require refactoring or an integration testing approach.
     expect(true).toBe(true); // Placeholder assertion
-    console.log("Market Cap Update test suite added. Note: Direct testing of updateTickerData is currently challenging without refactoring ticker-router.js.");
+    // Note: Direct testing of updateTickerData is currently challenging without refactoring ticker-router.js.
   });
 });
