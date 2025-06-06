@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 const { Console } = require("console");
 const axios = require("axios");
-require("dotenv").config();
 const { WebsocketStream } = require("@binance/connector");
 const cors = require("cors");
 const coingeckoIds = require("../coin-data/coingecko-ids.json");
