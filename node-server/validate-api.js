@@ -7,204 +7,137 @@
  * example usage of the API endpoints.
  */
 
-const axios = require("axios");
 const YAML = require("yamljs");
+const axios = require("axios");
+const path = require("path");
+const logger = require("./helpers/logger"); // Import the logger
 
-// Configuration
-const BASE_URL = process.env.API_BASE_URL || "http://localhost:8000";
-const TIMEOUT = 10000; // 10 seconds
-
-// Load OpenAPI spec
+const BASE_URL = "http://localhost:8000"; // Replace with your actual base URL
 let swaggerDoc;
+
+// Load OpenAPI specification
 try {
-  swaggerDoc = YAML.load("./openapi.yaml");
-  console.log("✅ OpenAPI specification loaded successfully");
+  const openApiPath = path.resolve(__dirname, "./openapi.yaml");
+  swaggerDoc = YAML.load(openApiPath);
+  logger.info("✅ OpenAPI specification loaded successfully");
 } catch (error) {
-  console.error("❌ Failed to load OpenAPI specification:", error.message);
+  logger.error("❌ Failed to load OpenAPI specification:", error.message);
   process.exit(1);
 }
 
-/**
- * Test an API endpoint
- */
-async function testEndpoint(method, path, description) {
+async function testEndpoint(method, path, description, expectedStatus = 200) {
   try {
-    console.log(`\n🔍 Testing: ${description}`);
-    console.log(`   ${method.toUpperCase()} ${BASE_URL}${path}`);
-
-    const response = await axios({
-      method,
-      url: `${BASE_URL}${path}`,
-      timeout: TIMEOUT,
-      validateStatus: () => true, // Accept any status code
-    });
-
-    const statusText = response.status < 400 ? "✅" : "⚠️";
-    console.log(
-      `   ${statusText} Status: ${response.status} ${response.statusText}`
-    );
-
-    if (response.data) {
-      if (typeof response.data === "object") {
-        const keys = Object.keys(response.data);
-        console.log(
-          `   📄 Response keys: ${keys.slice(0, 5).join(", ")}${
-            keys.length > 5 ? "..." : ""
-          }`
-        );
-
-        // Show specific info for different endpoints
-        if (response.data.data && Array.isArray(response.data.data)) {
-          console.log(`   📊 Data count: ${response.data.data.length}`);
-        }
-        if (response.data.success !== undefined) {
-          console.log(`   🎯 Success: ${response.data.success}`);
-        }
-      }
+    logger.info(`\n🔍 Testing: ${description}`);
+    logger.info(`   ${method.toUpperCase()} ${BASE_URL}${path}`);
+    let response;
+    if (method === "get") {
+      response = await axios.get(`${BASE_URL}${path}`);
+    } else if (method === "post") {
+      // response = await axios.post(`${BASE_URL}${path}`, {}); // Example for POST
     }
 
-    return response;
+    logger.info(
+      `   ✔️ Status: ${response.status} (Expected: ${expectedStatus})`
+    );
+    if (response.status !== expectedStatus) {
+      logger.warn(
+        `   ⚠️ Unexpected status code: ${response.status}. Response:`,
+        {
+          data: response.data,
+        } // Pass response.data as an object for better logging
+      );
+    } else {
+      if (
+        response.data &&
+        response.data.data &&
+        Array.isArray(response.data.data)
+      ) {
+        logger.info(`   📊 Data count: ${response.data.data.length}`);
+      }
+      if (typeof response.data.success !== "undefined") {
+        logger.info(`   🎯 Success: ${response.data.success}`);
+      }
+    }
+    return response.data;
   } catch (error) {
-    console.log(`   ❌ Error: ${error.message}`);
-    return null;
+    logger.error(
+      `   ❌ Error testing endpoint ${method.toUpperCase()} ${path}: ${
+        error.message
+      }`
+    );
+    if (error.response) {
+      logger.error("   Error Response Status:", error.response.status);
+      logger.error("   Error Response Data:", error.response.data);
+    }
+    return null; // Return null or throw error as appropriate
   }
 }
 
-/**
- * Main testing function
- */
-async function runTests() {
-  console.log("🚀 Starting API Documentation Tests");
-  console.log(`📡 Base URL: ${BASE_URL}`);
-  console.log("─".repeat(60));
+async function runDocumentationTests() {
+  if (!swaggerDoc) {
+    logger.error("OpenAPI spec not loaded. Exiting tests.");
+    return;
+  }
+  logger.info("🚀 Starting API Documentation Tests");
+  logger.info(`📡 Base URL: ${BASE_URL}`);
+  logger.info("─".repeat(60));
 
-  // Test health endpoints
-  await testEndpoint("GET", "/", "Server Health Check");
-  await testEndpoint("GET", "/api/ticker", "Ticker Router Health Check");
+  if (swaggerDoc && swaggerDoc.paths) {
+    for (const pathKey in swaggerDoc.paths) {
+      for (const method in swaggerDoc.paths[pathKey]) {
+        const endpointInfo = swaggerDoc.paths[pathKey][method];
+        const description =
+          endpointInfo.summary ||
+          endpointInfo.description ||
+          `Test ${method.toUpperCase()} ${pathKey}`;
+        // Assuming 200 for GET, 201 for POST, etc. Adjust as needed.
+        const expectedStatus = method.toLowerCase() === "post" ? 201 : 200;
+        await testEndpoint(method, pathKey, description, expectedStatus);
+      }
+    }
+  }
 
-  // Test main API endpoints
-  await testEndpoint("GET", "/api/ticker/24hr", "24-Hour Ticker Data");
-  await testEndpoint("GET", "/api/ticker/candlestick", "Candlestick Summary");
-  await testEndpoint(
-    "GET",
-    "/api/ticker/candlestick/BTCUSDT",
-    "Bitcoin Candlestick Data"
-  );
-  await testEndpoint("GET", "/api/ticker/marketCap", "Market Cap Data");
-
-  // Test documentation endpoints
-  await testEndpoint("GET", "/openapi.json", "OpenAPI Specification");
-
-  console.log("\n" + "─".repeat(60));
-  console.log("✨ API Documentation Testing Complete!");
-  console.log(`\n📚 View interactive documentation at: ${BASE_URL}/docs`);
-  console.log(`📄 OpenAPI spec available at: ${BASE_URL}/openapi.json`);
+  logger.info("\n" + "─".repeat(60));
+  logger.info("✨ API Documentation Testing Complete!");
+  logger.info(`\n📚 View interactive documentation at: ${BASE_URL}/docs`);
+  logger.info(`📄 OpenAPI spec available at: ${BASE_URL}/openapi.json`);
 }
 
-/**
- * Validate OpenAPI specification
- */
-function validateSpec() {
-  console.log("\n🔍 Validating OpenAPI Specification...");
-
-  const requiredFields = ["openapi", "info", "paths"];
-  const missingFields = requiredFields.filter((field) => !swaggerDoc[field]);
+function validateOpenApiSpecStructure(spec) {
+  logger.info("\n🔍 Validating OpenAPI Specification Structure...");
+  const requiredTopLevelFields = ["openapi", "info", "paths"];
+  const missingFields = requiredTopLevelFields.filter((field) => !spec[field]);
 
   if (missingFields.length > 0) {
-    console.log(`❌ Missing required fields: ${missingFields.join(", ")}`);
+    logger.error(
+      `❌ Missing required fields in OpenAPI spec: ${missingFields.join(", ")}`
+    );
     return false;
   }
 
-  console.log("✅ OpenAPI specification structure is valid");
-  console.log(`   📖 Title: ${swaggerDoc.info.title}`);
-  console.log(`   🔖 Version: ${swaggerDoc.info.version}`);
-  console.log(`   🛣️  Paths: ${Object.keys(swaggerDoc.paths).length}`);
-  console.log(
-    `   🏷️  Schemas: ${
-      Object.keys(swaggerDoc.components?.schemas || {}).length
-    }`
-  );
+  if (!spec.info || !spec.info.title || !spec.info.version) {
+    logger.error(
+      "❌ Missing required fields in info object: title and version"
+    );
+    return false;
+  }
 
+  logger.info("✅ OpenAPI specification structure is valid");
+  logger.info(`   📖 Title: ${spec.info.title}`);
+  logger.info(`   🏷️ Version: ${spec.info.version}`);
   return true;
 }
 
-/**
- * Display usage examples
- */
-function showUsageExamples() {
-  console.log("\n" + "=".repeat(60));
-  console.log("📋 USAGE EXAMPLES");
-  console.log("=".repeat(60));
-
-  const examples = [
-    {
-      title: "Get all ticker data with short-term changes",
-      command: `curl "${BASE_URL}/api/ticker/24hr" | jq '.data[0]'`,
-    },
-    {
-      title: "Get Bitcoin candlestick data",
-      command: `curl "${BASE_URL}/api/ticker/candlestick/BTCUSDT" | jq '.data[-1]'`,
-    },
-    {
-      title: "Get market cap data",
-      command: `curl "${BASE_URL}/api/ticker/marketCap" | jq '.data[0]'`,
-    },
-    {
-      title: "Check server health",
-      command: `curl "${BASE_URL}/" | jq '.'`,
-    },
-  ];
-
-  examples.forEach((example, index) => {
-    console.log(`\n${index + 1}. ${example.title}:`);
-    console.log(`   ${example.command}`);
-  });
-
-  console.log("\n" + "=".repeat(60));
-}
-
-// Handle command line arguments
-const args = process.argv.slice(2);
-
-if (args.includes("--help") || args.includes("-h")) {
-  console.log(`
-API Documentation Validator and Tester
-
-Usage:
-  node validate-api.js [options]
-
-Options:
-  --test, -t     Run API endpoint tests
-  --validate     Validate OpenAPI specification only
-  --examples     Show usage examples
-  --help, -h     Show this help message
-
-Environment Variables:
-  API_BASE_URL   Base URL for API testing (default: http://localhost:8000)
-
-Examples:
-  node validate-api.js --test
-  node validate-api.js --validate
-  API_BASE_URL=https://api.example.com node validate-api.js --test
-`);
-  process.exit(0);
-}
-
-// Run based on arguments
 async function main() {
-  if (args.includes("--validate")) {
-    validateSpec();
-  } else if (args.includes("--examples")) {
-    showUsageExamples();
-  } else if (
-    args.includes("--test") ||
-    args.includes("-t") ||
-    args.length === 0
-  ) {
-    validateSpec();
-    await runTests();
-    showUsageExamples();
+  if (!swaggerDoc) {
+    logger.error("Swagger document not loaded. Cannot run tests.");
+    return;
+  }
+  if (validateOpenApiSpecStructure(swaggerDoc)) {
+    await runDocumentationTests();
   }
 }
 
-main().catch(console.error);
+main().catch((error) => {
+  logger.error("Unhandled error during script execution:", error);
+});

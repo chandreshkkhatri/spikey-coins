@@ -4,39 +4,46 @@
 
 const { Console } = require("console");
 const { calculatePercentageChange } = require("../helpers/calculations");
+const { CALCULATION_INTERVALS } = require("../config/constants");
 
 // Initialize logger
 const logger = new Console({ stdout: process.stdout, stderr: process.stderr });
 
 // Global state for ticker and candlestick data
 let latestTickerData = [];
-let candlestickData = new Map(); // Map<symbol, Array<candlestick>>
+// Map structure: Map<symbol, Map<interval, Array<candlestick>>>
+// Example: candlestickData.get("BTCUSDT").get("5m") = [array of 5min candles]
+let candlestickData = new Map();
 
 /**
- * Get price from N intervals ago for a symbol (works with any timeframe)
+ * Get price from N intervals ago for a symbol using specific timeframe
  * @param {string} symbol - Trading pair symbol
+ * @param {string} interval - Timeframe interval (5m, 30m, 1h)
  * @param {number} intervalsAgo - Number of intervals to look back
  * @returns {number|null} Price from N intervals ago
  */
-function getPriceNIntervalsAgo(symbol, intervalsAgo) {
-  const symbolData = candlestickData.get(symbol);
-  if (!symbolData || symbolData.length === 0) return null;
+function getPriceNIntervalsAgo(symbol, interval, intervalsAgo) {
+  const symbolIntervalData = candlestickData.get(symbol);
+  if (!symbolIntervalData) return null;
+  
+  const intervalData = symbolIntervalData.get(interval);
+  if (!intervalData || intervalData.length === 0) return null;
 
-  // Fix: Use correct indexing - if we want price from 4 intervals ago,
-  // and we have 48 candles (indices 0-47), we want index 43 (47-4)
-  const targetIndex = symbolData.length - intervalsAgo;
+  // Use correct indexing - if we want price from N intervals ago,
+  // and we have X candles (indices 0 to X-1), we want index (X-1-N)
+  const targetIndex = intervalData.length - 1 - intervalsAgo;
   if (targetIndex < 0) return null;
 
-  return parseFloat(symbolData[targetIndex].close);
+  return parseFloat(intervalData[targetIndex].close);
 }
 
 /**
- * Calculate short-term changes for a symbol using 15-minute intervals
- * This provides immediate data availability:
- * - 1h change: 4 intervals ago (4 * 15min = 1h)
- * - 4h change: 16 intervals ago (16 * 15min = 4h)
- * - 8h change: 32 intervals ago (32 * 15min = 8h)
- * - 12h change: 48 intervals ago (48 * 15min = 12h)
+ * Calculate short-term changes for a symbol using appropriate timeframes
+ * Uses different candlestick intervals for accurate calculations:
+ * - 1h change: 5-minute intervals (12 periods back)
+ * - 4h change: 30-minute intervals (8 periods back) 
+ * - 8h change: 30-minute intervals (16 periods back)
+ * - 12h change: 1-hour intervals (12 periods back)
  * @param {string} symbol - Trading pair symbol
  * @param {number} currentPrice - Current price
  * @returns {Object} Short-term price changes
@@ -48,22 +55,19 @@ function calculateShortTermChanges(symbol, currentPrice) {
     change_8h: null,
     change_12h: null,
   };
-
   try {
-    // Using 15-minute intervals for efficient calculation
-    const price1hAgo = getPriceNIntervalsAgo(symbol, 4); // 4 * 15min = 1h
-    const price4hAgo = getPriceNIntervalsAgo(symbol, 16); // 16 * 15min = 4h
-    const price8hAgo = getPriceNIntervalsAgo(symbol, 32); // 32 * 15min = 8h
-    const price12hAgo = getPriceNIntervalsAgo(symbol, 48); // 48 * 15min = 12h
-
-    if (price1hAgo)
-      changes.change_1h = calculatePercentageChange(price1hAgo, currentPrice);
-    if (price4hAgo)
-      changes.change_4h = calculatePercentageChange(price4hAgo, currentPrice);
-    if (price8hAgo)
-      changes.change_8h = calculatePercentageChange(price8hAgo, currentPrice);
-    if (price12hAgo)
-      changes.change_12h = calculatePercentageChange(price12hAgo, currentPrice);
+    // Calculate each change using appropriate timeframe and intervals
+    for (const [changeKey, config] of Object.entries(CALCULATION_INTERVALS)) {
+      const historicalPrice = getPriceNIntervalsAgo(
+        symbol, 
+        config.interval, 
+        config.periodsBack
+      );
+      
+      if (historicalPrice) {
+        changes[changeKey] = calculatePercentageChange(historicalPrice, currentPrice);
+      }
+    }
   } catch (error) {
     logger.error(`Error calculating short-term changes for ${symbol}:`, error);
   }
@@ -96,21 +100,43 @@ function getCandlestickData() {
 }
 
 /**
- * Get candlestick data for a specific symbol
+ * Get candlestick data for a specific symbol and interval
  * @param {string} symbol - Trading pair symbol
- * @returns {Array|undefined} Candlestick data for the symbol
+ * @param {string} interval - Time interval (5m, 30m, 1h, etc.)
+ * @returns {Array|undefined} Candlestick data for the symbol and interval
  */
-function getCandlestickDataForSymbol(symbol) {
-  return candlestickData.get(symbol);
+function getCandlestickDataForSymbol(symbol, interval = null) {
+  const symbolData = candlestickData.get(symbol);
+  if (!symbolData) return undefined;
+  
+  if (interval) {
+    return symbolData.get(interval);
+  }
+  
+  // Return all intervals for backward compatibility
+  return symbolData;
 }
 
 /**
- * Set candlestick data for a symbol
+ * Set candlestick data for a symbol and interval
  * @param {string} symbol - Trading pair symbol
+ * @param {string} interval - Time interval (5m, 30m, 1h, etc.) 
  * @param {Array} data - Candlestick data array
  */
-function setCandlestickDataForSymbol(symbol, data) {
-  candlestickData.set(symbol, data);
+function setCandlestickDataForSymbol(symbol, interval, data) {
+  if (!candlestickData.has(symbol)) {
+    candlestickData.set(symbol, new Map());
+  }
+  candlestickData.get(symbol).set(interval, data);
+}
+
+/**
+ * Legacy function: Set candlestick data for a symbol (15m interval)
+ * @param {string} symbol - Trading pair symbol  
+ * @param {Array} data - Candlestick data array
+ */
+function setCandlestickDataForSymbolLegacy(symbol, data) {
+  setCandlestickDataForSymbol(symbol, "15m", data);
 }
 
 /**
@@ -136,6 +162,7 @@ module.exports = {
   getCandlestickData,
   getCandlestickDataForSymbol,
   setCandlestickDataForSymbol,
+  setCandlestickDataForSymbolLegacy,
   getCandlestickSymbolCount,
   getCandlestickSymbols,
 };

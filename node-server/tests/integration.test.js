@@ -255,7 +255,7 @@ describe("Integration Tests", () => {
       expect(typeof ticker.normalized_volume_score).toBe("number");
       expect(ticker.normalized_volume_score).toBeGreaterThanOrEqual(0);
 
-      console.log("✅ Backend calculation pipeline verified for:", ticker.s);
+      // logger.info("✅ Backend calculation pipeline verified for:", ticker.s);
     });
 
     it("should maintain data freshness", async () => {

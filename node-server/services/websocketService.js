@@ -16,6 +16,7 @@ const {
   MAJOR_SYMBOLS,
   WEBSOCKET_CONNECTION_DELAY,
   CANDLESTICK_STREAM_START_DELAY,
+  CANDLESTICK_INTERVALS,
   MAX_CANDLESTICKS,
   USDT_SUFFIX,
 } = require("../config/constants");
@@ -79,6 +80,7 @@ function updateCandlestickData(responseData) {
     if (!kline) return;
 
     const symbol = kline.s;
+    const interval = kline.i;
     const candlestick = {
       symbol: symbol,
       openTime: kline.t,
@@ -88,26 +90,28 @@ function updateCandlestickData(responseData) {
       low: kline.l,
       close: kline.c,
       volume: kline.v,
-      interval: kline.i,
+      interval: interval,
     };
 
-    let symbolData = getCandlestickDataForSymbol(symbol);
-    if (!symbolData) {
-      symbolData = [];
-      setCandlestickDataForSymbol(symbol, symbolData);
+    // Get existing data for this symbol and interval
+    let intervalData = getCandlestickDataForSymbol(symbol, interval);
+    if (!intervalData) {
+      intervalData = [];
+      setCandlestickDataForSymbol(symbol, interval, intervalData);
     }
 
     // Only store completed candlesticks (when x is true)
     if (kline.x) {
-      symbolData.push(candlestick);
+      intervalData.push(candlestick);
 
-      // Keep only last 12 hours of data (48 candlesticks for 15m interval)
-      if (symbolData.length > MAX_CANDLESTICKS) {
-        symbolData.shift();
+      // Keep only the required amount of data based on interval
+      const maxCount = CANDLESTICK_INTERVALS[interval]?.maxCount || MAX_CANDLESTICKS;
+      if (intervalData.length > maxCount) {
+        intervalData.shift();
       }
 
       logger.debug(
-        `Updated candlestick data for ${symbol}, stored: ${symbolData.length} candles`
+        `Updated ${interval} candlestick data for ${symbol}, stored: ${intervalData.length} candles`
       );
     }
   } catch (error) {
@@ -163,32 +167,39 @@ function initializeWebSockets() {
 
   // Start ticker stream
   tickerWebsocketClient.ticker();
-
-  // Start candlestick streams for major pairs with staggered connections
+  // Start candlestick streams for major pairs with multiple timeframes
   const startCandlestickStreams = async () => {
-    logger.info("Starting candlestick WebSocket streams with rate limiting...");
+    logger.info("Starting candlestick WebSocket streams for multiple timeframes...");
+
+    const intervals = Object.keys(CANDLESTICK_INTERVALS); // ['5m', '30m', '1h']
+    let streamCount = 0;
 
     for (let i = 0; i < MAJOR_SYMBOLS.length; i++) {
       const symbol = MAJOR_SYMBOLS[i];
 
-      try {
-        // Add small delay between WebSocket connections
-        if (i > 0) {
-          await new Promise((resolve) =>
-            setTimeout(resolve, WEBSOCKET_CONNECTION_DELAY)
-          );
-        }
+      for (let j = 0; j < intervals.length; j++) {
+        const interval = intervals[j];
+        
+        try {
+          // Add small delay between WebSocket connections
+          if (streamCount > 0) {
+            await new Promise((resolve) =>
+              setTimeout(resolve, WEBSOCKET_CONNECTION_DELAY)
+            );
+          }
 
-        candlestickWebsocketClient.kline(symbol, "15m");
-        logger.debug(
-          `📡 Started 15m candlestick stream for ${symbol.toUpperCase()}`
-        );
-      } catch (error) {
-        logger.error(`Failed to start stream for ${symbol}:`, error.message);
+          candlestickWebsocketClient.kline(symbol, interval);
+          logger.debug(
+            `📡 Started ${interval} candlestick stream for ${symbol.toUpperCase()}`
+          );
+          streamCount++;
+        } catch (error) {
+          logger.error(`Failed to start ${interval} stream for ${symbol}:`, error.message);
+        }
       }
     }
 
-    logger.info(`🚀 All ${MAJOR_SYMBOLS.length} candlestick streams started`);
+    logger.info(`🚀 All ${streamCount} candlestick streams started (${MAJOR_SYMBOLS.length} symbols × ${intervals.length} intervals)`);
   };
 
   // Start streams after a brief delay to let ticker stream establish

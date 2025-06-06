@@ -63,18 +63,21 @@ function get24hrTickerData(req, res) {
 function getCandlestickDataBySymbol(req, res) {
   try {
     const symbol = req.params.symbol.toUpperCase();
-    const data = getCandlestickDataForSymbol(symbol);
+    const interval = req.query.interval || "15m"; // Default to 15m for backward compatibility
+    
+    const data = getCandlestickDataForSymbol(symbol, interval);
 
     if (!data) {
       return res.status(404).json({
         success: false,
-        error: `No candlestick data available for ${symbol}`,
+        error: `No candlestick data available for ${symbol} at ${interval} interval`,
       });
     }
 
     res.json({
       success: true,
       symbol: symbol,
+      interval: interval,
       data: data,
       count: data.length,
       timestamp: new Date().toISOString(),
@@ -97,12 +100,27 @@ function getCandlestickSummary(req, res) {
   try {
     const symbols = getCandlestickSymbols();
     const candlestickDataMap = getCandlestickData();
-    const summary = symbols.map((symbol) => ({
-      symbol: symbol,
-      candleCount: candlestickDataMap.get(symbol).length,
-      latestTime:
-        candlestickDataMap.get(symbol).slice(-1)[0]?.closeTime || null,
-    }));
+    
+    const summary = symbols.map((symbol) => {
+      const symbolIntervals = candlestickDataMap.get(symbol);
+      const intervals = {};
+      
+      // Get summary for each interval
+      if (symbolIntervals) {
+        for (const [interval, data] of symbolIntervals.entries()) {
+          intervals[interval] = {
+            candleCount: data.length,
+            latestTime: data.slice(-1)[0]?.closeTime || null,
+          };
+        }
+      }
+      
+      return {
+        symbol: symbol,
+        intervals: intervals,
+        totalIntervals: Object.keys(intervals).length,
+      };
+    });
 
     res.json({
       success: true,

@@ -8,6 +8,7 @@ const cors = require("cors");
 const swaggerUi = require("swagger-ui-express");
 const YAML = require("yamljs");
 const path = require("path");
+const logger = require("../helpers/logger");
 
 // Create Express app
 const app = express();
@@ -329,7 +330,7 @@ try {
     res.json(openApiSpec);
   });
 } catch (error) {
-  console.error(
+  logger.error(
     "Warning: Could not load OpenAPI spec for tests:",
     error.message
   );
@@ -362,7 +363,7 @@ app.use("*", (req, res) => {
 
 // Error handler
 app.use((error, req, res, next) => {
-  console.error("Test app error:", error);
+  logger.error("Test app error:", error);
   res.status(500).json({
     success: false,
     error: "Internal server error",

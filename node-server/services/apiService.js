@@ -11,6 +11,7 @@ const {
   COINGECKO_BASE_URL,
   MAJOR_PAIRS,
   DELAY_BETWEEN_REQUESTS,
+  CANDLESTICK_INTERVALS,
   CANDLESTICK_INTERVAL,
   MAX_CANDLESTICKS,
   REQUEST_TIMEOUT,
@@ -26,83 +27,89 @@ const coingeckoIds = require("../coin-data/coingecko-ids.json");
 const coingeckoApiKey = process.env.COINGECKO_API_KEY;
 
 /**
- * Initialize historical candlestick data for major USDT pairs with rate limiting
+ * Initialize historical candlestick data for major USDT pairs with multiple timeframes
  */
 async function initializeCandlestickData() {
   try {
     logger.info(
-      "Initializing historical candlestick data with rate limiting..."
+      "Initializing historical candlestick data for multiple timeframes..."
     );
 
-    // Add delay between requests to respect rate limits
+    const intervals = Object.keys(CANDLESTICK_INTERVALS); // ['5m', '30m', '1h']
+    
+    // Fetch data for each symbol and each interval
     for (let i = 0; i < MAJOR_PAIRS.length; i++) {
       const symbol = MAJOR_PAIRS[i];
+      
+      logger.debug(`Initializing data for ${symbol} (${i + 1}/${MAJOR_PAIRS.length})`);
 
-      try {
-        // Add delay before each request (except the first one)
-        if (i > 0) {
-          await new Promise((resolve) =>
-            setTimeout(resolve, DELAY_BETWEEN_REQUESTS)
+      for (let j = 0; j < intervals.length; j++) {
+        const interval = intervals[j];
+        const config = CANDLESTICK_INTERVALS[interval];
+
+        try {
+          // Add delay between requests (except the first one)
+          if (i > 0 || j > 0) {
+            await new Promise((resolve) =>
+              setTimeout(resolve, DELAY_BETWEEN_REQUESTS)
+            );
+          }
+
+          // Check rate limiting
+          if (!canMakeRequest()) {
+            logger.warn(
+              `⚠️ Rate limit protection triggered, waiting 60 seconds...`
+            );
+            await new Promise((resolve) => setTimeout(resolve, 60000));
+            j--; // Retry the same interval
+            continue;
+          }
+
+          logger.debug(
+            `Fetching ${interval} data for ${symbol} (${config.description})`
           );
-        }
 
-        // Check rate limiting
-        if (!canMakeRequest()) {
-          logger.warn(
-            `⚠️ Rate limit protection triggered, waiting 60 seconds...`
-          );
-          await new Promise((resolve) => setTimeout(resolve, 60000));
-          i--; // Retry the same symbol
-          continue;
-        }
+          const response = await axios.get(BINANCE_KLINES_URL, {
+            params: {
+              symbol: symbol,
+              interval: interval,
+              limit: config.maxCount,
+            },
+            timeout: REQUEST_TIMEOUT,
+          });
 
-        logger.debug(
-          `Fetching historical data for ${symbol} (${i + 1}/${
-            MAJOR_PAIRS.length
-          })`
-        );
-
-        const response = await axios.get(BINANCE_KLINES_URL, {
-          params: {
+          const historicalData = response.data.map((kline) => ({
             symbol: symbol,
-            interval: CANDLESTICK_INTERVAL,
-            limit: MAX_CANDLESTICKS, // Last 12 hours (48 * 15min = 12h)
-          },
-          timeout: REQUEST_TIMEOUT,
-        });
+            openTime: kline[0],
+            closeTime: kline[6],
+            open: kline[1],
+            high: kline[2],
+            low: kline[3],
+            close: kline[4],
+            volume: kline[5],
+            interval: interval,
+          }));
 
-        const historicalData = response.data.map((kline) => ({
-          symbol: symbol,
-          openTime: kline[0],
-          closeTime: kline[6],
-          open: kline[1],
-          high: kline[2],
-          low: kline[3],
-          close: kline[4],
-          volume: kline[5],
-          interval: CANDLESTICK_INTERVAL,
-        }));
-
-        setCandlestickDataForSymbol(symbol, historicalData);
-        logger.debug(
-          `✅ Initialized ${historicalData.length} historical candles for ${symbol}`
-        );
-      } catch (error) {
-        if (error.response?.status === 429) {
-          logger.warn(`⚠️ Rate limit hit for ${symbol}, waiting longer...`);
-          await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 seconds
-          i--; // Retry the same symbol
-        } else {
-          logger.error(
-            `❌ Error initializing data for ${symbol}:`,
-            error.message
+          setCandlestickDataForSymbol(symbol, interval, historicalData);
+          logger.debug(
+            `✅ Initialized ${historicalData.length} ${interval} candles for ${symbol}`
           );
+        } catch (error) {
+          if (error.response?.status === 429) {
+            logger.warn(`⚠️ Rate limit hit for ${symbol} ${interval}, waiting longer...`);
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+            j--; // Retry the same interval
+          } else {
+            logger.error(
+              `❌ Error initializing ${interval} data for ${symbol}:`,
+              error.message
+            );          }
         }
       }
     }
 
     logger.info(
-      `🎉 Candlestick data initialized for ${MAJOR_PAIRS.length} symbols`
+      `🎉 Candlestick data initialized for ${MAJOR_PAIRS.length} symbols with multiple timeframes`
     );
   } catch (error) {
     logger.error("Error during candlestick data initialization:", error);
