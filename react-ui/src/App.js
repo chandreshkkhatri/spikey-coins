@@ -21,6 +21,7 @@ function App() {
       setError(null);
 
       const response = await api.get24hrTicker();
+      console.log("Fetched ticker data:", response.data);
       const rawData = response.data.data || response.data;
 
       // Filter for USDT pairs only
