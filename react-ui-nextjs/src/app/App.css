@@ -1,50 +1,26 @@
-main {
-  height: calc(100vh - 60px);
-  overflow: hidden;
+/* Main layout */
+.main-layout {
   display: flex;
+  height: calc(100vh - 60px);
+  background-color: #f8f9fa;
 }
 
-.sidenav {
+.sidebar-container {
   width: 280px;
-  height: calc(100vh - 60px);
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   padding: 20px;
+  height: 100%;
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-  overflow-y: auto;
   flex-shrink: 0;
 }
 
-.sidenav-li {
-  display: block;
-  margin-bottom: 10px;
-}
-
-.sidenav a {
-  text-decoration: none;
-  color: white;
-}
-
-.sidenav h3 {
-  color: #fff;
-  margin-bottom: 20px;
-  font-size: 1.2em;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.main-content {
+.main-content-container {
   flex: 1;
-  height: calc(100vh - 60px);
-  background: #f8f9fa;
+  background-color: #f8f9fa;
   padding: 20px;
-  overflow-y: auto;
-}
-
-.instrument-table {
-  height: auto;
-  max-height: calc(100vh - 200px);
-  overflow-y: auto;
+  height: 100%;
+  overflow: auto;
 }
 
 /* Header styling */
@@ -78,20 +54,27 @@ main {
   float: right;
 }
 
+/* Table styling */
+.instrument-table {
+  height: auto;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
-  main {
+  .main-layout {
     flex-direction: column;
     height: auto;
   }
 
-  .sidenav {
+  .sidebar-container {
     width: 100%;
     height: auto;
     padding: 15px;
   }
 
-  .main-content {
+  .main-content-container {
     height: auto;
     padding: 15px;
   }
@@ -99,6 +82,5 @@ main {
   .grey nav {
     font-size: 1.4em !important;
     padding: 15px !important;
-    margin-left: 0 !important;
   }
 }

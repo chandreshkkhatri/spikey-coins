@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import "materialize-css/dist/css/materialize.min.css"; // Import Materialize CSS
-import "./App.css"; // Import App.css
-import "./colors.css"; // Import colors.css
-import "./w3-styles.css"; // Import w3-styles.css
-import Script from "next/script"; // Import Script component
+import "materialize-css/dist/css/materialize.min.css";
+import "./App.css";
+import "./colors.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,17 +32,6 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
-        <Script
-          id="materialize-init"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              if (typeof window !== 'undefined' && window.M) {
-                window.M.AutoInit();
-              }
-            `,
-          }}
-        />
       </body>
     </html>
   );
