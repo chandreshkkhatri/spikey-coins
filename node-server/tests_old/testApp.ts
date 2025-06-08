@@ -35,12 +35,11 @@ const mockTickerData: Ticker[] = [
     openTime: 1748540400000,
     closeTime: 1748626800000,
     firstId: 1000000000,
-    lastId: 1000500000,
-    count: 500000,
+    lastId: 1000500000,    count: 500000,
     change_1h: 0.5,
     change_4h: 1.2,
     change_8h: 2.1,
-    change_12h: 3.2,
+    change_12h: 3.2
   },
   {
     symbol: "ETHUSDT",
@@ -58,8 +57,7 @@ const mockTickerData: Ticker[] = [
     count: 300000,
     change_1h: 1.0,
     change_4h: 1.8,
-    change_8h: 2.5,
-    change_12h: 3.0,
+    change_8h: 2.5,    change_12h: 3.0
   },
 ];
 

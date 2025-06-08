@@ -71,8 +71,12 @@ describe("Integration Tests", () => {
       expect(firstResponse.count).toBe(secondResponse.count);
 
       // Same symbols should be present
-      const firstSymbols = firstResponse.data.map((t: Ticker) => t.s).sort();
-      const secondSymbols = secondResponse.data.map((t: Ticker) => t.s).sort();
+      const firstSymbols = firstResponse.data
+        .map((t: Ticker) => t.s)
+        .sort();
+      const secondSymbols = secondResponse.data
+        .map((t: Ticker) => t.s)
+        .sort();
       expect(firstSymbols).toEqual(secondSymbols);
     });
   });
@@ -88,7 +92,9 @@ describe("Integration Tests", () => {
       expect(tickerResponse.status).toBe(200);
       expect(candlestickSummaryResponse.status).toBe(200);
 
-      const tickerSymbols = tickerResponse.body.data.map((t: Ticker) => t.s);
+      const tickerSymbols = tickerResponse.body.data.map(
+        (t: Ticker) => t.s
+      );
       const candlestickSymbols = candlestickSummaryResponse.body.symbols;
 
       // Candlestick symbols should be a subset of ticker symbols
