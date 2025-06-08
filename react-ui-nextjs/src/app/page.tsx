@@ -57,98 +57,93 @@ export default function HomePage() {
   }, [getSpikes]);
 
   return (
-    <div>
+    <div className="min-h-screen bg-gray-50">
       <header className="grey">
-        <nav style={{ fontSize: "2em", marginLeft: "30px", padding: "10px" }}>
-          <div>Spikey Coins</div>
+        <nav style={{ fontSize: "1.8em", padding: "15px 30px" }}>
+          <div>🚀 Spikey Coins</div>
         </nav>
       </header>
 
       <main>
-        <div>
-          <div
-            className="sidenav"
-            style={{
-              width: "250px",
-              float: "left",
-              height: "calc(100vh - 57px)",
-              background: "#e2e2e2",
-              padding: "20px",
-            }}
-          >
-            <ul>
-              <li className="sidenav-li">
-                <h3>Controls</h3>
-              </li>
-              <li className="sidenav-li" style={{ marginBottom: "10px" }}>
-                <button
-                  onClick={getSpikes}
-                  disabled={loading}
-                  style={{
-                    opacity: loading ? 0.6 : 1,
-                    width: "100%",
-                    padding: "10px",
-                    background: "#2196F3",
-                    color: "white",
-                    border: "none",
-                    cursor: "pointer",
-                  }}
-                >
-                  {loading ? "Loading..." : "Refresh Ticker"}
-                </button>
-              </li>
-              <li className="sidenav-li" style={{ marginBottom: "10px" }}>
-                <button
-                  onClick={refreshMarketcapData}
-                  disabled={loading}
-                  style={{
-                    opacity: loading ? 0.6 : 1,
-                    width: "100%",
-                    padding: "10px",
-                    background: "#2196F3",
-                    color: "white",
-                    border: "none",
-                    cursor: "pointer",
-                  }}
-                >
-                  {loading ? "Loading..." : "Refresh Market Cap"}
-                </button>
-              </li>
-              {error && (
-                <li className="sidenav-li">
-                  <div
-                    style={{
-                      color: "red",
-                      fontSize: "0.9em",
-                      padding: "10px",
-                      background: "#ffebee",
-                      border: "1px solid red",
-                      borderRadius: "4px",
-                    }}
-                  >
-                    {error}
-                  </div>
-                </li>
-              )}
-              <li className="sidenav-li" style={{ marginTop: "20px" }}>
-                <div style={{ fontSize: "0.8em", color: "#666" }}>
-                  Pairs loaded: {tickerArray.length}
-                </div>
-              </li>
-            </ul>
+        <div className="sidenav">
+          <h3>📊 Controls</h3>
+          <div className="sidenav-li">
+            <button
+              onClick={getSpikes}
+              disabled={loading}
+              style={{
+                width: "100%",
+                padding: "12px 16px",
+                background: loading ? "#94a3b8" : "#10b981",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: loading ? "not-allowed" : "pointer",
+                fontSize: "14px",
+                fontWeight: "600",
+                marginBottom: "12px",
+                transition: "all 0.2s ease",
+              }}
+            >
+              {loading ? "🔄 Loading..." : "🔄 Refresh Ticker"}
+            </button>
           </div>
+          <div className="sidenav-li">
+            <button
+              onClick={refreshMarketcapData}
+              disabled={loading}
+              style={{
+                width: "100%",
+                padding: "12px 16px",
+                background: loading ? "#94a3b8" : "#3b82f6",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: loading ? "not-allowed" : "pointer",
+                fontSize: "14px",
+                fontWeight: "600",
+                marginBottom: "12px",
+                transition: "all 0.2s ease",
+              }}
+            >
+              {loading ? "🔄 Loading..." : "📈 Refresh Market Cap"}
+            </button>
+          </div>
+          {error && (
+            <div className="sidenav-li">
+              <div
+                style={{
+                  color: "#fee2e2",
+                  fontSize: "13px",
+                  padding: "12px",
+                  background: "rgba(239, 68, 68, 0.2)",
+                  border: "1px solid rgba(239, 68, 68, 0.3)",
+                  borderRadius: "8px",
+                  marginBottom: "12px",
+                }}
+              >
+                ⚠️ {error}
+              </div>
+            </div>
+          )}
+          <div className="sidenav-li" style={{ marginTop: "20px" }}>
+            <div
+              style={{
+                fontSize: "13px",
+                color: "rgba(255, 255, 255, 0.8)",
+                padding: "12px",
+                background: "rgba(255, 255, 255, 0.1)",
+                borderRadius: "8px",
+                textAlign: "center",
+              }}
+            >
+              💰 Pairs loaded: <strong>{tickerArray.length}</strong>
+            </div>
+          </div>
+        </div>
 
-          <div
-            className="main-content"
-            style={{
-              marginLeft: "270px",
-              padding: "20px",
-              height: "calc(100vh - 57px)",
-              overflowY: "auto",
-            }}
-          >
-            <Ticker tickerArray={tickerArray} loading={loading} error={error} />
-          </div>
+        <div className="main-content">
+          <Ticker tickerArray={tickerArray} loading={loading} error={error} />
         </div>
       </main>
     </div>

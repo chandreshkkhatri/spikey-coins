@@ -7,7 +7,6 @@ import {
   getFilteredRowModel,
   getPaginationRowModel,
   useReactTable,
-  ColumnDef,
   SortingState,
   FilterFn,
   Row, // Import Row type
@@ -103,7 +102,7 @@ function Ticker({ tickerArray, loading, error }: TickerProps) {
     return price.toFixed(8); // For very small prices
   };
 
-  const columns = useMemo<ColumnDef<TickerData, unknown>[]>( // Changed any to unknown
+  const columns = useMemo(
     () => [
       columnHelper.accessor("s", {
         header: () => <b className="left">Symbol</b>,
@@ -315,8 +314,12 @@ function Ticker({ tickerArray, loading, error }: TickerProps) {
   // Show loading state
   if (loading) {
     return (
-      <div style={{ padding: "20px", textAlign: "center" }}>
-        <div>Loading ticker data...</div>
+      <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+        <div className="text-lg text-gray-600">Loading ticker data...</div>
+        <div className="text-sm text-gray-500 mt-2">
+          Please wait while we fetch the latest market data
+        </div>
       </div>
     );
   }
@@ -324,8 +327,15 @@ function Ticker({ tickerArray, loading, error }: TickerProps) {
   // Show error state
   if (error) {
     return (
-      <div style={{ padding: "20px", textAlign: "center", color: "red" }}>
-        <div>Error: {error}</div>
+      <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+        <div className="text-red-500 text-6xl mb-4">⚠️</div>
+        <div className="text-lg font-semibold text-red-600 mb-2">
+          Error Loading Data
+        </div>
+        <div className="text-gray-600">{error}</div>
+        <div className="mt-4 text-sm text-gray-500">
+          Please try refreshing the data using the controls in the sidebar
+        </div>
       </div>
     );
   }
@@ -333,141 +343,154 @@ function Ticker({ tickerArray, loading, error }: TickerProps) {
   // Show empty state
   if (!tickerArray || tickerArray.length === 0) {
     return (
-      <div style={{ padding: "20px", textAlign: "center" }}>
-        <div>
+      <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+        <div className="text-gray-400 text-6xl mb-4">📊</div>
+        <div className="text-lg font-semibold text-gray-600 mb-2">
+          No Data Available
+        </div>
+        <div className="text-gray-500 mb-4">
           No ticker data available. Click &apos;Refresh Ticker&apos; to load
           data.
+        </div>
+        <div className="text-sm text-gray-400">
+          Make sure your API connection is working properly
         </div>
       </div>
     );
   }
 
   return (
-    <div>
-      <div style={{ padding: "10px 0", color: "#666" }}>
-        <div>Showing {table.getRowModel().rows.length} USDT trading pairs</div>
-        <div style={{ fontSize: "0.8em", marginTop: "5px" }}>
-          <span role="img" aria-label="light bulb">
-            💡
-          </span>{" "}
-          Filter tips: Use &gt;100 for greater than, &lt;50 for less than, or
-          10-100 for ranges. Now includes 1h, 4h, 8h, 12h change columns for
-          intraday analysis!
+    <div className="bg-white rounded-lg shadow-lg p-6">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">
+          📈 Cryptocurrency Market Data
+        </h2>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="text-gray-600">
+            <div className="font-semibold">
+              Showing {table.getRowModel().rows.length} USDT trading pairs
+            </div>
+            <div className="text-sm mt-1 flex items-center gap-2">
+              <span>💡</span>
+              <span>
+                Filter tips: Use &gt;100 for greater than, &lt;50 for less than,
+                or 10-100 for ranges
+              </span>
+            </div>
+          </div>
+          <input
+            value={globalFilter ?? ""}
+            onChange={(e) => setGlobalFilter(e.target.value)}
+            placeholder="🔍 Search all columns..."
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent max-w-xs"
+          />
         </div>
-        <input
-          value={globalFilter ?? ""}
-          onChange={(e) => setGlobalFilter(e.target.value)}
-          placeholder="Search all columns..."
-          style={{ margin: "10px 0", padding: "5px", width: "100%" }}
-        />
       </div>
 
-      <table
-        className="instrument-table -striped -highlight"
-        style={{
-          width: "100%" /* TanStack table is not opinionated about styling */,
-        }}
-      >
-        <thead>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <th
-                  key={header.id}
-                  colSpan={header.colSpan}
-                  style={{
-                    width:
-                      header.getSize() !== 150 ? header.getSize() : undefined,
-                  }}
-                >
-                  {header.isPlaceholder ? null : (
-                    <div
-                      {...{
-                        className: header.column.getCanSort()
-                          ? "cursor-pointer select-none"
-                          : "",
-                        onClick: header.column.getToggleSortingHandler(),
-                      }}
-                    >
-                      {flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
-                      {{
-                        asc: " 🔼",
-                        desc: " 🔽",
-                      }[header.column.getIsSorted() as string] ?? null}
-                    </div>
-                  )}
-                </th>
-              ))}
-            </tr>
-          ))}
-        </thead>
-        <tbody>
-          {table.getRowModel().rows.map((row) => (
-            <tr key={row.id}>
-              {row.getVisibleCells().map((cell) => (
-                <td
-                  key={cell.id}
-                  style={{
-                    width:
-                      cell.column.getSize() !== 150
-                        ? cell.column.getSize()
-                        : undefined,
-                  }}
-                >
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="overflow-x-auto bg-white rounded-lg shadow-sm border border-gray-200">
+        <table className="w-full">
+          <thead>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr
+                key={headerGroup.id}
+                className="bg-gradient-to-r from-gray-50 to-gray-100"
+              >
+                {headerGroup.headers.map((header) => (
+                  <th
+                    key={header.id}
+                    colSpan={header.colSpan}
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    {header.isPlaceholder ? null : (
+                      <div
+                        className={`flex items-center gap-1 ${
+                          header.column.getCanSort()
+                            ? "cursor-pointer select-none hover:text-gray-700 transition-colors"
+                            : ""
+                        }`}
+                        onClick={header.column.getToggleSortingHandler()}
+                      >
+                        {flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                        {{
+                          asc: " 🔼",
+                          desc: " 🔽",
+                        }[header.column.getIsSorted() as string] ?? null}
+                      </div>
+                    )}
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {table.getRowModel().rows.map((row, index) => (
+              <tr
+                key={row.id}
+                className={`hover:bg-gray-50 transition-colors ${
+                  index % 2 === 0 ? "bg-white" : "bg-gray-50/50"
+                }`}
+              >
+                {row.getVisibleCells().map((cell) => (
+                  <td
+                    key={cell.id}
+                    className="px-4 py-3 whitespace-nowrap text-sm"
+                  >
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-      <div
-        className="pagination"
-        style={{
-          marginTop: "10px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <div>
-          <button
-            onClick={() => table.setPageIndex(0)}
-            disabled={!table.getCanPreviousPage()}
-          >
-            {"<<"}
-          </button>{" "}
-          <button
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            {"<"}
-          </button>{" "}
-          <button
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            {">"}
-          </button>{" "}
-          <button
-            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-            disabled={!table.getCanNextPage()}
-          >
-            {">>"}
-          </button>{" "}
-          <span>
+      <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-sm">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => table.setPageIndex(0)}
+              disabled={!table.getCanPreviousPage()}
+              className="px-3 py-1 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {"<<"}
+            </button>
+            <button
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+              className="px-3 py-1 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {"<"}
+            </button>
+            <button
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+              className="px-3 py-1 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {">"}
+            </button>
+            <button
+              onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+              disabled={!table.getCanNextPage()}
+              className="px-3 py-1 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {">>"}
+            </button>
+          </div>
+          <span className="text-gray-600">
             Page{" "}
             <strong>
               {table.getState().pagination.pageIndex + 1} of{" "}
               {table.getPageCount()}
-            </strong>{" "}
+            </strong>
           </span>
-          <span>
-            | Go to page:{" "}
+        </div>
+
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-gray-600">Go to page:</span>
             <input
               type="number"
               defaultValue={table.getState().pagination.pageIndex + 1}
@@ -475,14 +498,15 @@ function Ticker({ tickerArray, loading, error }: TickerProps) {
                 const page = e.target.value ? Number(e.target.value) - 1 : 0;
                 table.setPageIndex(page);
               }}
-              style={{ width: "50px" }}
+              className="w-16 px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
             />
-          </span>{" "}
+          </div>
           <select
             value={table.getState().pagination.pageSize}
             onChange={(e) => {
               table.setPageSize(Number(e.target.value));
             }}
+            className="px-3 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
           >
             {[10, 20, 50, 100].map((pageSize) => (
               <option key={pageSize} value={pageSize}>
@@ -491,7 +515,10 @@ function Ticker({ tickerArray, loading, error }: TickerProps) {
             ))}
           </select>
         </div>
-        <div>{table.getPrePaginationRowModel().rows.length} Rows</div>
+
+        <div className="text-gray-600 font-medium">
+          {table.getPrePaginationRowModel().rows.length} Total Rows
+        </div>
       </div>
     </div>
   );
