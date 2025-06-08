@@ -5,10 +5,10 @@
 
 import request from "supertest";
 import app from "./testApp";
-import { TickerData } from "../helpers/dataStore";
+import type { Ticker } from "../src/data/models/Ticker.js";
 
 describe("Backend Calculations", () => {
-  let tickerData: TickerData[];
+  let tickerData: Ticker[];
 
   beforeAll(async () => {
     // Get ticker data for testing calculations

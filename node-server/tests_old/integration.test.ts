@@ -5,7 +5,7 @@
 
 import request from "supertest";
 import app from "./testApp";
-import { TickerData } from "../helpers/dataStore";
+import type { Ticker } from "../src/data/models/Ticker.js";
 
 describe("Integration Tests", () => {
   describe("Full API Workflow", () => {
@@ -72,10 +72,10 @@ describe("Integration Tests", () => {
 
       // Same symbols should be present
       const firstSymbols = firstResponse.data
-        .map((t: TickerData) => t.s)
+        .map((t: Ticker) => t.s)
         .sort();
       const secondSymbols = secondResponse.data
-        .map((t: TickerData) => t.s)
+        .map((t: Ticker) => t.s)
         .sort();
       expect(firstSymbols).toEqual(secondSymbols);
     });
@@ -93,7 +93,7 @@ describe("Integration Tests", () => {
       expect(candlestickSummaryResponse.status).toBe(200);
 
       const tickerSymbols = tickerResponse.body.data.map(
-        (t: TickerData) => t.s
+        (t: Ticker) => t.s
       );
       const candlestickSymbols = candlestickSummaryResponse.body.symbols;
 
@@ -119,7 +119,7 @@ describe("Integration Tests", () => {
       });
 
       // Extract symbols from each endpoint
-      const tickerSymbols = responses[0].body.data.map((t: TickerData) => t.s);
+      const tickerSymbols = responses[0].body.data.map((t: Ticker) => t.s);
       const candlestickSymbols = responses[1].body.symbols;
       const marketCapSymbols = responses[2].body.data.map(
         (item: any) => item.symbol
@@ -217,7 +217,7 @@ describe("Integration Tests", () => {
         .get("/api/ticker/24hr")
         .expect(200);
 
-      const tickerData: TickerData[] = tickerResponse.body.data;
+      const tickerData: Ticker[] = tickerResponse.body.data;
       expect(tickerData.length).toBeGreaterThan(0);
 
       // 2. Get candlestick symbols

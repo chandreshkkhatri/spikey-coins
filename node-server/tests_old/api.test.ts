@@ -5,7 +5,7 @@
 
 import request from "supertest";
 import app from "./testApp";
-import { TickerData } from "../helpers/dataStore";
+import type { Ticker } from "../src/data/models/Ticker.js";
 
 describe("API Endpoints", () => {
   describe("GET /", () => {
@@ -65,7 +65,7 @@ describe("API Endpoints", () => {
     it("should return ticker items with all required backend-calculated fields", async () => {
       const response = await request(app).get("/api/ticker/24hr").expect(200);
 
-      const ticker: TickerData = response.body.data[0];
+      const ticker: Ticker = response.body.data[0];
 
       // Original Binance fields
       expect(ticker).toHaveProperty("s"); // symbol
@@ -98,7 +98,7 @@ describe("API Endpoints", () => {
     it("should include short-term change data when available", async () => {
       const response = await request(app).get("/api/ticker/24hr").expect(200);
 
-      const ticker: TickerData = response.body.data[0];
+      const ticker: Ticker = response.body.data[0];
 
       // These fields might be present based on available candlestick data
       if (ticker.change_1h !== undefined) {
@@ -115,7 +115,7 @@ describe("API Endpoints", () => {
     it("should filter symbols properly", async () => {
       const response = await request(app).get("/api/ticker/24hr").expect(200);
 
-      const tickers: TickerData[] = response.body.data;
+      const tickers: Ticker[] = response.body.data;
 
       // All symbols should end with USDT or USD
       tickers.forEach((ticker) => {
@@ -130,7 +130,7 @@ describe("API Endpoints", () => {
     it("should return data in expected order", async () => {
       const response = await request(app).get("/api/ticker/24hr").expect(200);
 
-      const tickers: TickerData[] = response.body.data; // Data should be sorted by normalized volume score (descending)
+      const tickers: Ticker[] = response.body.data; // Data should be sorted by normalized volume score (descending)
       for (let i = 0; i < tickers.length - 1; i++) {
         const currentScore = tickers[i].normalized_volume_score;
         const nextScore = tickers[i + 1].normalized_volume_score;
