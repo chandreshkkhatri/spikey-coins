@@ -2,12 +2,9 @@
  * Client for interacting with the CoinGecko API.
  */
 import axios, { AxiosResponse } from "axios";
-import logger from "../../utils/logger.js"; // Adjusted path
-import { canMakeRequest } from "../../utils/rateLimiting.js"; // Adjusted path
-import {
-  COINGECKO_BASE_URL,
-  REQUEST_TIMEOUT,
-} from "../../config/constants.js"; // Adjusted path
+import logger from "../utils/logger.js"; // Adjusted path
+import { canMakeRequest } from "../utils/rateLimiting.js"; // Adjusted path
+import { COINGECKO_BASE_URL, REQUEST_TIMEOUT } from "../config/constants.js"; // Adjusted path
 
 // Load static CoinGecko ID mappings
 // Note: Using require for JSON is fine, or consider fs.readFile for async loading in a real app startup
@@ -73,7 +70,9 @@ class CoinGeckoClient {
       .join(",");
 
     if (!coinIds) {
-      logger.warn("CoinGeckoClient: No coin IDs available for market cap lookup.");
+      logger.warn(
+        "CoinGeckoClient: No coin IDs available for market cap lookup."
+      );
       return []; // Return empty array if no IDs
     }
 
@@ -82,9 +81,11 @@ class CoinGeckoClient {
         `CoinGeckoClient: Rate limit protection triggered. Waiting before retrying or skipping.`
       );
       // Consider a more sophisticated retry or queuing mechanism here
-      await new Promise(resolve => setTimeout(resolve, REQUEST_TIMEOUT)); 
+      await new Promise((resolve) => setTimeout(resolve, REQUEST_TIMEOUT));
       if (!canMakeRequest()) {
-        logger.error("CoinGeckoClient: Still rate-limited after waiting. Skipping market data fetch.");
+        logger.error(
+          "CoinGeckoClient: Still rate-limited after waiting. Skipping market data fetch."
+        );
         return null;
       }
     }

@@ -8,8 +8,8 @@ import cors from "cors";
 import swaggerUi from "swagger-ui-express";
 import YAML from "yamljs";
 import path from "path";
-import logger from "../helpers/logger";
-import { TickerData } from "../helpers/dataStore";
+import logger from "../src/utils/logger.js";
+import type { Ticker } from "../src/data/models/Ticker.js";
 
 // Create Express app
 const app: Application = express();
@@ -21,24 +21,22 @@ app.set("strict routing", true);
 app.use(cors());
 app.use(express.json());
 
-// Mock ticker data for testing
-const mockTickerData: TickerData[] = [
+// Mock ticker data for testing (simplified for test purposes)
+const mockTickerData: Ticker[] = [
   {
-    e: "24hrTicker",
-    E: 1748627644502,
-    s: "BTCUSDT",
-    p: "1000.00",
-    P: "1.500",
-    w: "67500.00",
-    x: "66500.00",
-    c: "67500.00",
-    Q: "0.50000000",
-    b: "67499.00",
-    B: "2.50000000",
-    a: "67500.00",
-    A: "1.20000000",
-    o: "66500.00",
-    h: "68000.00",
+    symbol: "BTCUSDT",
+    lastPrice: "67500.00",
+    priceChange: "1000.00",
+    priceChangePercent: "1.500",
+    highPrice: "68000.00",
+    lowPrice: "66000.00",
+    volume: "25000.50000000",
+    quoteVolume: "1687500000.00000000",
+    openTime: 1748540400000,
+    closeTime: 1748626800000,
+    firstId: 1000000000,
+    lastId: 1000500000,
+    count: 500000
     l: "66000.00",
     v: "12345.68000000",
     q: "833333340.00000000",

@@ -8,12 +8,18 @@ let lastRequestReset = Date.now();
 const REQUEST_WINDOW_MS = 60000; // 1 minute window in milliseconds
 const MAX_REQUESTS_PER_WINDOW = 50; // Conservative limit (well under Binance's 1200/min)
 
+interface RateLimitingStatus {
+  requestsInCurrentWindow: number;
+  maxRequestsPerWindow: number;
+  windowResetsInMs: number;
+  windowResetTimeISO: string;
+}
+
 /**
  * Check if we can make a request without hitting rate limits.
  * Increments the request counter if a request can be made.
- * @returns {boolean} Whether a request can be made.
  */
-function canMakeRequest() {
+export function canMakeRequest(): boolean {
   const now = Date.now();
 
   // Reset counter if the window has passed
@@ -32,9 +38,8 @@ function canMakeRequest() {
 
 /**
  * Get current rate limiting status.
- * @returns {object} Rate limiting information.
  */
-function getRateLimitingStatus() {
+export function getRateLimitingStatus(): RateLimitingStatus {
   const timeRemainingInWindow =
     REQUEST_WINDOW_MS - (Date.now() - lastRequestReset);
   return {
@@ -47,9 +52,4 @@ function getRateLimitingStatus() {
   };
 }
 
-module.exports = {
-  canMakeRequest,
-  getRateLimitingStatus,
-  REQUEST_WINDOW_MS,
-  MAX_REQUESTS_PER_WINDOW,
-};
+export { REQUEST_WINDOW_MS, MAX_REQUESTS_PER_WINDOW };

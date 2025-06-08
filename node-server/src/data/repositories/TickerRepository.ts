@@ -2,24 +2,23 @@
  * TickerRepository
  * Manages storage and retrieval of the latest ticker data.
  */
-import logger from '../../utils/logger.js';
-
-/**
- * @typedef {import('../models/Ticker.js').Ticker} Ticker
- */
+import logger from "../../utils/logger.js";
+import { Ticker } from "../models/Ticker.js";
 
 // Private store for the latest ticker data
 // Array of Ticker objects
-let latestTickerDataStore = [];
+let latestTickerDataStore: Ticker[] = [];
 
 class TickerRepository {
   /**
    * Updates the entire list of latest tickers.
-   * @param {Ticker[]} newData - An array of Ticker objects.
    */
-  static updateAllTickers(newData) {
+  static updateAllTickers(newData: Ticker[]): void {
     if (!Array.isArray(newData)) {
-      logger.error('TickerRepository.updateAllTickers: newData must be an array.', { type: typeof newData });
+      logger.error(
+        "TickerRepository.updateAllTickers: newData must be an array.",
+        { type: typeof newData }
+      );
       return;
     }
     latestTickerDataStore = newData;
@@ -28,31 +27,31 @@ class TickerRepository {
 
   /**
    * Retrieves the latest list of all tickers.
-   * @returns {Ticker[]}
    */
-  static getLatestTickers() {
+  static getLatestTickers(): Ticker[] {
     return [...latestTickerDataStore]; // Return a copy to prevent direct modification
   }
 
   /**
    * Retrieves a specific ticker by its symbol.
    * Symbol matching is case-insensitive.
-   * @param {string} symbol - The trading symbol (e.g., "BTCUSDT").
-   * @returns {Ticker | undefined} The Ticker object if found, otherwise undefined.
    */
-  static getTickerBySymbol(symbol) {
+  static getTickerBySymbol(symbol: string): Ticker | undefined {
     if (!symbol) return undefined;
     const normalizedSymbol = symbol.toUpperCase(); // Ticker symbols are typically uppercase from Binance
-    return latestTickerDataStore.find(ticker => ticker.s && ticker.s.toUpperCase() === normalizedSymbol);
+    return latestTickerDataStore.find(
+      (ticker) =>
+        ticker.symbol && ticker.symbol.toUpperCase() === normalizedSymbol
+    );
   }
 
   /**
    * Clears all ticker data from the store.
    * Useful for testing or resetting state.
    */
-  static clearAll() {
+  static clearAll(): void {
     latestTickerDataStore = [];
-    logger.info('TickerRepository.clearAll: All ticker data cleared.');
+    logger.info("TickerRepository.clearAll: All ticker data cleared.");
   }
 }
 

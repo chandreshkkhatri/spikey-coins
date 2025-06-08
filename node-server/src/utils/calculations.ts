@@ -2,13 +2,41 @@
  * Calculation utilities for ticker data processing
  */
 
+interface TickerItem {
+  h: string;
+  l: string;
+  c: string;
+  v: string;
+  P: string;
+  p: string;
+}
+
+interface MarketCapDataItem {
+  market_cap: number;
+  circulating_supply: number;
+}
+
+interface AdditionalMetrics {
+  volume_usd: number | null;
+  volume_base: number | null;
+  range_position_24h: number | null;
+  normalized_volume_score: number | null;
+  price: number | null;
+  price_change_24h_percent: number;
+  price_change_24h_value: number;
+  high_24h: number;
+  low_24h: number;
+  market_cap?: number;
+  circulating_supply?: number;
+}
+
 /**
  * Calculate percentage change between two prices
- * @param {number} oldPrice - The old price
- * @param {number} newPrice - The new price
- * @returns {number} Percentage change, rounded to 2 decimal places
  */
-function calculatePercentageChange(oldPrice, newPrice) {
+export function calculatePercentageChange(
+  oldPrice: number,
+  newPrice: number
+): number | null {
   if (
     oldPrice === null ||
     oldPrice === undefined ||
@@ -27,10 +55,10 @@ function calculatePercentageChange(oldPrice, newPrice) {
 /**
  * Calculate normalized volume score for a ticker item
  * This shows how significant the volume is relative to market cap
- * @param {object} item - Ticker item with market_cap, v (volume), and c (price)
- * @returns {number | null} Normalized volume score, rounded to 2 decimal places, or null if data is missing
  */
-function calculateNormalizedVolumeScore(item) {
+export function calculateNormalizedVolumeScore(
+  item: TickerItem & { market_cap: number }
+): number | null {
   if (
     !item ||
     typeof item.market_cap !== "number" ||
@@ -50,10 +78,8 @@ function calculateNormalizedVolumeScore(item) {
 /**
  * Calculate 24h range position percentage
  * Shows where current price sits within the day's high-low range
- * @param {object} item - Ticker item with h (high), l (low), and c (current price)
- * @returns {number | null} Position percentage (0-100), rounded to 2 decimal places, or null if data is missing
  */
-function calculate24hRangePosition(item) {
+export function calculate24hRangePosition(item: TickerItem): number | null {
   if (
     !item ||
     typeof item.h !== "string" ||
@@ -75,12 +101,23 @@ function calculate24hRangePosition(item) {
 /**
  * Calculate additional metrics for ticker data
  * Moves all calculations from frontend to backend
- * @param {object} item - Ticker item from Binance (strings for numbers)
- * @param {object} marketCapDataItem - Corresponding market cap data from CoinGecko (numbers)
- * @returns {object} Additional calculated metrics, with numbers where appropriate
  */
-function calculateAdditionalMetrics(item, marketCapDataItem) {
-  const metrics = {};
+export function calculateAdditionalMetrics(
+  item: TickerItem,
+  marketCapDataItem?: MarketCapDataItem
+): AdditionalMetrics {
+  const metrics: AdditionalMetrics = {
+    volume_usd: null,
+    volume_base: null,
+    range_position_24h: null,
+    normalized_volume_score: null,
+    price: null,
+    price_change_24h_percent: 0,
+    price_change_24h_value: 0,
+    high_24h: 0,
+    low_24h: 0,
+  };
+
   const price = parseFloat(item.c);
   const volume = parseFloat(item.v);
 
@@ -121,10 +158,3 @@ function calculateAdditionalMetrics(item, marketCapDataItem) {
 
   return metrics;
 }
-
-module.exports = {
-  calculatePercentageChange,
-  calculateNormalizedVolumeScore,
-  calculate24hRangePosition,
-  calculateAdditionalMetrics,
-};

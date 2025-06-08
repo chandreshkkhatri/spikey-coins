@@ -1,13 +1,18 @@
 import winston from "winston";
 import "winston-daily-rotate-file";
 import path from "path";
+import { fileURLToPath } from "url";
+
+// Handle __dirname in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Determine logs directory relative to the built `dist` folder or source `src`
 // __dirname will be /Users/chandreshkumar/spikey-coins/node-server/dist/utils in production
 // or /Users/chandreshkumar/spikey-coins/node-server/src/utils in development (if using ts-node)
-const baseDir = __dirname.includes(`${path.sep}dist${path.sep}`) 
-    ? path.join(__dirname, "..") // If in dist/utils, go up one level to dist/
-    : path.join(__dirname, "..");   // If in src/utils, go up one level to src/
+const baseDir = __dirname.includes(`${path.sep}dist${path.sep}`)
+  ? path.join(__dirname, "..") // If in dist/utils, go up one level to dist/
+  : path.join(__dirname, ".."); // If in src/utils, go up one level to src/
 
 const logsDir: string = path.join(baseDir, "..", "logs"); // Go up one more level to node-server/logs
 
@@ -19,13 +24,15 @@ const logFormat = winston.format.combine(
       `[${info.timestamp}] [${info.level.toUpperCase()}] ${info.message} ${
         info.splat !== undefined
           ? info.splat && Array.isArray(info.splat)
-            ? `${info.splat.map((arg: any) => {
-                try {
-                  return JSON.stringify(arg);
-                } catch (e) {
-                  return String(arg); // Fallback for circular structures or other errors
-                }
-              }).join(" ")}`
+            ? `${info.splat
+                .map((arg: any) => {
+                  try {
+                    return JSON.stringify(arg);
+                  } catch (e) {
+                    return String(arg); // Fallback for circular structures or other errors
+                  }
+                })
+                .join(" ")}`
             : ""
           : ""
       }`
