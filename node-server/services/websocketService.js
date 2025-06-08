@@ -179,7 +179,6 @@ function initializeWebSockets() {
 
       for (let j = 0; j < intervals.length; j++) {
         const interval = intervals[j];
-
         try {
           // Add small delay between WebSocket connections
           if (streamCount > 0) {

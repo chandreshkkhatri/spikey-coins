@@ -22,7 +22,6 @@ let candlestickData = new Map();
 function getPriceNIntervalsAgo(symbol, interval, intervalsAgo) {
   const symbolIntervalData = candlestickData.get(symbol);
   if (!symbolIntervalData) return null;
-
   const intervalData = symbolIntervalData.get(interval);
   if (!intervalData || intervalData.length === 0) return null;
 

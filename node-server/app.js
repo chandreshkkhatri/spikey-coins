@@ -3,6 +3,8 @@ const cors = require("cors");
 require("dotenv").config();
 const swaggerUi = require("swagger-ui-express");
 const YAML = require("yamljs");
+const logger = require("./helpers/logger"); // Import the logger
+const morgan = require("morgan"); // Import morgan
 
 // Load OpenAPI specification
 const swaggerDocument = YAML.load("./openapi.yaml");
@@ -17,6 +19,9 @@ const tickerRouter = require("./routers/ticker-router");
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Use morgan for HTTP request logging, piped through Winston
+app.use(morgan("combined", { stream: logger.stream }));
 
 // API Documentation
 app.use(
@@ -57,12 +62,11 @@ app.get("/", (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Proxy server listening on port ${PORT}`);
-  console.log(`📊 Ticker API available at http://localhost:${PORT}/api/ticker`);
-  console.log(
-    `📚 API Documentation available at http://localhost:${PORT}/docs`
+  logger.info(`🚀 Server running on port ${PORT}`);
+  logger.info(
+    `📚 API documentation available at http://localhost:${PORT}/docs`
   );
-  console.log(
-    `📄 OpenAPI Spec available at http://localhost:${PORT}/openapi.json`
+  logger.info(
+    `📄 OpenAPI specification available at http://localhost:${PORT}/openapi.json`
   );
 });

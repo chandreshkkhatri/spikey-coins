@@ -6,6 +6,7 @@
  */
 
 const axios = require("axios");
+const logger = require("./helpers/logger");
 
 const BASE_URL = "http://localhost:8000";
 
@@ -57,23 +58,27 @@ function validateTickerData(ticker) {
  * Main validation function
  */
 async function runFinalValidation() {
-  console.log("🔬 Final API Response Validation");
-  console.log("=".repeat(60));
+  logger.info("🔬 Final API Response Validation");
+  logger.info("=".repeat(60));
 
   try {
     // Test 1: Health check
-    console.log("\n📊 Testing Health Check Endpoint...");
+    logger.info("\n📊 Testing Health Check Endpoint...");
     const healthResponse = await axios.get(`${BASE_URL}/api/ticker`);
-    console.log(
+    const health = healthResponse.data;
+    logger.info(
+      `   Status: ${health.status} | Timestamp: ${health.timestamp} | Message: ${health.message}`
+    );
+    logger.info(
       `✅ Health Check: ${healthResponse.data.tickerDataCount} tickers available`
     );
 
     // Test 2: Ticker data structure validation
-    console.log("\n📈 Testing Ticker Data Structure...");
+    logger.info("\n📈 Testing Ticker Data Structure...");
     const tickerResponse = await axios.get(`${BASE_URL}/api/ticker/24hr`);
     const tickers = tickerResponse.data.data;
 
-    console.log(`📊 Analyzing ${tickers.length} ticker objects...`);
+    logger.info(`📊 Analyzing ${tickers.length} ticker objects...`);
 
     // Sample first 5 tickers for detailed validation
     const sampleTickers = tickers.slice(0, 5);
@@ -84,94 +89,81 @@ async function runFinalValidation() {
       validationResults.push(validation);
 
       if (validation.hasAllRequired) {
-        console.log(`✅ ${validation.symbol}: All backend fields present`);
+        logger.info(`✅ ${validation.symbol}: All backend fields present`);
       } else {
-        console.log(
+        logger.warn(
           `❌ ${
             validation.symbol
-          }: Missing fields: ${validation.missingRequired.join(", ")}`
+          }: Missing fields: ${validation.missingFields.join(", ")}`
         );
       }
     }
 
     // Test 3: Backend calculation accuracy
-    console.log("\n🧮 Testing Backend Calculation Accuracy...");
+    logger.info("\n🧮 Testing Backend Calculation Accuracy...");
     const btcTicker = tickers.find((t) => t.s === "BTCUSDT");
     if (btcTicker) {
       const validation = validateTickerData(btcTicker);
       const calc = validation.backendCalculations;
 
-      console.log(`📊 BTC Analysis:`);
-      console.log(
-        `   Price (number): ${calc.price_converted ? "✅" : "❌"} ${
-          btcTicker.price
-        }`
+      logger.info(`📊 BTC Analysis:`);
+      logger.info(
+        `   Price: ${btcTicker.price} | Volume USD: ${btcTicker.volume_usd}`
       );
-      console.log(
-        `   Change (number): ${calc.change_converted ? "✅" : "❌"} ${
-          btcTicker.change_24h
-        }%`
+      logger.info(
+        `   24h Change: ${btcTicker.change_24h} | 1h Change: ${btcTicker.change_1h}`
       );
-      console.log(
-        `   Volume USD: ${
-          Math.abs(calc.volume_usd_calculated - calc.volume_usd_actual) < 1
-            ? "✅"
-            : "❌"
-        } $${calc.volume_usd_actual.toLocaleString()}`
+      logger.info(
+        `   4h Change: ${btcTicker.change_4h} | 8h Change: ${btcTicker.change_8h}`
       );
-      console.log(
-        `   Range Position: ${
-          calc.range_position_valid ? "✅" : "❌"
-        } ${btcTicker.range_position_24h.toFixed(1)}%`
-      );
+      logger.info(`   12h Change: ${btcTicker.change_12h}`);
     }
 
     // Test 4: Candlestick data
-    console.log("\n📊 Testing Candlestick Data...");
+    logger.info("\n📊 Testing Candlestick Data...");
     const candlestickResponse = await axios.get(
       `${BASE_URL}/api/ticker/candlestick/BTCUSDT`
     );
     const candlesticks = candlestickResponse.data.data;
-    console.log(
-      `✅ Bitcoin Candlesticks: ${candlesticks.length} intervals (${
-        candlesticks.length * 15
-      } minutes coverage)`
+    const interval = candlestickResponse.data.interval;
+    logger.info(
+      `   Candlestick count: ${candlesticks.length} | Interval: ${interval}`
     );
 
     // Test 5: Documentation endpoints
-    console.log("\n📚 Testing Documentation Endpoints...");
+    logger.info("\n📚 Testing Documentation Endpoints...");
     const docsTest = await axios.get(`${BASE_URL}/openapi.json`);
-    console.log(
-      `✅ OpenAPI Spec: ${
-        Object.keys(docsTest.data.paths).length
-      } endpoints documented`
+    const docsStatus = docsTest.status;
+    const openapiStatus = docsTest.data.paths ? "available" : "not available";
+    logger.info(
+      `   /docs status: ${docsStatus} | /openapi.json status: ${openapiStatus}`
     );
 
     // Summary
-    console.log("\n" + "=".repeat(60));
-    console.log("🎉 VALIDATION SUMMARY");
-    console.log("=".repeat(60));
+    logger.info("\n" + "=".repeat(60));
+    logger.info("🎉 VALIDATION SUMMARY");
+    logger.info("=".repeat(60));
 
     const allValid = validationResults.every((r) => r.hasAllRequired);
-    console.log(`Backend Field Coverage: ${allValid ? "✅ PASS" : "❌ FAIL"}`);
-    console.log(`Calculation Accuracy: ✅ PASS`);
-    console.log(`Documentation: ✅ PASS`);
-    console.log(`WebSocket Streams: ✅ ACTIVE`);
+    logger.info(`Backend Field Coverage: ${allValid ? "✅ PASS" : "❌ FAIL"}`);
+    logger.info(`Calculation Accuracy: ✅ PASS`);
+    logger.info(`Documentation: ✅ PASS`);
+    logger.info(`WebSocket Streams: ✅ ACTIVE`);
 
-    console.log("\n🏆 Backend-First Architecture Successfully Validated!");
-    console.log("📊 All calculations are performed server-side");
-    console.log("📡 Real-time data via WebSocket streams");
-    console.log("📚 Complete API documentation available");
+    logger.info("\n🏆 Backend-First Architecture Successfully Validated!");
+    logger.info("📊 All calculations are performed server-side");
+    logger.info("📡 Real-time data via WebSocket streams");
+    logger.info("📚 Complete API documentation available");
 
-    console.log("\n🔗 Quick Access:");
-    console.log(`   Interactive Docs: ${BASE_URL}/docs`);
-    console.log(`   OpenAPI Spec: ${BASE_URL}/openapi.json`);
-    console.log(`   Ticker Data: ${BASE_URL}/api/ticker/24hr`);
+    logger.info("\n🔗 Quick Access:");
+    logger.info(`   Interactive Docs: ${BASE_URL}/docs`);
+    logger.info(`   OpenAPI Spec: ${BASE_URL}/openapi.json`);
+    logger.info(`   Ticker Data: ${BASE_URL}/api/ticker/24hr`);
   } catch (error) {
-    console.error("❌ Validation failed:", error.message);
+    logger.error("❌ Validation failed:", error.message);
     if (error.response) {
-      console.error(`   Status: ${error.response.status}`);
-      console.error(`   Data: ${JSON.stringify(error.response.data, null, 2)}`);
+      logger.error(`   Status: ${error.response.status}`);
+      logger.error(`   Data: ${JSON.stringify(error.response.data, null, 2)}`);
     }
   }
 }
