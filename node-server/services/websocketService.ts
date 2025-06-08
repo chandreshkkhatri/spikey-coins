@@ -2,38 +2,71 @@
  * WebSocket service for handling Binance ticker and candlestick streams
  */
 
-const logger = require("../helpers/logger"); // Import the Winston logger
-const { WebsocketStream } = require("@binance/connector");
-const { calculateAdditionalMetrics } = require("../helpers/calculations");
-const {
+import logger from "../helpers/logger";
+import { WebsocketStream } from "@binance/connector";
+import {
+  calculateAdditionalMetrics,
+  AdditionalMetrics,
+} from "../helpers/calculations";
+import {
   calculateShortTermChanges,
   getLatestTickerData,
   setLatestTickerData,
   setCandlestickDataForSymbol,
   getCandlestickDataForSymbol,
-} = require("../helpers/dataStore");
-const {
+  TickerData,
+  CandlestickData,
+  ShortTermChanges,
+} from "../helpers/dataStore";
+import {
   MAJOR_SYMBOLS,
   WEBSOCKET_CONNECTION_DELAY,
   CANDLESTICK_STREAM_START_DELAY,
   CANDLESTICK_INTERVALS,
-  MAX_CANDLESTICKS,
   USDT_SUFFIX,
-} = require("../config/constants");
+} from "../config/constants";
 
 // Load market cap data
 const coinmarketcap = require("../coin-data/coinmarketcap.json");
 
+// Type definitions for WebSocket data
+interface BinanceKlineData {
+  s: string; // Symbol
+  i: string; // Interval
+  t: number; // Open time
+  T: number; // Close time
+  o: string; // Open price
+  h: string; // High price
+  l: string; // Low price
+  c: string; // Close price
+  v: string; // Volume
+  x: boolean; // Is this kline closed?
+}
+
+interface BinanceCandlestickResponse {
+  k: BinanceKlineData;
+}
+
+interface MarketCapData {
+  symbol: string;
+  market_cap: number;
+}
+
+interface WebSocketClients {
+  tickerWebsocketClient: WebsocketStream;
+  candlestickWebsocketClient: WebsocketStream;
+}
+
 /**
  * Updates ticker data with new information from WebSocket
- * @param {Array} responseData - Array of ticker data from Binance
+ * @param responseData - Array of ticker data from Binance
  */
-function updateTickerData(responseData) {
-  const tickerMap = new Map(
+export function updateTickerData(responseData: TickerData[]): void {
+  const tickerMap = new Map<string, TickerData>(
     getLatestTickerData().map((item) => [item.s, item])
   );
-  const coinmarketcapMap = new Map(
-    coinmarketcap.map((item) => [
+  const coinmarketcapMap = new Map<string, MarketCapData>(
+    (coinmarketcap as MarketCapData[]).map((item) => [
       (item.symbol + USDT_SUFFIX).toUpperCase(),
       item,
     ])
@@ -42,7 +75,7 @@ function updateTickerData(responseData) {
   responseData.forEach((item) => {
     if (tickerMap.has(item.s)) {
       // Update existing ticker data
-      Object.assign(tickerMap.get(item.s), item);
+      Object.assign(tickerMap.get(item.s)!, item);
     } else {
       // Add new ticker data
       const currentData = getLatestTickerData();
@@ -52,33 +85,39 @@ function updateTickerData(responseData) {
 
     // Add market cap data if available
     if (item.s.endsWith(USDT_SUFFIX) && coinmarketcapMap.has(item.s)) {
-      const marketCapData = coinmarketcapMap.get(item.s);
-      item.market_cap = marketCapData.market_cap;
+      const marketCapData = coinmarketcapMap.get(item.s)!;
+      (item as any).market_cap = marketCapData.market_cap;
     }
 
     // Add short-term changes if candlestick data is available
     const currentPrice = parseFloat(item.c);
-    const shortTermChanges = calculateShortTermChanges(item.s, currentPrice);
+    const shortTermChanges: ShortTermChanges = calculateShortTermChanges(
+      item.s,
+      currentPrice
+    );
     Object.assign(item, shortTermChanges);
 
     // Add all additional calculated metrics
-    const additionalMetrics = calculateAdditionalMetrics(item);
+    const additionalMetrics: AdditionalMetrics =
+      calculateAdditionalMetrics(item);
     Object.assign(item, additionalMetrics);
   });
 }
 
 /**
  * Updates candlestick data from WebSocket
- * @param {Object} responseData - Candlestick data from Binance
+ * @param responseData - Candlestick data from Binance
  */
-function updateCandlestickData(responseData) {
+export function updateCandlestickData(
+  responseData: BinanceCandlestickResponse
+): void {
   try {
     const kline = responseData.k;
     if (!kline) return;
 
     const symbol = kline.s;
     const interval = kline.i;
-    const candlestick = {
+    const candlestick: CandlestickData = {
       symbol: symbol,
       openTime: kline.t,
       closeTime: kline.T,
@@ -88,9 +127,7 @@ function updateCandlestickData(responseData) {
       close: kline.c,
       volume: kline.v,
       interval: interval,
-    };
-
-    // Get existing data for this symbol and interval
+    }; // Get existing data for this symbol and interval
     let intervalData = getCandlestickDataForSymbol(symbol, interval);
     if (!intervalData) {
       intervalData = [];
@@ -102,8 +139,7 @@ function updateCandlestickData(responseData) {
       intervalData.push(candlestick);
 
       // Keep only the required amount of data based on interval
-      const maxCount =
-        CANDLESTICK_INTERVALS[interval]?.maxCount || MAX_CANDLESTICKS;
+      const maxCount = CANDLESTICK_INTERVALS[interval]?.maxCount || 500;
       if (intervalData.length > maxCount) {
         intervalData.shift();
       }
@@ -121,11 +157,15 @@ function updateCandlestickData(responseData) {
  * WebSocket callbacks for Binance ticker stream
  */
 const tickerCallbacks = {
-  open: () => logger.debug("Connected with Ticker WebSocket server"),
-  close: () => logger.debug("Disconnected with Ticker WebSocket server"),
-  message: (data) => {
+  open: (): void => {
+    logger.debug("Connected with Ticker WebSocket server");
+  },
+  close: (): void => {
+    logger.debug("Disconnected with Ticker WebSocket server");
+  },
+  message: (data: string): void => {
     try {
-      const response = JSON.parse(data);
+      const response: TickerData[] = JSON.parse(data);
       updateTickerData(response);
     } catch (error) {
       logger.error("Error parsing Ticker WebSocket message:", error);
@@ -137,11 +177,15 @@ const tickerCallbacks = {
  * WebSocket callbacks for Binance candlestick stream
  */
 const candlestickCallbacks = {
-  open: () => logger.debug("Connected with Candlestick WebSocket server"),
-  close: () => logger.debug("Disconnected with Candlestick WebSocket server"),
-  message: (data) => {
+  open: (): void => {
+    logger.debug("Connected with Candlestick WebSocket server");
+  },
+  close: (): void => {
+    logger.debug("Disconnected with Candlestick WebSocket server");
+  },
+  message: (data: string): void => {
     try {
-      const response = JSON.parse(data);
+      const response: BinanceCandlestickResponse = JSON.parse(data);
       updateCandlestickData(response);
     } catch (error) {
       logger.error("Error parsing Candlestick WebSocket message:", error);
@@ -152,7 +196,7 @@ const candlestickCallbacks = {
 /**
  * Initialize WebSocket connections
  */
-function initializeWebSockets() {
+export function initializeWebSockets(): WebSocketClients {
   // Initialize WebSocket connections
   const tickerWebsocketClient = new WebsocketStream({
     logger,
@@ -165,8 +209,9 @@ function initializeWebSockets() {
 
   // Start ticker stream
   tickerWebsocketClient.ticker();
+
   // Start candlestick streams for major pairs with multiple timeframes
-  const startCandlestickStreams = async () => {
+  const startCandlestickStreams = async (): Promise<void> => {
     logger.info(
       "Starting candlestick WebSocket streams for multiple timeframes..."
     );
@@ -179,11 +224,10 @@ function initializeWebSockets() {
 
       for (let j = 0; j < intervals.length; j++) {
         const interval = intervals[j];
-
         try {
           // Add small delay between WebSocket connections
           if (streamCount > 0) {
-            await new Promise((resolve) =>
+            await new Promise<void>((resolve) =>
               setTimeout(resolve, WEBSOCKET_CONNECTION_DELAY)
             );
           }
@@ -193,7 +237,7 @@ function initializeWebSockets() {
             `📡 Started ${interval} candlestick stream for ${symbol.toUpperCase()}`
           );
           streamCount++;
-        } catch (error) {
+        } catch (error: any) {
           logger.error(
             `Failed to start ${interval} stream for ${symbol}:`,
             error.message
@@ -215,9 +259,3 @@ function initializeWebSockets() {
     candlestickWebsocketClient,
   };
 }
-
-module.exports = {
-  initializeWebSockets,
-  updateTickerData,
-  updateCandlestickData,
-};

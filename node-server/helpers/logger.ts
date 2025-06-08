@@ -1,24 +1,26 @@
-const winston = require("winston");
-require("winston-daily-rotate-file");
-const path = require("path");
+import winston from "winston";
+import "winston-daily-rotate-file";
+import path from "path";
 
-const logsDir = path.join(__dirname, "../logs");
+const logsDir: string = path.join(__dirname, "../logs");
 
 // Define the log format
 const logFormat = winston.format.combine(
   winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
   winston.format.printf(
-    (info) =>
+    (info: winston.Logform.TransformableInfo) =>
       `[${info.timestamp}] [${info.level.toUpperCase()}] ${info.message} ${
         info.splat !== undefined
-          ? `${info.splat.map((arg) => JSON.stringify(arg)).join(" ")}`
+          ? info.splat && Array.isArray(info.splat)
+            ? `${info.splat.map((arg: any) => JSON.stringify(arg)).join(" ")}`
+            : ""
           : ""
       }`
   )
 );
 
 // Create a new Winston logger instance
-const logger = winston.createLogger({
+const logger: winston.Logger = winston.createLogger({
   format: logFormat,
   transports: [
     // Console transport
@@ -52,10 +54,14 @@ const logger = winston.createLogger({
 });
 
 // Stream for morgan (HTTP request logger)
-logger.stream = {
-  write: function (message, encoding) {
+interface LoggerStream {
+  write: (message: string, encoding?: string) => void;
+}
+
+(logger as any).stream = {
+  write: function (message: string, encoding?: string): void {
     logger.info(message.trim());
   },
-};
+} as LoggerStream;
 
-module.exports = logger;
+export default logger;

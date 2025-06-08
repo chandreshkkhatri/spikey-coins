@@ -2,18 +2,23 @@
   "name": "spikey-coins-proxy-server",
   "version": "1.0.0",
   "description": "Proxy server for Spikey Coins application to handle crypto ticker data and bypass CORS issues",
-  "main": "app.js",
+  "main": "dist/app.js",
   "scripts": {
-    "start": "node app.js",
-    "dev": "nodemon app.js",
+    "build": "tsc",
+    "start": "npm run build && node dist/app.js",
+    "start:ts": "tsx app.ts",
+    "dev": "tsx --watch app.ts",
+    "dev:build": "tsc --watch",
     "test": "cross-env NODE_ENV=test jest",
     "test:watch": "cross-env NODE_ENV=test jest --watch",
     "test:coverage": "cross-env NODE_ENV=test jest --coverage",
     "test:verbose": "cross-env NODE_ENV=test jest --verbose",
-    "docs:validate": "node validate-api.js --validate",
-    "docs:test": "node validate-api.js --test",
-    "docs:examples": "node validate-api.js --examples",
-    "docs:verify": "curl -s http://localhost:8000/api/ticker/24hr | python3 -c \"import sys,json; t=json.load(sys.stdin)['data'][0]; print(f'✅ Backend calculations verified: {t[\\\"s\\\"]} = ${t[\\\"price\\\"]} (USD: ${t[\\\"volume_usd\\\"]:,.0f})')\" || echo '❌ Server not running'"
+    "docs:validate": "tsx validate-api.ts --validate",
+    "docs:test": "tsx validate-api.ts --test",
+    "docs:examples": "tsx validate-api.ts --examples",
+    "docs:verify": "curl -s http://localhost:8000/api/ticker/24hr | python3 -c \"import sys,json; t=json.load(sys.stdin)['data'][0]; print(f'✅ Backend calculations verified: {t[\\\"s\\\"]} = ${t[\\\"price\\\"]} (USD: ${t[\\\"volume_usd\\\"]:,.0f})')\" || echo '❌ Server not running'",
+    "validate:final": "tsx final-validation.ts",
+    "debug:routes": "tsx debug-routes.ts"
   },
   "keywords": [
     "crypto",
@@ -30,14 +35,55 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.16.4",
+    "morgan": "^1.10.0",
     "nodemon": "^1.18.9",
     "swagger-ui-express": "^5.0.1",
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^5.0.0",
     "ws": "^8.18.0",
     "yamljs": "^0.3.0"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/jest": "^29.5.14",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^22.15.30",
+    "@types/supertest": "^6.0.3",
+    "@types/swagger-ui-express": "^4.1.8",
+    "@types/ws": "^8.18.1",
+    "@types/yamljs": "^0.2.34",
     "cross-env": "^7.0.3",
     "jest": "^29.7.0",
-    "supertest": "^7.1.1"
+    "supertest": "^7.1.1",
+    "ts-jest": "^29.3.4",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "setupFilesAfterEnv": [
+      "<rootDir>/tests/setup.ts"
+    ],
+    "testMatch": [
+      "<rootDir>/tests/**/*.test.ts"
+    ],
+    "collectCoverageFrom": [
+      "**/*.ts",
+      "!**/node_modules/**",
+      "!**/dist/**",
+      "!**/types/**",
+      "!**/*.d.ts"
+    ],
+    "transform": {
+      "^.+\\.ts$": "ts-jest"
+    },
+    "moduleFileExtensions": [
+      "ts",
+      "js",
+      "json"
+    ]
   }
 }
