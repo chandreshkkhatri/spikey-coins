@@ -8,7 +8,7 @@ import { COINGECKO_BASE_URL, REQUEST_TIMEOUT } from "../config/constants.js"; //
 
 // Load static CoinGecko ID mappings
 // Note: Using require for JSON is fine, or consider fs.readFile for async loading in a real app startup
-const coingeckoIdMappings: CoinGeckoIdMapping[] = require("../../../coin-data/coingecko-ids.json");
+const coingeckoIdMappings: CoinGeckoIdMapping[] = require("../../coin-data/coingecko-ids.json");
 
 // API key from environment
 const coingeckoApiKey: string | undefined = process.env.COINGECKO_API_KEY;

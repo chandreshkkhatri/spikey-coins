@@ -6,7 +6,7 @@
 export const COINGECKO_BASE_URL = "https://api.coingecko.com/api/v3";
 export const BINANCE_API_BASE_URL = "https://api.binance.com"; // Consolidated base URL
 export const BINANCE_KLINES_URL = `${BINANCE_API_BASE_URL}/api/v3/klines`;
-export const BINANCE_WS_BASE_URL = "wss://stream.binance.com:9443/ws";
+export const BINANCE_WS_BASE_URL = "wss://stream.binance.com:9443"; // Removed /ws from here
 export const USDT_SUFFIX = "USDT";
 
 // Major trading pairs for initial data loading

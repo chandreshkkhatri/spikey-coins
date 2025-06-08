@@ -20,5 +20,12 @@
     "types": ["node", "jest"]
   },
   "include": ["./**/*.ts"],
-  "exclude": ["node_modules", "dist", "logs", "coin-data", "debug-routes.ts", "tests_old"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "logs",
+    "coin-data",
+    "debug-routes.ts",
+    "tests_old"
+  ]
 }

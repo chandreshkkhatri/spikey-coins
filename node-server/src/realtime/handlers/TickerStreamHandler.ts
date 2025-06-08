@@ -44,17 +44,7 @@ class TickerStreamHandler {
     // This handler will process whatever Binance sends on `!ticker@arr`.    // logger.debug(`TickerStreamHandler: Received ${rawTickerArray.length} tickers.`);
 
     try {
-      const coingeckoDataMap =
-        await DataSyncService.getCurrentCoinGeckoDataMap();
-      if (!coingeckoDataMap || coingeckoDataMap.size === 0) {
-        logger.warn(
-          "TickerStreamHandler: CoinGecko data map is not available or empty. Tickers may not be fully enriched."
-        );
-      }
-      MarketDataService.processAndStoreEnrichedTickers(
-        rawTickerArray,
-        coingeckoDataMap
-      );
+      MarketDataService.processAndStoreEnrichedTickers(rawTickerArray);
       // logger.debug('TickerStreamHandler: Successfully processed and stored enriched tickers.');
     } catch (error) {
       logger.error(

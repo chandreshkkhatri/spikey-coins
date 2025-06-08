@@ -9,7 +9,7 @@ import PriceCalculationService, {
 } from "./PriceCalculationService.js";
 import { calculateAdditionalMetrics } from "../utils/calculations.js";
 import logger from "../utils/logger.js";
-import type { CoinGeckoMarketData } from "../external/CoinGeckoClient.js";
+// import type { CoinGeckoMarketData } from "../external/CoinGeckoClient.js"; // This import might become unused
 import type { Ticker } from "../data/models/Ticker.js";
 
 interface RawBinanceTicker {
@@ -32,8 +32,8 @@ class MarketDataService {
    * @param coingeckoDataMap - A map of CoinGecko market data, keyed by lowercase symbol.
    */
   static processAndStoreEnrichedTickers(
-    rawTickerArray: RawBinanceTicker[],
-    coingeckoDataMap: Map<string, CoinGeckoMarketData>
+    rawTickerArray: RawBinanceTicker[]
+    // coingeckoDataMap: Map<string, CoinGeckoMarketData> // Removed coingeckoDataMap parameter
   ): void {
     if (!Array.isArray(rawTickerArray)) {
       logger.error(
@@ -41,12 +41,12 @@ class MarketDataService {
       );
       return;
     }
-    if (!(coingeckoDataMap instanceof Map)) {
-      logger.error(
-        "MarketDataService.processAndStoreEnrichedTickers: coingeckoDataMap must be a Map."
-      );
-      return;
-    }
+    // if (!(coingeckoDataMap instanceof Map)) { // Removed coingeckoDataMap validation
+    //   logger.error(
+    //     "MarketDataService.processAndStoreEnrichedTickers: coingeckoDataMap must be a Map."
+    //   );
+    //   return;
+    // }
 
     logger.debug(
       `MarketDataService: Processing ${rawTickerArray.length} raw tickers.`
@@ -62,7 +62,7 @@ class MarketDataService {
           return null; // Skip this ticker if it's invalid
         }
         const symbol = rawTicker.s; // Binance symbol is uppercase, e.g., BTCUSDT
-        const normalizedSymbol = symbol.toLowerCase(); // For lookups
+        // const normalizedSymbol = symbol.toLowerCase(); // No longer needed for coingeckoDataMap lookup
         const currentPrice = parseFloat(rawTicker.c);
 
         if (isNaN(currentPrice)) {
@@ -81,18 +81,19 @@ class MarketDataService {
             ) || {}
           : {}; // Empty object if price is NaN, will result in nulls for changes
 
-        // 2. Get corresponding CoinGecko data
-        const marketCapDataItem = coingeckoDataMap.get(normalizedSymbol);
-        if (!marketCapDataItem) {
-          // logger.debug(`MarketDataService: No CoinGecko market data found for ${normalizedSymbol}.`);
-        }
+        // 2. Get corresponding CoinGecko data - REMOVED
+        // const marketCapDataItem = coingeckoDataMap.get(normalizedSymbol); // Removed
+        // if (!marketCapDataItem) { // Removed
+        //   // logger.debug(`MarketDataService: No CoinGecko market data found for ${normalizedSymbol}.`);
+        // }
 
         // 3. Calculate other additional metrics (volume in USD, range position, etc.)
-        // The `calculateAdditionalMetrics` function expects the original Binance item and the CG item.
+        // The `calculateAdditionalMetrics` function now only expects the original Binance item.
         const additionalMetrics = calculateAdditionalMetrics(
-          rawTicker,
-          marketCapDataItem
-        ); // 4. Combine all data into the Ticker structure
+          rawTicker
+          // marketCapDataItem // Removed marketCapDataItem argument
+        );
+        // 4. Combine all data into the Ticker structure
         const tickerEntry: Ticker = {
           // Map raw Binance ticker properties to Ticker interface properties
           symbol: symbol,
@@ -110,9 +111,9 @@ class MarketDataService {
           count: rawTicker.n || 0, // fallback if not present
           ...additionalMetrics, // Spread calculated metrics (price, volume_usd, etc.)
           ...shortTermChanges, // Spread calculated 1h, 4h, 8h, 12h changes
-          // Add CoinGecko specific fields if available, ensure no clashes or use explicit mapping
-          image: marketCapDataItem?.image,
-          market_cap_rank: marketCapDataItem?.market_cap_rank,
+          // Add CoinGecko specific fields if available, ensure no clashes or use explicit mapping - REMOVED
+          // image: marketCapDataItem?.image, // Removed
+          // market_cap_rank: marketCapDataItem?.market_cap_rank, // Removed
           // fully_diluted_valuation, ath, atl etc. can be added if needed from marketCapDataItem
           last_updated: new Date().toISOString(),
         };
