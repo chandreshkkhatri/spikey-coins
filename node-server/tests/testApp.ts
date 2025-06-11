@@ -8,7 +8,13 @@ import cors from "cors";
 import swaggerUi from "swagger-ui-express";
 import YAML from "yamljs";
 import path from "path";
-import logger from "../src/utils/logger.js";
+// Mock logger for testing
+const logger = {
+  info: jest.fn(),
+  error: jest.fn(),
+  warn: jest.fn(),
+  debug: jest.fn(),
+};
 import type { Ticker } from "../src/data/models/Ticker.js";
 
 // Create Express app
@@ -21,9 +27,10 @@ app.set("strict routing", true);
 app.use(cors());
 app.use(express.json());
 
-// Mock ticker data for testing (simplified for test purposes)
-const mockTickerData: Ticker[] = [
+// Mock ticker data for testing (matching expected API format)
+const mockTickerData: any[] = [
   {
+    // Core Binance fields
     symbol: "BTCUSDT",
     lastPrice: "67500.00",
     priceChange: "1000.00",
@@ -37,12 +44,29 @@ const mockTickerData: Ticker[] = [
     firstId: 1000000000,
     lastId: 1000500000,
     count: 500000,
+    // Raw Binance API field names
+    s: "BTCUSDT",
+    c: "67500.00",
+    o: "66500.00",
+    h: "68000.00",
+    l: "66000.00",
+    v: "25000.50000000",
+    P: "1.500",
+    // Backend calculated fields
+    price: 67500.00,
+    change_24h: 1.5,
+    high_24h: 68000.00,
+    low_24h: 66000.00,
+    volume_base: 25000.5,
+    volume_usd: 1687533750.00, // 25000.5 * 67500.00
+    range_position_24h: 75.0,
+    normalized_volume_score: 100.0,
     change_1h: 0.5,
     change_4h: 1.2,
-    change_8h: 2.1,
     change_12h: 3.2,
   },
   {
+    // Core Binance fields
     symbol: "ETHUSDT",
     lastPrice: "2550.00",
     priceChange: "50.00",
@@ -56,9 +80,25 @@ const mockTickerData: Ticker[] = [
     firstId: 2000000000,
     lastId: 2000300000,
     count: 300000,
+    // Raw Binance API field names
+    s: "ETHUSDT",
+    c: "2550.00",
+    o: "2500.00",
+    h: "2600.00",
+    l: "2480.00",
+    v: "15000.50000000",
+    P: "2.000",
+    // Backend calculated fields
+    price: 2550.00,
+    change_24h: 2.0,
+    high_24h: 2600.00,
+    low_24h: 2480.00,
+    volume_base: 15000.5,
+    volume_usd: 38251275.00, // 15000.5 * 2550.00
+    range_position_24h: 58.33,
+    normalized_volume_score: 45.0,
     change_1h: 1.0,
     change_4h: 1.8,
-    change_8h: 2.5,
     change_12h: 3.0,
   },
 ];
@@ -67,6 +107,7 @@ const mockTickerData: Ticker[] = [
 const mockCandlestickData = [
   {
     symbol: "BTCUSDT",
+    timestamp: "2025-01-27T10:54:00.000Z",
     openTime: 1748627640000,
     closeTime: 1748627699999,
     open: "67000.00",
@@ -78,6 +119,7 @@ const mockCandlestickData = [
   },
   {
     symbol: "BTCUSDT",
+    timestamp: "2025-01-27T10:55:00.000Z",
     openTime: 1748627700000,
     closeTime: 1748627759999,
     open: "67500.00",
@@ -93,14 +135,14 @@ const mockCandlestickData = [
 const mockControllers = {
   getHealthCheck: (req: Request, res: Response): void => {
     res.json({
-      message: "Ticker router is running (TEST MODE)",
+      message: "Ticker router is running",
       status: "healthy",
       tickerDataCount: mockTickerData.length,
       candlestickSymbols: 2,
       rateLimiting: {
-        requestCount: 0,
-        lastRequestTime: Date.now(),
-        isWithinLimit: true,
+        requestsInCurrentWindow: 0,
+        maxRequestsPerWindow: 100,
+        windowResetTime: new Date(Date.now() + 3600000).toISOString(),
       },
     });
   },
@@ -143,24 +185,11 @@ const mockControllers = {
 
   getCandlestickSummary: (req: Request, res: Response): void => {
     const symbols = ["BTCUSDT", "ETHUSDT"];
-    const summary = symbols.map((symbol) => ({
-      symbol: symbol,
-      intervals: {
-        "15m": {
-          candleCount: mockCandlestickData.filter((c) => c.symbol === symbol)
-            .length,
-          latestTime:
-            mockCandlestickData.filter((c) => c.symbol === symbol).slice(-1)[0]
-              ?.closeTime || null,
-        },
-      },
-      totalIntervals: 1,
-    }));
 
     res.json({
       success: true,
+      message: "Available candlestick symbols",
       symbols: symbols,
-      summary: summary,
       count: symbols.length,
       timestamp: new Date().toISOString(),
     });
@@ -179,24 +208,22 @@ const mockControllers = {
       success: true,
       data: [
         {
-          id: "bitcoin",
           symbol: "btc",
           name: "Bitcoin",
-          current_price: 67500,
-          market_cap: 1337500000000,
+          market_cap_usd: 1337500000000,
+          price_usd: 67500,
           market_cap_rank: 1,
         },
         {
-          id: "ethereum",
           symbol: "eth",
           name: "Ethereum",
-          current_price: 2550,
-          market_cap: 306600000000,
+          market_cap_usd: 306600000000,
+          price_usd: 2550,
           market_cap_rank: 2,
         },
       ],
       count: 2,
-      timestamp: new Date().toISOString(),
+      lastUpdated: new Date().toISOString(),
     });
   },
 };
@@ -253,13 +280,13 @@ if (swaggerDocument) {
 // Health check endpoint
 app.get("/", (req: Request, res: Response) => {
   res.json({
-    message: "Spikey Coins Proxy Server (TEST MODE)",
-    description: "Test environment for API endpoints",
-    status: "healthy",
-    timestamp: new Date().toISOString(),
-    documentation: {
-      swaggerUI: "http://localhost:8000/docs",
-      openAPISpec: "http://localhost:8000/openapi.json",
+    message: "Spikey Coins Proxy Server - Test Environment",
+    version: "1.0.0",
+    endpoints: {
+      docs: "/docs",
+      openapi: "/openapi.json",
+      ticker: "/api/ticker",
+      ticker24hr: "/api/ticker/24hr",
     },
   });
 });

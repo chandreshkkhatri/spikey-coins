@@ -1,60 +1,38 @@
 /**
- * TickerController - API controller for ticker-related endpoints
+ * TickerController
+ * Handles API endpoints for ticker data, candlestick data, and system status
  */
 import { Request, Response } from "express";
 import logger from "../../utils/logger.js";
-import { MAJOR_SYMBOLS } from "../../config/constants.js";
-import MarketDataService from "../../services/MarketDataService.js";
-import type CandlestickRepository from "../../data/repositories/CandlestickRepository.js";
-import DataSyncService from "../../services/DataSyncService.js";
-import type { getRateLimitingStatus } from "../../utils/rateLimiting.js";
-
-interface TickerControllerDependencies {
-  marketDataService: typeof MarketDataService;
-  candlestickRepository: typeof CandlestickRepository;
-  dataSyncService: typeof DataSyncService;
-  getRateLimitingStatusFunction: typeof getRateLimitingStatus;
-}
+import TickerRepository from "../../data/repositories/TickerRepository.js";
+import CandlestickRepository from "../../data/repositories/CandlestickRepository.js";
+import CandlestickStorageService from "../../services/CandlestickStorageService.js";
+import { getRateLimitingStatus } from "../../utils/rateLimiting.js";
+import SymbolDiscoveryService from "../../services/SymbolDiscoveryService.js";
 
 class TickerController {
-  private marketDataService: typeof MarketDataService;
-  private candlestickRepository: typeof CandlestickRepository;
-  private dataSyncService: typeof DataSyncService;
-  private getRateLimitingStatus: typeof getRateLimitingStatus;
-
-  constructor({
-    marketDataService,
-    candlestickRepository,
-    dataSyncService,
-    getRateLimitingStatusFunction,
-  }: TickerControllerDependencies) {
-    this.marketDataService = marketDataService;
-    this.candlestickRepository = candlestickRepository;
-    this.dataSyncService = dataSyncService;
-    this.getRateLimitingStatus = getRateLimitingStatusFunction; // Renamed to avoid conflict
-  }
-
   /**
    * Health check endpoint controller
    */
   getHealthCheck(req: Request, res: Response): void {
     try {
-      const latestTickers = MarketDataService.getLatestEnrichedTickers();
-      const candlestickSummary = this.candlestickRepository.getSummary();
+      const rateLimitStatus = getRateLimitingStatus();
+      const inMemorySummary = CandlestickRepository.getSummary();
 
       res.json({
+        success: true,
         message: "Ticker router is running",
         status: "healthy",
-        tickerDataCount: latestTickers.length,
-        candlestickSymbolCount: candlestickSummary.length, // Number of symbols with candlestick data
-        // rateLimiting: this.getRateLimitingStatus(), // Assuming getRateLimitingStatus is available
+        tickerDataCount: TickerRepository.getTickerCount(),
+        candlestickSymbolCount: Object.keys(inMemorySummary).length,
         timestamp: new Date().toISOString(),
+        rateLimiting: rateLimitStatus,
       });
     } catch (error) {
-      logger.error("TickerController: Error in getHealthCheck:", error);
+      logger.error("TickerController: Error in health check:", error);
       res.status(500).json({
         success: false,
-        error: "Internal server error during health check",
+        error: "Health check failed",
       });
     }
   }
@@ -62,13 +40,13 @@ class TickerController {
   /**
    * Get 24hr ticker data with short-term changes
    */
-  get24hrTickerData(req: Request, res: Response): void {
+  async get24hrTicker(req: Request, res: Response): Promise<void> {
     try {
-      const tickerData = this.marketDataService.getLatestEnrichedTickers();
+      const latestTickers = TickerRepository.getAllTickers();
       res.json({
         success: true,
-        data: tickerData,
-        count: tickerData.length,
+        data: latestTickers,
+        count: latestTickers.length,
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
@@ -88,7 +66,7 @@ class TickerController {
       const symbol = req.params.symbol.toLowerCase(); // Normalize to lowercase as stored in repository
       const interval = req.query.interval?.toString() || "1m"; // Default to 1m, ensure string
 
-      const data = this.candlestickRepository.getCandlesticks(symbol, interval);
+      const data = CandlestickRepository.getCandlesticks(symbol, interval);
 
       if (!data || data.length === 0) {
         res.status(404).json({
@@ -123,11 +101,11 @@ class TickerController {
    */
   getCandlestickSummary(req: Request, res: Response): void {
     try {
-      const summary = this.candlestickRepository.getSummary();
+      const summary = CandlestickRepository.getSummary();
       res.json({
         success: true,
         summary: summary,
-        count: summary.length,
+        count: Object.keys(summary).length,
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
@@ -143,70 +121,91 @@ class TickerController {
   }
 
   /**
-   * Get market cap data (now primarily from CoinGecko, managed by DataSyncService)
+   * Get storage statistics and health information
    */
-  async getMarketCapData(req: Request, res: Response): Promise<void> {
+  async getStorageStats(req: Request, res: Response): Promise<void> {
     try {
-      // The CoinGecko data is fetched periodically by DataSyncService and used by MarketDataService.
-      // For this endpoint, we can return the latest processed tickers which include CoinGecko data.
-      // Or, if a direct, fresh call to CoinGecko is desired for this specific endpoint, that would be a different design.
-      // Assuming we want to show the CoinGecko data that is integrated into our main ticker stream:
-      const coingeckoDataMap =
-        await this.dataSyncService.getCurrentCoinGeckoDataMap();
-
-      if (!coingeckoDataMap || coingeckoDataMap.size === 0) {
-        res.status(404).json({
-          success: false,
-          error: "CoinGecko market data is not currently available.",
-        });
-        return;
-      }
-      // Convert Map to Array of values for the response
-      const data = Array.from(coingeckoDataMap.values());
-
+      const stats = await CandlestickStorageService.getStorageStats();
+      const inMemorySummary = CandlestickRepository.getSummary();
+      
       res.json({
         success: true,
-        data: data,
-        count: data.length,
+        storage: {
+          metadata: stats.metadata,
+          filesCount: stats.filesCount,
+          totalSizeBytes: stats.totalSizeBytes,
+          totalSizeMB: Math.round(stats.totalSizeBytes / 1024 / 1024 * 100) / 100,
+        },
+        inMemory: {
+          symbolCount: Object.keys(inMemorySummary).length,
+          totalCandles: Object.values(inMemorySummary).reduce((total, symbol) => 
+            total + Object.values(symbol).reduce((symbolTotal, interval) => 
+              symbolTotal + interval.count, 0), 0)
+        },
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      logger.error("TickerController: Error fetching market cap data:", error);
+      logger.error("TickerController: Error getting storage stats:", error);
       res.status(500).json({
         success: false,
-        error: "Failed to retrieve market cap data",
+        error: "Failed to retrieve storage statistics",
       });
     }
   }
 
   /**
-   * Placeholder for triggering a manual refresh of CoinGecko data if needed.
-   * In the new architecture, DataSyncService handles periodic refreshes.
+   * Get symbol discovery statistics
    */
-  async refreshMarketData(req: Request, res: Response): Promise<void> {
-    logger.info("TickerController: Manual market data refresh requested.");
+  getDiscoveryStats(req: Request, res: Response): void {
     try {
-      // Note: This method may need to be added to DataSyncService
-      // await this.dataSyncService.fetchAndStoreCoinGeckoData();
-      const coingeckoDataMap =
-        await this.dataSyncService.getCurrentCoinGeckoDataMap();
-      logger.info(
-        "TickerController: CoinGecko data refresh initiated successfully."
-      );
+      const stats = SymbolDiscoveryService.getDiscoveryStats();
+      
       res.json({
         success: true,
-        message:
-          "CoinGecko market data refresh initiated. Check logs for status.",
-        count: coingeckoDataMap.size,
+        discovery: stats,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      logger.error("TickerController: Error getting discovery stats:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to retrieve discovery statistics",
+      });
+    }
+  }
+
+  /**
+   * Get ticker data by symbol
+   */
+  async getTickerBySymbol(req: Request, res: Response): Promise<void> {
+    try {
+      const { symbol } = req.params;
+      const tickerData = TickerRepository.getAllTickers();
+      const ticker = tickerData.find(
+        (t) => t.symbol.toUpperCase() === symbol.toUpperCase()
+      );
+
+      if (!ticker) {
+        res.status(404).json({
+          success: false,
+          error: `No ticker data available for ${symbol}`,
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        data: ticker,
+        timestamp: new Date().toISOString(),
       });
     } catch (error) {
       logger.error(
-        "TickerController: Error initiating market data refresh:",
+        "TickerController: Error sending ticker data by symbol:",
         error
       );
       res.status(500).json({
         success: false,
-        error: "Failed to initiate market data refresh.",
+        error: "Failed to retrieve ticker data",
       });
     }
   }

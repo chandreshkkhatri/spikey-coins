@@ -22,7 +22,7 @@ interface BinanceMessage {
 
 interface BinanceStreamManagerDependencies {
   tickerStreamHandler: TickerStreamHandler;
-  candlestickStreamHandler: CandlestickStreamHandler;
+  candlestickStreamHandler?: CandlestickStreamHandler;
 }
 
 type MessageHandler = (message: any) => void;
@@ -35,7 +35,7 @@ class BinanceStreamManager {
   private explicitlyClosed: boolean = false;
   private reconnectTimeoutId: NodeJS.Timeout | null = null;
   private tickerStreamHandler: TickerStreamHandler;
-  private candlestickStreamHandler: CandlestickStreamHandler;
+  private candlestickStreamHandler?: CandlestickStreamHandler;
 
   constructor({
     tickerStreamHandler,
@@ -52,18 +52,20 @@ class BinanceStreamManager {
       this.tickerStreamHandler.handleMessage(message)
     );
 
-    // Candlestick streams for major symbols and defined intervals
-    MAJOR_SYMBOLS.forEach((symbol) => {
-      Object.keys(CANDLESTICK_INTERVALS).forEach((interval) => {
-        // We only subscribe to 1m for real-time updates as per original logic
-        if (interval === "1m") {
-          const streamName = `${symbol.toLowerCase()}@kline_${interval}`;
-          this.messageHandlers.set(streamName, (message) =>
-            this.candlestickStreamHandler.handleMessage(message)
-          );
-        }
+    // Candlestick streams only if handler is available
+    if (this.candlestickStreamHandler) {
+      MAJOR_SYMBOLS.forEach((symbol) => {
+        Object.keys(CANDLESTICK_INTERVALS).forEach((interval) => {
+          // We only subscribe to 1m for real-time updates as per original logic
+          if (interval === "1m") {
+            const streamName = `${symbol.toLowerCase()}@kline_${interval}`;
+            this.messageHandlers.set(streamName, (message) =>
+              this.candlestickStreamHandler!.handleMessage(message)
+            );
+          }
+        });
       });
-    });
+    }
   }
 
   connect(): void {
@@ -100,11 +102,12 @@ class BinanceStreamManager {
 
     this.ws.on("open", () => {
       this.isConnecting = false;
-      logger.info("BinanceStreamManager: WebSocket connection established.");
+      logger.info("✅ BinanceStreamManager: WebSocket connection established.");
       // Reset reconnect attempts on successful connection if implementing exponential backoff
     });
 
     this.ws.on("message", (data: WebSocket.Data) => {
+      logger.debug(`[WS Message]: ${data.toString().substring(0, 300)}`);
       try {
         const messageString = data.toString();
         const parsedMessage: BinanceMessage = JSON.parse(messageString);
@@ -128,7 +131,7 @@ class BinanceStreamManager {
         } else {
           logger.warn(
             `BinanceStreamManager: No handler for stream or unknown message format: ${
-              parsedMessage.stream || messageString
+              parsedMessage.stream || messageString.substring(0, 200)
             }`
           );
         }
@@ -144,7 +147,11 @@ class BinanceStreamManager {
 
     this.ws.on("error", (error: Error) => {
       this.isConnecting = false;
-      logger.error(`BinanceStreamManager: WebSocket error: ${error.message}`);
+      logger.error(`❌ BinanceStreamManager: WebSocket error: ${error.message}`, {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      });
       // Reconnection is handled by the 'close' event
     });
 

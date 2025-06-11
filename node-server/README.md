@@ -108,6 +108,8 @@ The server uses:
 - **CORS middleware** for cross-origin support
 - **Rate limiting** to prevent API abuse
 
+![system diagram](./assets/system-diagram.png "System Diagram")
+
 ## 🔧 Configuration
 
 ### Environment Variables

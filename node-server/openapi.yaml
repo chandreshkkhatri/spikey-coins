@@ -439,25 +439,25 @@ components:
         change_1h:
           type: number
           format: float
-          description: Price change percentage over 1 hour (calculated from 15m candlesticks)
+          description: Price change percentage over 1 hour (calculated from 5m candlesticks)
           example: 1.23
           nullable: true
         change_4h:
           type: number
           format: float
-          description: Price change percentage over 4 hours (calculated from 15m candlesticks)
+          description: Price change percentage over 4 hours (calculated from 30m candlesticks)
           example: -2.34
           nullable: true
         change_8h:
           type: number
           format: float
-          description: Price change percentage over 8 hours (calculated from 15m candlesticks)
+          description: Price change percentage over 8 hours (calculated from 30m candlesticks)
           example: 3.45
           nullable: true
         change_12h:
           type: number
           format: float
-          description: Price change percentage over 12 hours (calculated from 15m candlesticks)
+          description: Price change percentage over 12 hours (calculated from 1h candlesticks)
           example: -1.67
           nullable: true
 
