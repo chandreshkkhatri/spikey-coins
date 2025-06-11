@@ -6,6 +6,7 @@ import { Request, Response } from "express";
 import logger from "../../utils/logger.js";
 import type TickerRepository from "../../data/repositories/TickerRepository.js";
 import type CandlestickRepository from "../../data/repositories/CandlestickRepository.js";
+import CandlestickStorageService from "../../services/CandlestickStorageService.js";
 import { getRateLimitingStatus } from "../../utils/rateLimiting.js";
 
 interface TickerControllerDependencies {
@@ -133,6 +134,39 @@ class TickerController {
       res.status(500).json({
         success: false,
         error: "Failed to retrieve candlestick summary",
+      });
+    }
+  }
+
+  /**
+   * Get storage statistics and health information
+   */
+  async getStorageStats(req: Request, res: Response): Promise<void> {
+    try {
+      const stats = await CandlestickStorageService.getStorageStats();
+      const inMemorySummary = this.candlestickRepository.getSummary();
+      
+      res.json({
+        success: true,
+        storage: {
+          metadata: stats.metadata,
+          filesCount: stats.filesCount,
+          totalSizeBytes: stats.totalSizeBytes,
+          totalSizeMB: Math.round(stats.totalSizeBytes / 1024 / 1024 * 100) / 100,
+        },
+        inMemory: {
+          symbolCount: Object.keys(inMemorySummary).length,
+          totalCandles: Object.values(inMemorySummary).reduce((total, symbol) => 
+            total + Object.values(symbol).reduce((symbolTotal, interval) => 
+              symbolTotal + interval.count, 0), 0)
+        },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      logger.error("TickerController: Error getting storage stats:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to retrieve storage statistics",
       });
     }
   }

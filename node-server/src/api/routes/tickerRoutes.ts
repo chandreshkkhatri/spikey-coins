@@ -39,6 +39,9 @@ export function createTickerRoutes(
   router.get("/candlestick", (req, res) =>
     tickerController.getCandlestickSummary(req, res)
   );
+  router.get("/storage-stats", async (req, res) =>
+    await tickerController.getStorageStats(req, res)
+  );
 
   return router;
 }
