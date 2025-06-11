@@ -2,28 +2,33 @@
  * MarketDataService
  * Responsible for enriching ticker data with calculated short-term changes and additional metrics.
  */
+import { Ticker } from "../data/models/Ticker.js";
+import CandlestickRepository from "../data/repositories/CandlestickRepository.js";
 import TickerRepository from "../data/repositories/TickerRepository.js";
-import PriceCalculationService, {
-  type ShortTermChanges,
-} from "./PriceCalculationService.js";
-import { calculateAdditionalMetrics } from "../utils/calculations.js";
+import { CALCULATION_INTERVALS } from "../config/constants.js";
 import logger from "../utils/logger.js";
-import type { Ticker } from "../data/models/Ticker.js";
+import PriceCalculationService from "./PriceCalculationService.js";
+import { calculateAdditionalMetrics } from "../utils/calculations.js";
 
 interface RawBinanceTicker {
-  s: string; // symbol
-  c: string; // current price
-  h: string; // high price
-  l: string; // low price
-  v: string; // volume
-  P: string; // price change percent
-  p: string; // price change value
-  [key: string]: any; // other properties from Binance ticker
+  s: string; // Symbol
+  c: string; // Last price
+  p: string; // Price change
+  P: string; // Price change percent
+  h: string; // High price
+  l: string; // Low price
+  v: string; // Total traded base asset volume
+  q: string; // Total traded quote asset volume
+  O: number; // Statistics open time
+  C: number; // Statistics close time
+  F: number; // First trade ID
+  L: number; // Last trade ID
+  n: number; // Total number of trades
 }
 
 class MarketDataService {
   /**
-   * Processes raw ticker data from Binance, enriches it with calculated short-term changes
+   * Processes a raw array of tickers from the WebSocket, enriches them
    * and other metrics, then updates the TickerRepository.
    *
    * @param rawTickerArray - Array of raw ticker objects from Binance WebSocket.
@@ -38,75 +43,75 @@ class MarketDataService {
       return;
     }
 
-    logger.debug(
-      `MarketDataService: Processing ${rawTickerArray.length} raw tickers.`
-    );
-
     const enrichedTickers = rawTickerArray
-      .map((rawTicker): Ticker | null => {
-        if (!rawTicker || !rawTicker.s) {
-          logger.warn(
-            "MarketDataService: Encountered a raw ticker without a symbol.",
-            rawTicker
-          );
-          return null; // Skip this ticker if it's invalid
-        }
-        const symbol = rawTicker.s; // Binance symbol is uppercase, e.g., BTCUSDT
-        const currentPrice = parseFloat(rawTicker.c);
+      .map((rawTicker) => this.enrichTickerData(rawTicker))
+      .filter((ticker): ticker is Ticker => ticker !== null);
 
-        if (isNaN(currentPrice)) {
-          logger.warn(
-            `MarketDataService: Current price for ${symbol} is NaN. Skipping short-term calculations.`,
-            rawTicker
-          );
-          // Still process other metrics if possible
-        }
-
-        // 1. Calculate short-term changes
-        const shortTermChanges: Partial<ShortTermChanges> = !isNaN(currentPrice)
-          ? PriceCalculationService.calculateAllShortTermChanges(
-              symbol,
-              currentPrice
-            ) || {}
-          : {}; // Empty object if price is NaN, will result in nulls for changes
-
-        // 2. Calculate other additional metrics (volume in USD, range position, etc.)
-        const additionalMetrics = calculateAdditionalMetrics(rawTicker);
-
-        // 3. Combine all data into the Ticker structure
-        const tickerEntry: Ticker = {
-          // Map raw Binance ticker properties to Ticker interface properties
-          symbol: symbol,
-          lastPrice: rawTicker.c,
-          priceChange: rawTicker.p,
-          priceChangePercent: rawTicker.P,
-          highPrice: rawTicker.h,
-          lowPrice: rawTicker.l,
-          volume: rawTicker.v,
-          quoteVolume: rawTicker.q || "0", // fallback if not present
-          openTime: rawTicker.O || 0, // fallback if not present
-          closeTime: rawTicker.C || 0, // fallback if not present
-          firstId: rawTicker.F || 0, // fallback if not present
-          lastId: rawTicker.L || 0, // fallback if not present
-          count: rawTicker.n || 0, // fallback if not present
-          ...additionalMetrics, // Spread calculated metrics (price, volume_usd, etc.)
-          ...shortTermChanges, // Spread calculated 1h, 4h, 8h, 12h changes
-          // Additional properties for backward compatibility with tests
-          s: symbol, // Alternative symbol property
-          change_24h: additionalMetrics.price_change_24h_percent, // Alternative 24h change property
-          last_updated: new Date().toISOString(),
-        };
-        return tickerEntry;
-      })
-      .filter((ticker): ticker is Ticker => ticker !== null); // Remove any null entries from invalid raw tickers
-
-    TickerRepository.updateAllTickers(enrichedTickers);
-    logger.info(
-      `MarketDataService: Updated TickerRepository with ${enrichedTickers.length} enriched tickers.`
-    );
+    TickerRepository.upsertTickers(enrichedTickers);
   }
 
+  /**
+   * Enriches a single raw ticker with calculated values and a standardized format.
+   *
+   * @param rawTicker - Raw ticker object from Binance WebSocket.
+   * @returns Enriched ticker object or null if invalid.
+   */
+  static enrichTickerData(rawTicker: RawBinanceTicker): Ticker | null {
+    if (!rawTicker || !rawTicker.s) {
+      logger.warn(
+        "MarketDataService: Encountered a raw ticker without a symbol.",
+        rawTicker
+      );
+      return null;
+    }
 
+    const symbol = rawTicker.s;
+    const lastPrice = parseFloat(rawTicker.c);
+
+    const change_1h = PriceCalculationService.calculatePriceChange(
+      symbol,
+      lastPrice,
+      CALCULATION_INTERVALS.change_1h
+    );
+    const change_4h = PriceCalculationService.calculatePriceChange(
+      symbol,
+      lastPrice,
+      CALCULATION_INTERVALS.change_4h
+    );
+    const change_8h = PriceCalculationService.calculatePriceChange(
+      symbol,
+      lastPrice,
+      CALCULATION_INTERVALS.change_8h
+    );
+    const change_12h = PriceCalculationService.calculatePriceChange(
+      symbol,
+      lastPrice,
+      CALCULATION_INTERVALS.change_12h
+    );
+
+    const tickerEntry: Ticker = {
+      symbol: symbol,
+      lastPrice: rawTicker.c,
+      priceChange: rawTicker.p,
+      priceChangePercent: rawTicker.P,
+      highPrice: rawTicker.h,
+      lowPrice: rawTicker.l,
+      volume: rawTicker.v,
+      quoteVolume: rawTicker.q,
+      openTime: rawTicker.O,
+      closeTime: rawTicker.C,
+      firstId: rawTicker.F,
+      lastId: rawTicker.L,
+      count: rawTicker.n,
+      change_1h,
+      change_4h,
+      change_8h,
+      change_12h,
+      last_updated: new Date().toISOString(),
+    };
+
+    return tickerEntry;
+  }
 }
 
 export default MarketDataService;

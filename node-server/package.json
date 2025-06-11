@@ -2,6 +2,7 @@
   "name": "spikey-coins-proxy-server",
   "version": "1.0.0",
   "description": "Proxy server for Spikey Coins application to handle crypto ticker data and bypass CORS issues",
+  "type": "module",
   "main": "dist/app.js",
   "scripts": {
     "build": "tsc",

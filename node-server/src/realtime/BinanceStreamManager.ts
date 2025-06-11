@@ -102,11 +102,12 @@ class BinanceStreamManager {
 
     this.ws.on("open", () => {
       this.isConnecting = false;
-      logger.info("BinanceStreamManager: WebSocket connection established.");
+      logger.info("✅ BinanceStreamManager: WebSocket connection established.");
       // Reset reconnect attempts on successful connection if implementing exponential backoff
     });
 
     this.ws.on("message", (data: WebSocket.Data) => {
+      logger.debug(`[WS Message]: ${data.toString().substring(0, 300)}`);
       try {
         const messageString = data.toString();
         const parsedMessage: BinanceMessage = JSON.parse(messageString);
@@ -130,7 +131,7 @@ class BinanceStreamManager {
         } else {
           logger.warn(
             `BinanceStreamManager: No handler for stream or unknown message format: ${
-              parsedMessage.stream || messageString
+              parsedMessage.stream || messageString.substring(0, 200)
             }`
           );
         }
@@ -146,7 +147,11 @@ class BinanceStreamManager {
 
     this.ws.on("error", (error: Error) => {
       this.isConnecting = false;
-      logger.error(`BinanceStreamManager: WebSocket error: ${error.message}`);
+      logger.error(`❌ BinanceStreamManager: WebSocket error: ${error.message}`, {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      });
       // Reconnection is handled by the 'close' event
     });
 

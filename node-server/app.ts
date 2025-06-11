@@ -51,17 +51,19 @@ const binanceStreamManager = new BinanceStreamManager({
 async function initializeAppServices() {
   try {
     logger.info("Initializing application services...");
-    // Call static method on DataSyncService
-    await DataSyncService.initializeHistoricalData();
-    logger.info("Historical data initialization process initiated.");
 
-    // Connect WebSocket streams (ticker only, no candlestick streaming)
+    // Connect WebSocket streams FIRST to allow for symbol discovery
+    logger.info("Connecting to Binance WebSocket streams...");
     binanceStreamManager.connect();
-    logger.info("Binance WebSocket streams initiated.");
+    logger.info("Binance WebSocket stream connection process initiated.");
 
-    logger.info("Application services initialization sequence complete.");
+    // Now, initialize historical data. This will wait for symbols if needed.
+    await DataSyncService.initializeHistoricalData();
+    logger.info("Historical data initialization process complete.");
+
+    logger.info("✅ Application services initialization sequence complete.");
   } catch (error) {
-    logger.error("Failed to initialize application services:", error);
+    logger.error("❌ Failed to initialize application services:", error);
     // Depending on the severity, you might want to exit the process
     // process.exit(1);
   }
@@ -99,13 +101,8 @@ app.get("/openapi.json", (req: Request, res: Response) => {
 });
 
 // Create and use the new ticker routes
-// TickerController expects instances or direct access to static methods.
-// Adjusting dependencies for TickerController based on static/instance nature of services.
-const tickerRoutes = createTickerRoutes({
-  tickerRepository: TickerRepository, // Pass class for static methods
-  candlestickRepository: CandlestickRepository, // Pass class for static methods
-  getRateLimitingStatusFunction: getRateLimitingStatus,
-});
+// TickerController now uses static methods directly, no dependency injection needed
+const tickerRoutes = createTickerRoutes();
 app.use("/api/ticker", tickerRoutes);
 
 // Admin routes

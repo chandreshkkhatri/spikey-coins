@@ -4,53 +4,35 @@
  */
 import { Request, Response } from "express";
 import logger from "../../utils/logger.js";
-import type TickerRepository from "../../data/repositories/TickerRepository.js";
-import type CandlestickRepository from "../../data/repositories/CandlestickRepository.js";
+import TickerRepository from "../../data/repositories/TickerRepository.js";
+import CandlestickRepository from "../../data/repositories/CandlestickRepository.js";
 import CandlestickStorageService from "../../services/CandlestickStorageService.js";
 import { getRateLimitingStatus } from "../../utils/rateLimiting.js";
-
-interface TickerControllerDependencies {
-  tickerRepository: typeof TickerRepository;
-  candlestickRepository: typeof CandlestickRepository;
-  getRateLimitingStatusFunction: typeof getRateLimitingStatus;
-}
+import SymbolDiscoveryService from "../../services/SymbolDiscoveryService.js";
 
 class TickerController {
-  private tickerRepository: typeof TickerRepository;
-  private candlestickRepository: typeof CandlestickRepository;
-  private getRateLimitingStatus: typeof getRateLimitingStatus;
-
-  constructor({
-    tickerRepository,
-    candlestickRepository,
-    getRateLimitingStatusFunction,
-  }: TickerControllerDependencies) {
-    this.tickerRepository = tickerRepository;
-    this.candlestickRepository = candlestickRepository;
-    this.getRateLimitingStatus = getRateLimitingStatusFunction; // Renamed to avoid conflict
-  }
-
   /**
    * Health check endpoint controller
    */
   getHealthCheck(req: Request, res: Response): void {
     try {
-      const latestTickers = this.tickerRepository.getLatestTickers();
-      const candlestickSummary = this.candlestickRepository.getSummary();
+      const rateLimitStatus = getRateLimitingStatus();
+      const inMemorySummary = CandlestickRepository.getSummary();
 
       res.json({
+        success: true,
         message: "Ticker router is running",
         status: "healthy",
-        tickerDataCount: latestTickers.length,
-        candlestickSymbolCount: Object.keys(candlestickSummary).length, // Number of symbols with candlestick data
-        // rateLimiting: this.getRateLimitingStatus(), // Assuming getRateLimitingStatus is available
+        tickerDataCount: TickerRepository.getTickerCount(),
+        candlestickSymbolCount: Object.keys(inMemorySummary).length,
         timestamp: new Date().toISOString(),
+        rateLimiting: rateLimitStatus,
       });
     } catch (error) {
-      logger.error("TickerController: Error in getHealthCheck:", error);
+      logger.error("TickerController: Error in health check:", error);
       res.status(500).json({
         success: false,
-        error: "Internal server error during health check",
+        error: "Health check failed",
       });
     }
   }
@@ -58,13 +40,13 @@ class TickerController {
   /**
    * Get 24hr ticker data with short-term changes
    */
-  get24hrTickerData(req: Request, res: Response): void {
+  async get24hrTicker(req: Request, res: Response): Promise<void> {
     try {
-      const tickerData = this.tickerRepository.getLatestTickers();
+      const latestTickers = TickerRepository.getAllTickers();
       res.json({
         success: true,
-        data: tickerData,
-        count: tickerData.length,
+        data: latestTickers,
+        count: latestTickers.length,
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
@@ -84,7 +66,7 @@ class TickerController {
       const symbol = req.params.symbol.toLowerCase(); // Normalize to lowercase as stored in repository
       const interval = req.query.interval?.toString() || "1m"; // Default to 1m, ensure string
 
-      const data = this.candlestickRepository.getCandlesticks(symbol, interval);
+      const data = CandlestickRepository.getCandlesticks(symbol, interval);
 
       if (!data || data.length === 0) {
         res.status(404).json({
@@ -119,7 +101,7 @@ class TickerController {
    */
   getCandlestickSummary(req: Request, res: Response): void {
     try {
-      const summary = this.candlestickRepository.getSummary();
+      const summary = CandlestickRepository.getSummary();
       res.json({
         success: true,
         summary: summary,
@@ -144,7 +126,7 @@ class TickerController {
   async getStorageStats(req: Request, res: Response): Promise<void> {
     try {
       const stats = await CandlestickStorageService.getStorageStats();
-      const inMemorySummary = this.candlestickRepository.getSummary();
+      const inMemorySummary = CandlestickRepository.getSummary();
       
       res.json({
         success: true,
@@ -167,6 +149,63 @@ class TickerController {
       res.status(500).json({
         success: false,
         error: "Failed to retrieve storage statistics",
+      });
+    }
+  }
+
+  /**
+   * Get symbol discovery statistics
+   */
+  getDiscoveryStats(req: Request, res: Response): void {
+    try {
+      const stats = SymbolDiscoveryService.getDiscoveryStats();
+      
+      res.json({
+        success: true,
+        discovery: stats,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      logger.error("TickerController: Error getting discovery stats:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to retrieve discovery statistics",
+      });
+    }
+  }
+
+  /**
+   * Get ticker data by symbol
+   */
+  async getTickerBySymbol(req: Request, res: Response): Promise<void> {
+    try {
+      const { symbol } = req.params;
+      const tickerData = TickerRepository.getAllTickers();
+      const ticker = tickerData.find(
+        (t) => t.symbol.toUpperCase() === symbol.toUpperCase()
+      );
+
+      if (!ticker) {
+        res.status(404).json({
+          success: false,
+          error: `No ticker data available for ${symbol}`,
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        data: ticker,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      logger.error(
+        "TickerController: Error sending ticker data by symbol:",
+        error
+      );
+      res.status(500).json({
+        success: false,
+        error: "Failed to retrieve ticker data",
       });
     }
   }

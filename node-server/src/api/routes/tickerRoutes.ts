@@ -4,26 +4,14 @@
 import express from "express";
 import cors from "cors";
 import TickerController from "../controllers/TickerController.js";
-import TickerRepository from "../../data/repositories/TickerRepository.js";
-import CandlestickRepository from "../../data/repositories/CandlestickRepository.js";
-import { getRateLimitingStatus } from "../../utils/rateLimiting.js";
-
-interface TickerRoutesDependencies {
-  tickerRepository: typeof TickerRepository;
-  candlestickRepository: typeof CandlestickRepository;
-  getRateLimitingStatusFunction: typeof getRateLimitingStatus;
-}
 
 /**
  * Creates and configures the ticker routes.
- * @param dependencies - Dependencies needed by the TickerController.
  * @returns The configured Express router for ticker API.
  */
-export function createTickerRoutes(
-  dependencies: TickerRoutesDependencies
-): express.Router {
+export function createTickerRoutes(): express.Router {
   const router = express.Router();
-  const tickerController = new TickerController(dependencies);
+  const tickerController = new TickerController();
 
   // Apply CORS middleware to all routes in this router
   router.use(cors());
@@ -31,7 +19,10 @@ export function createTickerRoutes(
   // Route definitions
   router.get("/", (req, res) => tickerController.getHealthCheck(req, res));
   router.get("/24hr", (req, res) =>
-    tickerController.get24hrTickerData(req, res)
+    tickerController.get24hrTicker(req, res)
+  );
+  router.get("/symbol/:symbol", (req, res) =>
+    tickerController.getTickerBySymbol(req, res)
   );
   router.get("/candlestick/:symbol", (req, res) =>
     tickerController.getCandlestickDataBySymbol(req, res)
@@ -41,6 +32,9 @@ export function createTickerRoutes(
   );
   router.get("/storage-stats", async (req, res) =>
     await tickerController.getStorageStats(req, res)
+  );
+  router.get("/discovery-stats", (req, res) =>
+    tickerController.getDiscoveryStats(req, res)
   );
 
   return router;

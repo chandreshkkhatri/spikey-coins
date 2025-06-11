@@ -2,56 +2,75 @@
  * TickerRepository
  * Manages storage and retrieval of the latest ticker data.
  */
+import { Ticker } from "../../data/models/Ticker.js";
 import logger from "../../utils/logger.js";
-import { Ticker } from "../models/Ticker.js";
 
-// Private store for the latest ticker data
-// Array of Ticker objects
-let latestTickerDataStore: Ticker[] = [];
+// Expiry time for tickers in milliseconds (e.g., 30 minutes)
+const TICKER_EXPIRY_MS = 30 * 60 * 1000;
+const PRUNE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
+interface TickerCacheEntry {
+  ticker: Ticker;
+  lastUpdated: number;
+}
+
+const tickerDataStore = new Map<string, TickerCacheEntry>();
+
+/**
+ * Prunes expired tickers from the data store.
+ */
+function pruneExpiredTickers(): void {
+  const now = Date.now();
+  let prunedCount = 0;
+  for (const [symbol, entry] of tickerDataStore.entries()) {
+    if (now - entry.lastUpdated > TICKER_EXPIRY_MS) {
+      tickerDataStore.delete(symbol);
+      prunedCount++;
+    }
+  }
+  if (prunedCount > 0) {
+    logger.info(`Pruned ${prunedCount} expired tickers from the repository.`);
+  }
+}
+
+// Periodically prune expired tickers
+setInterval(pruneExpiredTickers, PRUNE_INTERVAL_MS);
 
 class TickerRepository {
   /**
-   * Updates the entire list of latest tickers.
+   * Updates or inserts multiple tickers.
+   * This prevents the ticker list from shrinking due to stream fluctuations.
+   * @param tickers - An array of enriched ticker data.
    */
-  static updateAllTickers(newData: Ticker[]): void {
-    if (!Array.isArray(newData)) {
-      logger.error(
-        "TickerRepository.updateAllTickers: newData must be an array.",
-        { type: typeof newData }
-      );
-      return;
+  static upsertTickers(tickers: Ticker[]): void {
+    const now = Date.now();
+    for (const ticker of tickers) {
+      if (ticker && ticker.symbol) {
+        tickerDataStore.set(ticker.symbol, {
+          ticker,
+          lastUpdated: now,
+        });
+      }
     }
-    latestTickerDataStore = newData;
-    // logger.debug(`TickerRepository.updateAllTickers: Updated with ${newData.length} tickers.`);
   }
 
-  /**
-   * Retrieves the latest list of all tickers.
-   */
-  static getLatestTickers(): Ticker[] {
-    return [...latestTickerDataStore]; // Return a copy to prevent direct modification
+  static getTicker(symbol: string): Ticker | undefined {
+    const entry = tickerDataStore.get(symbol);
+    return entry?.ticker;
   }
 
-  /**
-   * Retrieves a specific ticker by its symbol.
-   * Symbol matching is case-insensitive.
-   */
-  static getTickerBySymbol(symbol: string): Ticker | undefined {
-    if (!symbol) return undefined;
-    const normalizedSymbol = symbol.toUpperCase(); // Ticker symbols are typically uppercase from Binance
-    return latestTickerDataStore.find(
-      (ticker) =>
-        ticker.symbol && ticker.symbol.toUpperCase() === normalizedSymbol
-    );
+  static getAllTickers(): Ticker[] {
+    // Return the tickers from the cache entries
+    return Array.from(tickerDataStore.values()).map((entry) => entry.ticker);
   }
 
-  /**
-   * Clears all ticker data from the store.
-   * Useful for testing or resetting state.
-   */
+  static getTickerCount(): number {
+    return tickerDataStore.size;
+  }
+
   static clearAll(): void {
-    latestTickerDataStore = [];
-    logger.info("TickerRepository.clearAll: All ticker data cleared.");
+    tickerDataStore.clear();
+    logger.info("TickerRepository has been cleared.");
   }
 }
 

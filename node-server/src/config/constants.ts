@@ -28,6 +28,10 @@ export const CANDLESTICK_STREAM_START_DELAY = 1000; // 1 second delay before sta
 export const HISTORICAL_DATA_INIT_DELAY = 3000; // 3 seconds delay before fetching historical data
 export const REQUEST_TIMEOUT = 10000; // 10 second timeout for HTTP requests
 
+// Batch processing constants
+export const INITIAL_LOAD_BATCH_SIZE = 10; // Process 10 symbols at a time during initial load
+export const PERIODIC_UPDATE_BATCH_SIZE = 5; // Process 5 symbols at a time during periodic updates
+
 // Storage and persistence constants
 export const CANDLESTICK_UPDATE_INTERVAL_MINUTES = 15; // Update stored data every 15 minutes
 export const STORAGE_BACKUP_INTERVAL_HOURS = 24; // Create daily backups

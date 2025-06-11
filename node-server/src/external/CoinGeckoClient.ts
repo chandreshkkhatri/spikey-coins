@@ -2,13 +2,19 @@
  * Client for interacting with the CoinGecko API.
  */
 import axios, { AxiosResponse } from "axios";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import logger from "../utils/logger.js"; // Adjusted path
 import { canMakeRequest } from "../utils/rateLimiting.js"; // Adjusted path
 import { COINGECKO_BASE_URL, REQUEST_TIMEOUT } from "../config/constants.js"; // Adjusted path
 
 // Load static CoinGecko ID mappings
-// Note: Using require for JSON is fine, or consider fs.readFile for async loading in a real app startup
-const coingeckoIdMappings: CoinGeckoIdMapping[] = require("../../coin-data/coingecko-ids.json");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const coingeckoIdMappings: CoinGeckoIdMapping[] = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "../../coin-data/coingecko-ids.json"), "utf-8")
+);
 
 // API key from environment
 const coingeckoApiKey: string | undefined = process.env.COINGECKO_API_KEY;

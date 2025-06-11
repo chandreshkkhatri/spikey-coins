@@ -4,6 +4,7 @@
 import logger from "../../utils/logger.js";
 import { MAJOR_SYMBOLS } from "../../config/constants.js";
 import MarketDataService from "../../services/MarketDataService.js";
+import SymbolDiscoveryService from "../../services/SymbolDiscoveryService.js";
 
 interface TickerStreamHandlerDependencies {
   marketDataService: typeof MarketDataService;
@@ -33,13 +34,13 @@ class TickerStreamHandler {
       return;
     }
 
-    // Filter for major symbols if necessary, or process all
-    // For now, we assume the stream `!ticker@arr` sends all, and we might want to process all
-    // or filter based on a dynamic list later. The current `MAJOR_SYMBOLS` is for initial data fetching.
-    // This handler will process whatever Binance sends on `!ticker@arr`.
     logger.info(`TickerStreamHandler: Received ${rawTickerArray.length} tickers from WebSocket`);
 
     try {
+      // Update symbol discovery with live ticker data
+      SymbolDiscoveryService.updateFromTickerData(rawTickerArray);
+      
+      // Process and store ticker data as before
       MarketDataService.processAndStoreEnrichedTickers(rawTickerArray);
       // logger.debug('TickerStreamHandler: Successfully processed and stored enriched tickers.');
     } catch (error) {
