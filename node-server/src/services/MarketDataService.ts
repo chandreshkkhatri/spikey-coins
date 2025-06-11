@@ -106,13 +106,7 @@ class MarketDataService {
     );
   }
 
-  /**
-   * Retrieves all tickers, already enriched, from the repository.
-   * @returns Array of enriched tickers
-   */
-  static getLatestEnrichedTickers(): Ticker[] {
-    return TickerRepository.getLatestTickers();
-  }
+
 }
 
 export default MarketDataService;

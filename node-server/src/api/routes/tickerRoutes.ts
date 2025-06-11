@@ -4,12 +4,12 @@
 import express from "express";
 import cors from "cors";
 import TickerController from "../controllers/TickerController.js";
-import MarketDataService from "../../services/MarketDataService.js";
+import TickerRepository from "../../data/repositories/TickerRepository.js";
 import CandlestickRepository from "../../data/repositories/CandlestickRepository.js";
 import { getRateLimitingStatus } from "../../utils/rateLimiting.js";
 
 interface TickerRoutesDependencies {
-  marketDataService: typeof MarketDataService;
+  tickerRepository: typeof TickerRepository;
   candlestickRepository: typeof CandlestickRepository;
   getRateLimitingStatusFunction: typeof getRateLimitingStatus;
 }

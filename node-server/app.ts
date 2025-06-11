@@ -102,7 +102,7 @@ app.get("/openapi.json", (req: Request, res: Response) => {
 // TickerController expects instances or direct access to static methods.
 // Adjusting dependencies for TickerController based on static/instance nature of services.
 const tickerRoutes = createTickerRoutes({
-  marketDataService: MarketDataService, // Pass class for static methods
+  tickerRepository: TickerRepository, // Pass class for static methods
   candlestickRepository: CandlestickRepository, // Pass class for static methods
   getRateLimitingStatusFunction: getRateLimitingStatus,
 });

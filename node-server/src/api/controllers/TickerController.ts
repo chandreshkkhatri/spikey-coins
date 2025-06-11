@@ -4,27 +4,27 @@
  */
 import { Request, Response } from "express";
 import logger from "../../utils/logger.js";
-import MarketDataService from "../../services/MarketDataService.js";
+import type TickerRepository from "../../data/repositories/TickerRepository.js";
 import type CandlestickRepository from "../../data/repositories/CandlestickRepository.js";
 import { getRateLimitingStatus } from "../../utils/rateLimiting.js";
 
 interface TickerControllerDependencies {
-  marketDataService: typeof MarketDataService;
+  tickerRepository: typeof TickerRepository;
   candlestickRepository: typeof CandlestickRepository;
   getRateLimitingStatusFunction: typeof getRateLimitingStatus;
 }
 
 class TickerController {
-  private marketDataService: typeof MarketDataService;
+  private tickerRepository: typeof TickerRepository;
   private candlestickRepository: typeof CandlestickRepository;
   private getRateLimitingStatus: typeof getRateLimitingStatus;
 
   constructor({
-    marketDataService,
+    tickerRepository,
     candlestickRepository,
     getRateLimitingStatusFunction,
   }: TickerControllerDependencies) {
-    this.marketDataService = marketDataService;
+    this.tickerRepository = tickerRepository;
     this.candlestickRepository = candlestickRepository;
     this.getRateLimitingStatus = getRateLimitingStatusFunction; // Renamed to avoid conflict
   }
@@ -34,7 +34,7 @@ class TickerController {
    */
   getHealthCheck(req: Request, res: Response): void {
     try {
-      const latestTickers = MarketDataService.getLatestEnrichedTickers();
+      const latestTickers = this.tickerRepository.getLatestTickers();
       const candlestickSummary = this.candlestickRepository.getSummary();
 
       res.json({
@@ -59,7 +59,7 @@ class TickerController {
    */
   get24hrTickerData(req: Request, res: Response): void {
     try {
-      const tickerData = this.marketDataService.getLatestEnrichedTickers();
+      const tickerData = this.tickerRepository.getLatestTickers();
       res.json({
         success: true,
         data: tickerData,
