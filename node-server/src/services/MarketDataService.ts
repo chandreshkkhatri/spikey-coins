@@ -1,7 +1,6 @@
 /**
  * MarketDataService
- * Responsible for enriching ticker data with market capitalization from CoinGecko,
- * calculated short-term changes, and other additional metrics.
+ * Responsible for enriching ticker data with calculated short-term changes and additional metrics.
  */
 import TickerRepository from "../data/repositories/TickerRepository.js";
 import PriceCalculationService, {
@@ -9,7 +8,6 @@ import PriceCalculationService, {
 } from "./PriceCalculationService.js";
 import { calculateAdditionalMetrics } from "../utils/calculations.js";
 import logger from "../utils/logger.js";
-// import type { CoinGeckoMarketData } from "../external/CoinGeckoClient.js"; // This import might become unused
 import type { Ticker } from "../data/models/Ticker.js";
 
 interface RawBinanceTicker {
@@ -25,15 +23,13 @@ interface RawBinanceTicker {
 
 class MarketDataService {
   /**
-   * Processes raw ticker data from Binance, enriches it with market cap data,
-   * calculated short-term changes, and other metrics, then updates the TickerRepository.
+   * Processes raw ticker data from Binance, enriches it with calculated short-term changes
+   * and other metrics, then updates the TickerRepository.
    *
    * @param rawTickerArray - Array of raw ticker objects from Binance WebSocket.
-   * @param coingeckoDataMap - A map of CoinGecko market data, keyed by lowercase symbol.
    */
   static processAndStoreEnrichedTickers(
     rawTickerArray: RawBinanceTicker[]
-    // coingeckoDataMap: Map<string, CoinGeckoMarketData> // Removed coingeckoDataMap parameter
   ): void {
     if (!Array.isArray(rawTickerArray)) {
       logger.error(
@@ -41,12 +37,6 @@ class MarketDataService {
       );
       return;
     }
-    // if (!(coingeckoDataMap instanceof Map)) { // Removed coingeckoDataMap validation
-    //   logger.error(
-    //     "MarketDataService.processAndStoreEnrichedTickers: coingeckoDataMap must be a Map."
-    //   );
-    //   return;
-    // }
 
     logger.debug(
       `MarketDataService: Processing ${rawTickerArray.length} raw tickers.`
@@ -62,7 +52,6 @@ class MarketDataService {
           return null; // Skip this ticker if it's invalid
         }
         const symbol = rawTicker.s; // Binance symbol is uppercase, e.g., BTCUSDT
-        // const normalizedSymbol = symbol.toLowerCase(); // No longer needed for coingeckoDataMap lookup
         const currentPrice = parseFloat(rawTicker.c);
 
         if (isNaN(currentPrice)) {
@@ -81,19 +70,10 @@ class MarketDataService {
             ) || {}
           : {}; // Empty object if price is NaN, will result in nulls for changes
 
-        // 2. Get corresponding CoinGecko data - REMOVED
-        // const marketCapDataItem = coingeckoDataMap.get(normalizedSymbol); // Removed
-        // if (!marketCapDataItem) { // Removed
-        //   // logger.debug(`MarketDataService: No CoinGecko market data found for ${normalizedSymbol}.`);
-        // }
+        // 2. Calculate other additional metrics (volume in USD, range position, etc.)
+        const additionalMetrics = calculateAdditionalMetrics(rawTicker);
 
-        // 3. Calculate other additional metrics (volume in USD, range position, etc.)
-        // The `calculateAdditionalMetrics` function now only expects the original Binance item.
-        const additionalMetrics = calculateAdditionalMetrics(
-          rawTicker
-          // marketCapDataItem // Removed marketCapDataItem argument
-        );
-        // 4. Combine all data into the Ticker structure
+        // 3. Combine all data into the Ticker structure
         const tickerEntry: Ticker = {
           // Map raw Binance ticker properties to Ticker interface properties
           symbol: symbol,
@@ -111,10 +91,9 @@ class MarketDataService {
           count: rawTicker.n || 0, // fallback if not present
           ...additionalMetrics, // Spread calculated metrics (price, volume_usd, etc.)
           ...shortTermChanges, // Spread calculated 1h, 4h, 8h, 12h changes
-          // Add CoinGecko specific fields if available, ensure no clashes or use explicit mapping - REMOVED
-          // image: marketCapDataItem?.image, // Removed
-          // market_cap_rank: marketCapDataItem?.market_cap_rank, // Removed
-          // fully_diluted_valuation, ath, atl etc. can be added if needed from marketCapDataItem
+          // Additional properties for backward compatibility with tests
+          s: symbol, // Alternative symbol property
+          change_24h: additionalMetrics.price_change_24h_percent, // Alternative 24h change property
           last_updated: new Date().toISOString(),
         };
         return tickerEntry;

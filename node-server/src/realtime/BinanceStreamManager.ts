@@ -22,7 +22,7 @@ interface BinanceMessage {
 
 interface BinanceStreamManagerDependencies {
   tickerStreamHandler: TickerStreamHandler;
-  candlestickStreamHandler: CandlestickStreamHandler;
+  candlestickStreamHandler?: CandlestickStreamHandler;
 }
 
 type MessageHandler = (message: any) => void;
@@ -35,7 +35,7 @@ class BinanceStreamManager {
   private explicitlyClosed: boolean = false;
   private reconnectTimeoutId: NodeJS.Timeout | null = null;
   private tickerStreamHandler: TickerStreamHandler;
-  private candlestickStreamHandler: CandlestickStreamHandler;
+  private candlestickStreamHandler?: CandlestickStreamHandler;
 
   constructor({
     tickerStreamHandler,
@@ -52,18 +52,20 @@ class BinanceStreamManager {
       this.tickerStreamHandler.handleMessage(message)
     );
 
-    // Candlestick streams for major symbols and defined intervals
-    MAJOR_SYMBOLS.forEach((symbol) => {
-      Object.keys(CANDLESTICK_INTERVALS).forEach((interval) => {
-        // We only subscribe to 1m for real-time updates as per original logic
-        if (interval === "1m") {
-          const streamName = `${symbol.toLowerCase()}@kline_${interval}`;
-          this.messageHandlers.set(streamName, (message) =>
-            this.candlestickStreamHandler.handleMessage(message)
-          );
-        }
+    // Candlestick streams only if handler is available
+    if (this.candlestickStreamHandler) {
+      MAJOR_SYMBOLS.forEach((symbol) => {
+        Object.keys(CANDLESTICK_INTERVALS).forEach((interval) => {
+          // We only subscribe to 1m for real-time updates as per original logic
+          if (interval === "1m") {
+            const streamName = `${symbol.toLowerCase()}@kline_${interval}`;
+            this.messageHandlers.set(streamName, (message) =>
+              this.candlestickStreamHandler!.handleMessage(message)
+            );
+          }
+        });
       });
-    });
+    }
   }
 
   connect(): void {
