@@ -21,8 +21,8 @@ export default function HomePage() {
       const transformedData: TickerData[] = rawData.map(
         (item: {
           symbol: string;
-          price: number;
-          price_change_24h_percent: number;
+          lastPrice: number;
+          priceChangePercent: number;
           change_12h?: number | null;
           change_8h?: number | null;
           change_4h?: number | null;
@@ -30,14 +30,14 @@ export default function HomePage() {
           high_24h: number;
           low_24h: number;
           range_position_24h: number;
-          volume_usd: number;
+          volume: number;
           volume_base: number;
           market_cap?: number | null;
           normalized_volume_score?: number;
         }) => ({
           s: item.symbol,
-          price: item.price,
-          change_24h: item.price_change_24h_percent,
+          price: item.lastPrice,
+          change_24h: item.priceChangePercent,
           change_12h: item.change_12h,
           change_8h: item.change_8h,
           change_4h: item.change_4h,
@@ -45,7 +45,7 @@ export default function HomePage() {
           high_24h: item.high_24h,
           low_24h: item.low_24h,
           range_position_24h: item.range_position_24h,
-          volume_usd: item.volume_usd,
+          volume_usd: item.volume,
           volume_base: item.volume_base,
           market_cap: item.market_cap,
           normalized_volume_score: item.normalized_volume_score || 0,

@@ -89,6 +89,7 @@ class MarketDataService {
       CALCULATION_INTERVALS.change_12h
     );
 
+    
     const tickerEntry: Ticker = {
       symbol: symbol,
       lastPrice: rawTicker.c,

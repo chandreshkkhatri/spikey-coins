@@ -63,10 +63,6 @@ class SymbolDiscoveryService {
       const totalSymbols = this.availableSymbols.size;
       logger.info(`SymbolDiscoveryService: Discovered ${totalSymbols} active USDT symbols (${newSymbolCount} new, ${updatedSymbolCount} updated)`);
       this.lastDiscoveryUpdate = now;
-      
-      // Log top 10 by volume for debugging
-      const topSymbols = this.getTopSymbolsByVolume(10);
-      logger.debug(`SymbolDiscoveryService: Top symbols by volume: ${topSymbols.join(', ')}`);
     }
   }
 
@@ -138,7 +134,7 @@ class SymbolDiscoveryService {
     }
 
     if (removedCount > 0) {
-      logger.debug(`SymbolDiscoveryService: Removed ${removedCount} expired symbols`);
+      // Removed debug log for removed expired symbols
     }
   }
 

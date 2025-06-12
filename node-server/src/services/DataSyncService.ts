@@ -129,21 +129,18 @@ class DataSyncService {
         const batch = finalSymbolsToUpdate.slice(i, i + batchSize);
         const batchNumber = Math.floor(i / batchSize) + 1;
 
-        logger.info(
-          `DataSyncService: Processing batch ${batchNumber}/${totalBatches} (${batch.length} symbols)`
-        );
-        logger.debug(
-          `DataSyncService: Batch ${batchNumber} symbols: ${batch.join(", ")}`
-        );
+        // Only log every 5th batch to reduce noise
+        if (batchNumber % 5 === 1 || batchNumber === totalBatches) {
+          logger.info(
+            `DataSyncService: Processing batch ${batchNumber}/${totalBatches} (${batch.length} symbols)`
+          );
+        }
 
         await this.processBatch(batch, intervals);
 
         // Longer delay between batches for large-scale collection
         if (i + batchSize < finalSymbolsToUpdate.length) {
           const delayMs = DELAY_BETWEEN_REQUESTS * 10; // 5 second delay between batches
-          logger.debug(
-            `DataSyncService: Waiting ${delayMs}ms before next batch...`
-          );
           await new Promise((resolve) => setTimeout(resolve, delayMs));
         }
       }
@@ -179,10 +176,6 @@ class DataSyncService {
       logger.info(
         "DataSyncService: Enhanced historical data initialization completed successfully"
       );
-      logger.info(
-        "Final candlestick data summary:",
-        CandlestickRepository.getSummary()
-      );
     } catch (error) {
       logger.error(
         `DataSyncService: Critical error during enhanced historical data initialization: ${
@@ -202,8 +195,6 @@ class DataSyncService {
     intervals: string[]
   ): Promise<void> {
     for (const symbol of symbols) {
-      logger.debug(`DataSyncService: Processing ${symbol}...`);
-
       for (const interval of intervals) {
         const config: CandlestickIntervalConfig | undefined =
           CANDLESTICK_INTERVALS[interval];
@@ -228,13 +219,13 @@ class DataSyncService {
               interval,
               historicalCandles
             );
-            logger.debug(
-              `DataSyncService: Updated ${historicalCandles.length} ${interval} candlesticks for ${symbol}`
-            );
           } else {
-            logger.warn(
-              `DataSyncService: No data received for ${symbol} ${interval}`
-            );
+            // Only log if no data received for major symbols
+            if (symbol.includes('BTC') || symbol.includes('ETH')) {
+              logger.warn(
+                `DataSyncService: No data received for major symbol ${symbol} ${interval}`
+              );
+            }
           }
         } catch (error) {
           logger.error(
@@ -263,9 +254,7 @@ class DataSyncService {
     const updateIntervalMs = CANDLESTICK_UPDATE_INTERVAL_MINUTES * 60 * 1000;
     this.updateInterval = setInterval(async () => {
       try {
-        logger.info("DataSyncService: Starting periodic update...");
         await this.performPeriodicUpdate();
-        logger.info("DataSyncService: Periodic update completed");
       } catch (error) {
         logger.error("DataSyncService: Error during periodic update", error);
       }
@@ -336,12 +325,6 @@ class DataSyncService {
 
       const symbolsToUpdate = isTopTierUpdate ? topSymbols : secondTierSymbols;
 
-      logger.info(
-        `DataSyncService: Periodic update - ${
-          isTopTierUpdate ? "Top tier" : "Second tier"
-        } discovered symbols (${symbolsToUpdate.length} symbols)`
-      );
-
       await this.updateSymbolBatch(symbolsToUpdate, intervals);
 
       // Save updated data
@@ -366,7 +349,7 @@ class DataSyncService {
 
       await CandlestickStorageService.saveAllCandlestickData(repositoryData);
 
-      logger.info("DataSyncService: Periodic update completed successfully");
+      // Removed periodic update completion log
     } catch (error) {
       logger.error(
         `DataSyncService: Error during periodic update: ${

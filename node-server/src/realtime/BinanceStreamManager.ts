@@ -107,7 +107,6 @@ class BinanceStreamManager {
     });
 
     this.ws.on("message", (data: WebSocket.Data) => {
-      logger.debug(`[WS Message]: ${data.toString().substring(0, 300)}`);
       try {
         const messageString = data.toString();
         const parsedMessage: BinanceMessage = JSON.parse(messageString);
@@ -124,10 +123,7 @@ class BinanceStreamManager {
           parsedMessage.result === null &&
           parsedMessage.id !== undefined
         ) {
-          // This is a response to a subscription/unsubscription request
-          logger.info(
-            `BinanceStreamManager: Received subscription response: ${messageString}`
-          );
+          // Subscription response - no need to log
         } else {
           logger.warn(
             `BinanceStreamManager: No handler for stream or unknown message format: ${

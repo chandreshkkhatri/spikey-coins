@@ -37,14 +37,12 @@ class BinanceClient {
     limit: number
   ): Promise<Candlestick[] | null> {
     if (!canMakeRequest()) {
-      logger.warn(
-        `BinanceClient: Rate limit protection triggered for ${symbol} ${interval}. Waiting before retrying or skipping.`
-      );
-      // Consider a more sophisticated retry or queuing mechanism here
-      await new Promise((resolve) => setTimeout(resolve, REQUEST_TIMEOUT)); // Wait for timeout duration
+      // Rate limiting - wait silently without logging every occurrence
+      await new Promise((resolve) => setTimeout(resolve, REQUEST_TIMEOUT));
       if (!canMakeRequest()) {
-        logger.error(
-          `BinanceClient: Still rate-limited after waiting for ${symbol} ${interval}. Skipping this fetch.`
+        // Only log if still rate-limited after waiting
+        logger.warn(
+          `BinanceClient: Rate limited for ${symbol} ${interval}, skipping fetch`
         );
         return null;
       }
@@ -53,9 +51,6 @@ class BinanceClient {
     // Apply delay between requests to be respectful to the API
     await new Promise((resolve) => setTimeout(resolve, DELAY_BETWEEN_REQUESTS));
 
-    logger.debug(
-      `BinanceClient: Fetching ${limit} ${interval} klines for ${symbol}`
-    );
     try {
       const response: AxiosResponse<BinanceRawKlineData[]> = await axios.get(
         BINANCE_KLINES_URL,
@@ -85,15 +80,15 @@ class BinanceClient {
           isClosed: true, // Historical data is always closed
         })
       );
-      logger.debug(
-        `BinanceClient: Successfully fetched ${historicalData.length} ${interval} klines for ${symbol}`
-      );
       return historicalData;
     } catch (error: any) {
       if (error.response?.status === 429) {
         logger.warn(
-          `BinanceClient: Rate limit hit (429) for ${symbol} ${interval}. Consider increasing DELAY_BETWEEN_REQUESTS or reducing request frequency.`
+          `BinanceClient: Rate limit (429) for ${symbol} ${interval}`
         );
+      } else if (error.response?.status === 400) {
+        // Don't log 400 errors as they're expected for invalid symbols
+        return null;
       } else {
         logger.error(
           `BinanceClient: Error fetching klines for ${symbol} ${interval}: ${error.message}`

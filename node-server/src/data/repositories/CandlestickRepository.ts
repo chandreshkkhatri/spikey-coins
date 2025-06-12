@@ -42,17 +42,9 @@ class CandlestickRepository {
     if (maxCount && data.length > maxCount) {
       // Keep the most recent candlesticks
       finalData = data.slice(-maxCount);
-      logger.debug(
-        `CandlestickRepository.setCandlesticks: Trimmed ${
-          data.length - finalData.length
-        } old candles for ${normalizedSymbol} ${interval}.`
-      );
     }
 
     symbolData.set(interval, finalData);
-    logger.debug(
-      `CandlestickRepository.setCandlesticks: Stored ${finalData.length} candlesticks for ${normalizedSymbol} ${interval}.`
-    );
   }
 
   /**
@@ -92,9 +84,6 @@ class CandlestickRepository {
     const intervalData = this.getCandlesticks(normalizedSymbol, interval);
 
     if (!intervalData || intervalData.length === 0) {
-      logger.debug(
-        `CandlestickRepository.getPriceNIntervalsAgo: No candlestick data for ${normalizedSymbol} ${interval}.`
-      );
       return null;
     }
 
@@ -102,20 +91,12 @@ class CandlestickRepository {
     const targetIndex = intervalData.length - 1 - intervalsAgo;
 
     if (targetIndex < 0) {
-      logger.debug(
-        `CandlestickRepository.getPriceNIntervalsAgo: Not enough data for ${normalizedSymbol} ${interval}. Need ${
-          intervalsAgo + 1
-        } candles, have ${intervalData.length}. targetIndex: ${targetIndex}`
-      );
       return null;
     }
 
     const candle = intervalData[targetIndex];
     if (candle && candle.close !== undefined) {
       const price = parseFloat(candle.close.toString());
-      logger.debug(
-        `CandlestickRepository.getPriceNIntervalsAgo: Found price ${price} for ${normalizedSymbol} ${interval}, ${intervalsAgo} intervals ago at index ${targetIndex}.`
-      );
       return price;
     }
     logger.warn(
@@ -158,11 +139,6 @@ class CandlestickRepository {
 
     // Use setCandlesticks to handle trimming and storage
     this.setCandlesticks(normalizedSymbol, interval, updatedData);
-    logger.debug(
-      `CandlestickRepository.appendCandlestick: Appended candle for ${normalizedSymbol} ${interval}. New count: ${
-        this.getCandlesticks(normalizedSymbol, interval)?.length
-      }`
-    );
   }
 
   /**
