@@ -15,6 +15,31 @@ import {
   Coins,
 } from "lucide-react";
 
+// Structured Data for SEO
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Spikey Coins",
+  description:
+    "Real-time cryptocurrency market data and analysis platform for tracking USDT trading pairs",
+  url: "https://spikeycoins.com",
+  applicationCategory: "FinanceApplication",
+  operatingSystem: "Web Browser",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+  },
+  author: {
+    "@type": "Organization",
+    name: "Spikey Coins",
+  },
+  provider: {
+    "@type": "Organization",
+    name: "Spikey Coins",
+  },
+};
+
 export default function HomePage() {
   const [tickerArray, setTickerArray] = useState<TickerData[]>([]);
   const [loading, setLoading] = useState(false);
@@ -99,106 +124,147 @@ export default function HomePage() {
   }, [getSpikes]);
 
   return (
-    <div className="flex h-screen bg-white">
-      <Sidebar 
-        onRefreshTicker={getSpikes}
-        onRefreshMarketCap={refreshMarketcapData}
-        loading={loading}
-        tickerCount={tickerArray.length}
+    <>
+      {/* Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
-      
-      <main className="flex-1 overflow-auto">
-        <div className="flex flex-col items-center justify-start min-h-screen px-4 bg-white">
-          <div className="w-full max-w-7xl mx-auto">
-            {/* Header */}
-            <div className="text-center py-8">
-              <h1 className="text-4xl font-normal mb-4 text-gray-900 flex items-center justify-center gap-3">
-                <Coins className="h-10 w-10 text-blue-600" />
-                Spikey Coins
-              </h1>
-              <p className="text-gray-600 mb-8">Real-time cryptocurrency market data and analysis</p>
 
-              {/* Search Input */}
-              <div className="relative mb-8 max-w-2xl mx-auto">
-                <div className="relative">
-                  <Input
-                    className="pl-12 pr-4 py-6 text-lg rounded-xl border border-gray-200 shadow-sm focus:border-gray-300 focus:ring-0"
-                    placeholder="Search for cryptocurrencies..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+      <div className="flex h-screen bg-white">
+        <Sidebar
+          onRefreshTicker={getSpikes}
+          onRefreshMarketCap={refreshMarketcapData}
+          loading={loading}
+          tickerCount={tickerArray.length}
+        />
+
+        <main className="flex-1 overflow-auto">
+          <div className="flex flex-col items-center justify-start min-h-screen px-4 bg-white">
+            <div className="w-full max-w-7xl mx-auto">
+              {/* Header */}
+              <header className="text-center py-8">
+                <h1 className="text-4xl font-normal mb-4 text-gray-900 flex items-center justify-center gap-3">
+                  <Coins
+                    className="h-10 w-10 text-blue-600"
+                    aria-hidden="true"
                   />
-                  <div className="absolute inset-y-0 left-4 flex items-center">
-                    <Search className="h-5 w-5 text-gray-400" />
+                  Spikey Coins
+                </h1>
+                <p className="text-gray-600 mb-8">
+                  Real-time cryptocurrency market data and analysis for informed
+                  trading decisions
+                </p>
+
+                {/* Search Input */}
+                <div className="relative mb-8 max-w-2xl mx-auto">
+                  <div className="relative">
+                    <Input
+                      className="pl-12 pr-4 py-6 text-lg rounded-xl border border-gray-200 shadow-sm focus:border-gray-300 focus:ring-0"
+                      placeholder="Search for cryptocurrencies..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      aria-label="Search cryptocurrencies"
+                    />
+                    <div className="absolute inset-y-0 left-4 flex items-center">
+                      <Search
+                        className="h-5 w-5 text-gray-400"
+                        aria-hidden="true"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Quick Stats */}
-              <div className="flex flex-wrap justify-center gap-4 mb-8">
-                <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-lg">
-                  <BarChart3 className="h-4 w-4 text-green-600" />
-                  <span className="text-sm text-gray-600">
-                    {tickerArray.length} Pairs Loaded
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-lg">
-                  <TrendingUp className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm text-gray-600">
-                    {tickerArray.filter(t => t.change_24h > 0).length} Gainers
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-lg">
-                  <Activity className="h-4 w-4 text-red-600" />
-                  <span className="text-sm text-gray-600">
-                    {tickerArray.filter(t => t.change_24h < 0).length} Losers
-                  </span>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap justify-center gap-3 mb-8">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="rounded-full px-4 gap-2 border-gray-200 hover:bg-gray-50 bg-transparent"
-                  onClick={getSpikes}
-                  disabled={loading}
+                {/* Quick Stats */}
+                <section
+                  className="flex flex-wrap justify-center gap-4 mb-8"
+                  aria-label="Market Statistics"
                 >
-                  <TrendingUp className="h-4 w-4" />
-                  {loading ? "Refreshing..." : "Refresh Data"}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="rounded-full px-4 gap-2 border-gray-200 hover:bg-gray-50 bg-transparent"
-                  onClick={refreshMarketcapData}
-                  disabled={loading}
+                  <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-lg">
+                    <BarChart3
+                      className="h-4 w-4 text-green-600"
+                      aria-hidden="true"
+                    />
+                    <span className="text-sm text-gray-600">
+                      {tickerArray.length} Pairs Loaded
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-lg">
+                    <TrendingUp
+                      className="h-4 w-4 text-blue-600"
+                      aria-hidden="true"
+                    />
+                    <span className="text-sm text-gray-600">
+                      {tickerArray.filter((t) => t.change_24h > 0).length}{" "}
+                      Gainers
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-lg">
+                    <Activity
+                      className="h-4 w-4 text-red-600"
+                      aria-hidden="true"
+                    />
+                    <span className="text-sm text-gray-600">
+                      {tickerArray.filter((t) => t.change_24h < 0).length}{" "}
+                      Losers
+                    </span>
+                  </div>
+                </section>
+
+                {/* Action Buttons */}
+                <section
+                  className="flex flex-wrap justify-center gap-3 mb-8"
+                  aria-label="Actions"
                 >
-                  <DollarSign className="h-4 w-4" />
-                  Update Market Cap
-                </Button>
-              </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full px-4 gap-2 border-gray-200 hover:bg-gray-50 bg-transparent"
+                    onClick={getSpikes}
+                    disabled={loading}
+                    aria-label="Refresh cryptocurrency data"
+                  >
+                    <TrendingUp className="h-4 w-4" aria-hidden="true" />
+                    {loading ? "Refreshing..." : "Refresh Data"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full px-4 gap-2 border-gray-200 hover:bg-gray-50 bg-transparent"
+                    onClick={refreshMarketcapData}
+                    disabled={loading}
+                    aria-label="Update market capitalization data"
+                  >
+                    <DollarSign className="h-4 w-4" aria-hidden="true" />
+                    Update Market Cap
+                  </Button>
+                </section>
 
-              {/* Error Display */}
-              {error && (
-                <div className="max-w-2xl mx-auto mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-                  ⚠️ {error}
-                </div>
-              )}
-            </div>
+                {/* Error Display */}
+                {error && (
+                  <div
+                    className="max-w-2xl mx-auto mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm"
+                    role="alert"
+                    aria-live="polite"
+                  >
+                    ⚠️ {error}
+                  </div>
+                )}
+              </header>
 
-            {/* Main Content */}
-            <div className="px-4 pb-8">
-              <Ticker 
-                tickerArray={tickerArray} 
-                loading={loading} 
-                error={error}
-                searchQuery={searchQuery}
-              />
+              {/* Main Content */}
+              <section className="px-4 pb-8" aria-label="Cryptocurrency Data">
+                <Ticker
+                  tickerArray={tickerArray}
+                  loading={loading}
+                  error={error}
+                  searchQuery={searchQuery}
+                />
+              </section>
             </div>
           </div>
-        </div>
-      </main>
-    </div>
+        </main>
+      </div>
+    </>
   );
 }
