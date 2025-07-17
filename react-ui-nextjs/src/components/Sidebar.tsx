@@ -21,23 +21,21 @@ interface SidebarProps {
   tickerCount?: number;
 }
 
-export default function Sidebar({ 
-  onRefreshTicker, 
-  onRefreshMarketCap, 
+export default function Sidebar({
+  onRefreshTicker,
+  onRefreshMarketCap,
   loading = false,
-  tickerCount = 0 
+  tickerCount = 0,
 }: SidebarProps) {
   return (
     <div className="w-16 h-full border-r border-gray-200 bg-gray-50 flex flex-col items-center py-4">
       <div className="flex flex-col items-center gap-6 h-full">
-        {/* Logo */}
         <Link href="/" className="mb-4">
-          <div className="w-8 h-8 text-gray-700">
+          <div className="w-8 h-8 text-blue-600">
             <Coins className="h-8 w-8" />
           </div>
         </Link>
 
-        {/* Action buttons */}
         <Button
           variant="ghost"
           size="icon"
@@ -46,7 +44,9 @@ export default function Sidebar({
           disabled={loading}
           title="Refresh Ticker Data"
         >
-          <RefreshCw className={`h-5 w-5 text-gray-600 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw
+            className={`h-5 w-5 text-gray-600 ${loading ? "animate-spin" : ""}`}
+          />
         </Button>
 
         <Button
@@ -60,7 +60,6 @@ export default function Sidebar({
           <TrendingUp className="h-5 w-5 text-gray-600" />
         </Button>
 
-        {/* Navigation */}
         <div className="flex flex-col items-center gap-4 mt-4">
           <NavItem
             href="/"
@@ -69,33 +68,31 @@ export default function Sidebar({
             active
           />
           <NavItem
-            href="/analytics"
+            href="#"
             icon={<BarChart2 className="h-5 w-5" />}
             label="Analytics"
           />
           <NavItem
-            href="/markets"
+            href="#"
             icon={<Activity className="h-5 w-5" />}
             label="Markets"
           />
         </div>
 
-        {/* Bottom items */}
         <div className="mt-auto flex flex-col items-center gap-4">
-          {/* Ticker count display */}
           <div className="text-center">
             <div className="text-xs text-gray-500 mb-1">Pairs</div>
-            <div className="text-sm font-semibold text-gray-700">{tickerCount}</div>
+            <div className="text-sm font-semibold text-gray-700">
+              {tickerCount}
+            </div>
           </div>
-          
           <NavItem
-            href="/settings"
+            href="#"
             icon={<Settings className="h-5 w-5" />}
             label="Settings"
           />
         </div>
 
-        {/* Help */}
         <Button
           variant="ghost"
           size="icon"
