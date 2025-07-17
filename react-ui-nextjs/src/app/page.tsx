@@ -3,11 +3,23 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { api } from "@/utils/api";
 import Ticker, { TickerData } from "@/components/Ticker";
+import Sidebar from "@/components/Sidebar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Search,
+  TrendingUp,
+  Activity,
+  DollarSign,
+  BarChart3,
+  Coins,
+} from "lucide-react";
 
 export default function HomePage() {
   const [tickerArray, setTickerArray] = useState<TickerData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const getSpikes = useCallback(async () => {
     try {
@@ -87,95 +99,106 @@ export default function HomePage() {
   }, [getSpikes]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="grey">
-        <nav style={{ fontSize: "1.8em", padding: "15px 30px" }}>
-          <div>🚀 Spikey Coins</div>
-        </nav>
-      </header>
+    <div className="flex h-screen bg-white">
+      <Sidebar 
+        onRefreshTicker={getSpikes}
+        onRefreshMarketCap={refreshMarketcapData}
+        loading={loading}
+        tickerCount={tickerArray.length}
+      />
+      
+      <main className="flex-1 overflow-auto">
+        <div className="flex flex-col items-center justify-start min-h-screen px-4 bg-white">
+          <div className="w-full max-w-7xl mx-auto">
+            {/* Header */}
+            <div className="text-center py-8">
+              <h1 className="text-4xl font-normal mb-4 text-gray-900 flex items-center justify-center gap-3">
+                <Coins className="h-10 w-10 text-blue-600" />
+                Spikey Coins
+              </h1>
+              <p className="text-gray-600 mb-8">Real-time cryptocurrency market data and analysis</p>
 
-      {/* Layout */}
-      <div className="main-layout">
-        {/* Sidebar */}
-        <div className="sidebar-container">
-          <h3>📊 Controls</h3>
-          <button
-            onClick={getSpikes}
-            disabled={loading}
-            style={{
-              width: "100%",
-              padding: "12px 16px",
-              background: loading ? "#94a3b8" : "#10b981",
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              cursor: loading ? "not-allowed" : "pointer",
-              fontSize: "14px",
-              fontWeight: "600",
-              marginBottom: "12px",
-              transition: "all 0.2s ease",
-            }}
-          >
-            {loading ? "🔄 Loading..." : "🔄 Refresh Ticker"}
-          </button>
+              {/* Search Input */}
+              <div className="relative mb-8 max-w-2xl mx-auto">
+                <div className="relative">
+                  <Input
+                    className="pl-12 pr-4 py-6 text-lg rounded-xl border border-gray-200 shadow-sm focus:border-gray-300 focus:ring-0"
+                    placeholder="Search for cryptocurrencies..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  <div className="absolute inset-y-0 left-4 flex items-center">
+                    <Search className="h-5 w-5 text-gray-400" />
+                  </div>
+                </div>
+              </div>
 
-          <button
-            onClick={refreshMarketcapData}
-            disabled={loading}
-            style={{
-              width: "100%",
-              padding: "12px 16px",
-              background: loading ? "#94a3b8" : "#3b82f6",
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              cursor: loading ? "not-allowed" : "pointer",
-              fontSize: "14px",
-              fontWeight: "600",
-              marginBottom: "12px",
-              transition: "all 0.2s ease",
-            }}
-          >
-            {loading ? "🔄 Loading..." : "📈 Refresh Market Cap"}
-          </button>
+              {/* Quick Stats */}
+              <div className="flex flex-wrap justify-center gap-4 mb-8">
+                <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-lg">
+                  <BarChart3 className="h-4 w-4 text-green-600" />
+                  <span className="text-sm text-gray-600">
+                    {tickerArray.length} Pairs Loaded
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-lg">
+                  <TrendingUp className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm text-gray-600">
+                    {tickerArray.filter(t => t.change_24h > 0).length} Gainers
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-lg">
+                  <Activity className="h-4 w-4 text-red-600" />
+                  <span className="text-sm text-gray-600">
+                    {tickerArray.filter(t => t.change_24h < 0).length} Losers
+                  </span>
+                </div>
+              </div>
 
-          {error && (
-            <div
-              style={{
-                color: "#fee2e2",
-                fontSize: "13px",
-                padding: "12px",
-                background: "rgba(239, 68, 68, 0.2)",
-                border: "1px solid rgba(239, 68, 68, 0.3)",
-                borderRadius: "8px",
-                marginBottom: "12px",
-              }}
-            >
-              ⚠️ {error}
+              {/* Action Buttons */}
+              <div className="flex flex-wrap justify-center gap-3 mb-8">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full px-4 gap-2 border-gray-200 hover:bg-gray-50 bg-transparent"
+                  onClick={getSpikes}
+                  disabled={loading}
+                >
+                  <TrendingUp className="h-4 w-4" />
+                  {loading ? "Refreshing..." : "Refresh Data"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full px-4 gap-2 border-gray-200 hover:bg-gray-50 bg-transparent"
+                  onClick={refreshMarketcapData}
+                  disabled={loading}
+                >
+                  <DollarSign className="h-4 w-4" />
+                  Update Market Cap
+                </Button>
+              </div>
+
+              {/* Error Display */}
+              {error && (
+                <div className="max-w-2xl mx-auto mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                  ⚠️ {error}
+                </div>
+              )}
             </div>
-          )}
 
-          <div style={{ marginTop: "20px" }}>
-            <div
-              style={{
-                fontSize: "13px",
-                color: "rgba(255, 255, 255, 0.8)",
-                padding: "12px",
-                background: "rgba(255, 255, 255, 0.1)",
-                borderRadius: "8px",
-                textAlign: "center",
-              }}
-            >
-              💰 Pairs loaded: <strong>{tickerArray.length}</strong>
+            {/* Main Content */}
+            <div className="px-4 pb-8">
+              <Ticker 
+                tickerArray={tickerArray} 
+                loading={loading} 
+                error={error}
+                searchQuery={searchQuery}
+              />
             </div>
           </div>
         </div>
-
-        {/* Main content */}
-        <div className="main-content-container">
-          <Ticker tickerArray={tickerArray} loading={loading} error={error} />
-        </div>
-      </div>
+      </main>
     </div>
   );
 }

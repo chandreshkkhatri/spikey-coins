@@ -36,6 +36,7 @@ interface TickerProps {
   tickerArray: TickerData[];
   loading: boolean;
   error: string | null;
+  searchQuery?: string;
 }
 
 const columnHelper = createColumnHelper<TickerData>();
@@ -57,7 +58,7 @@ const numberSort = (
   return numA - numB;
 };
 
-function Ticker({ tickerArray, loading, error }: TickerProps) {
+function Ticker({ tickerArray, loading, error, searchQuery = "" }: TickerProps) {
   /**
    * Format number with appropriate units (K, M, B)
    */
@@ -258,7 +259,9 @@ function Ticker({ tickerArray, loading, error }: TickerProps) {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: "change_24h", desc: true }, // Initial sort
   ]);
-  const [globalFilter, setGlobalFilter] = React.useState("");
+  
+  // Use searchQuery from props as the global filter
+  const globalFilter = searchQuery;
 
   // Custom global filter function
   const customGlobalFilterFn: FilterFn<TickerData> = React.useCallback(
@@ -302,7 +305,6 @@ function Ticker({ tickerArray, loading, error }: TickerProps) {
       globalFilter,
     },
     onSortingChange: setSorting,
-    onGlobalFilterChange: setGlobalFilter,
     globalFilterFn: customGlobalFilterFn, // Apply the custom global filter
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -378,12 +380,6 @@ function Ticker({ tickerArray, loading, error }: TickerProps) {
               </span>
             </div>
           </div>
-          <input
-            value={globalFilter ?? ""}
-            onChange={(e) => setGlobalFilter(e.target.value)}
-            placeholder="🔍 Search all columns..."
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent max-w-xs"
-          />
         </div>
       </div>
 
