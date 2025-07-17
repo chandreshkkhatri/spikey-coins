@@ -255,7 +255,7 @@ export default function Ticker({
       <div className="text-center p-10 bg-gray-50 rounded-lg">
         <p className="text-lg font-semibold text-gray-600">No Data Available</p>
         <p className="text-gray-500 mt-2">
-          Click 'Refresh' to load market data.
+          Click &apos;Refresh&apos; to load market data.
         </p>
       </div>
     );

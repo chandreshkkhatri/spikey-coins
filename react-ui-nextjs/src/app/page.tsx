@@ -48,7 +48,22 @@ export default function HomePage() {
       setError(null);
       const response = await api.get24hrTicker();
       const rawData = response.data.data || response.data || [];
-      const transformedData: TickerData[] = rawData.map((item: any) => ({
+      const transformedData: TickerData[] = rawData.map((item: {
+        symbol: string;
+        price: number;
+        price_change_24h_percent: number;
+        change_12h?: number | null;
+        change_8h?: number | null;
+        change_4h?: number | null;
+        change_1h?: number | null;
+        high_24h: number;
+        low_24h: number;
+        range_position_24h: number;
+        volume_usd: number;
+        volume_base: number;
+        market_cap?: number | null;
+        normalized_volume_score?: number;
+      }) => ({
         s: item.symbol,
         price: item.price,
         change_24h: item.price_change_24h_percent,
