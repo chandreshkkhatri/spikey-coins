@@ -48,37 +48,39 @@ export default function HomePage() {
       setError(null);
       const response = await api.get24hrTicker();
       const rawData = response.data.data || response.data || [];
-      const transformedData: TickerData[] = rawData.map((item: {
-        symbol: string;
-        price: number;
-        price_change_24h_percent: number;
-        change_12h?: number | null;
-        change_8h?: number | null;
-        change_4h?: number | null;
-        change_1h?: number | null;
-        high_24h: number;
-        low_24h: number;
-        range_position_24h: number;
-        volume_usd: number;
-        volume_base: number;
-        market_cap?: number | null;
-        normalized_volume_score?: number;
-      }) => ({
-        s: item.symbol,
-        price: item.price,
-        change_24h: item.price_change_24h_percent,
-        change_12h: item.change_12h,
-        change_8h: item.change_8h,
-        change_4h: item.change_4h,
-        change_1h: item.change_1h,
-        high_24h: item.high_24h,
-        low_24h: item.low_24h,
-        range_position_24h: item.range_position_24h,
-        volume_usd: item.volume_usd,
-        volume_base: item.volume_base,
-        market_cap: item.market_cap,
-        normalized_volume_score: item.normalized_volume_score || 0,
-      }));
+      const transformedData: TickerData[] = rawData.map(
+        (item: {
+          symbol: string;
+          price: number;
+          price_change_24h_percent: number;
+          change_12h?: number | null;
+          change_8h?: number | null;
+          change_4h?: number | null;
+          change_1h?: number | null;
+          high_24h: number;
+          low_24h: number;
+          range_position_24h: number;
+          volume_usd: number;
+          volume_base: number;
+          market_cap?: number | null;
+          normalized_volume_score?: number;
+        }) => ({
+          s: item.symbol,
+          price: item.price,
+          change_24h: item.price_change_24h_percent,
+          change_12h: item.change_12h,
+          change_8h: item.change_8h,
+          change_4h: item.change_4h,
+          change_1h: item.change_1h,
+          high_24h: item.high_24h,
+          low_24h: item.low_24h,
+          range_position_24h: item.range_position_24h,
+          volume_usd: item.volume_usd,
+          volume_base: item.volume_base,
+          market_cap: item.market_cap,
+          normalized_volume_score: item.normalized_volume_score || 0,
+        })
+      );
       const usdtPairs = transformedData.filter(
         (item: TickerData) =>
           item.s && typeof item.s === "string" && item.s.endsWith("USDT")
