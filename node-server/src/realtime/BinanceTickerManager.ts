@@ -1,5 +1,5 @@
 /**
- * BinanceStreamManager - Handles WebSocket connections to Binance streams
+ * BinanceTickerManager - Handles WebSocket connections to Binance streams
  */
 import WebSocket from "ws";
 import logger from "../utils/logger.js";
@@ -20,14 +20,14 @@ interface BinanceMessage {
   id?: number;
 }
 
-interface BinanceStreamManagerDependencies {
+interface BinanceTickerManagerDependencies {
   tickerStreamHandler: TickerStreamHandler;
   candlestickStreamHandler?: CandlestickStreamHandler;
 }
 
 type MessageHandler = (message: any) => void;
 
-class BinanceStreamManager {
+class BinanceTickerManager {
   private ws: WebSocket | null = null;
   private baseUrl: string = BINANCE_WS_BASE_URL;
   private messageHandlers: Map<string, MessageHandler> = new Map();
@@ -40,7 +40,7 @@ class BinanceStreamManager {
   constructor({
     tickerStreamHandler,
     candlestickStreamHandler,
-  }: BinanceStreamManagerDependencies) {
+  }: BinanceTickerManagerDependencies) {
     this.tickerStreamHandler = tickerStreamHandler;
     this.candlestickStreamHandler = candlestickStreamHandler;
     this._initializeMessageHandlers();
@@ -70,12 +70,12 @@ class BinanceStreamManager {
 
   connect(): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      logger.info("BinanceStreamManager: WebSocket is already connected.");
+      logger.info("BinanceTickerManager: WebSocket is already connected.");
       return;
     }
     if (this.isConnecting) {
       logger.info(
-        "BinanceStreamManager: WebSocket connection attempt already in progress."
+        "BinanceTickerManager: WebSocket connection attempt already in progress."
       );
       return;
     }
@@ -89,7 +89,7 @@ class BinanceStreamManager {
 
     const streamNames = Array.from(this.messageHandlers.keys());
     if (streamNames.length === 0) {
-      logger.warn("BinanceStreamManager: No streams to subscribe to.");
+      logger.warn("BinanceTickerManager: No streams to subscribe to.");
       this.isConnecting = false;
       return;
     }
@@ -97,12 +97,12 @@ class BinanceStreamManager {
     const streamsQueryParam = streamNames.join("/");
     const wsUrl = `${this.baseUrl}/stream?streams=${streamsQueryParam}`;
 
-    logger.info(`BinanceStreamManager: Connecting to ${wsUrl}`);
+    logger.info(`BinanceTickerManager: Connecting to ${wsUrl}`);
     this.ws = new WebSocket(wsUrl);
 
     this.ws.on("open", () => {
       this.isConnecting = false;
-      logger.info("✅ BinanceStreamManager: WebSocket connection established.");
+      logger.info("✅ BinanceTickerManager: WebSocket connection established.");
       // Reset reconnect attempts on successful connection if implementing exponential backoff
     });
 
@@ -126,18 +126,18 @@ class BinanceStreamManager {
         ) {
           // This is a response to a subscription/unsubscription request
           logger.info(
-            `BinanceStreamManager: Received subscription response: ${messageString}`
+            `BinanceTickerManager: Received subscription response: ${messageString}`
           );
         } else {
           logger.warn(
-            `BinanceStreamManager: No handler for stream or unknown message format: ${
+            `BinanceTickerManager: No handler for stream or unknown message format: ${
               parsedMessage.stream || messageString.substring(0, 200)
             }`
           );
         }
       } catch (error) {
         logger.error(
-          `BinanceStreamManager: Error processing message: ${
+          `BinanceTickerManager: Error processing message: ${
             (error as Error).message
           }`,
           { data }
@@ -147,7 +147,7 @@ class BinanceStreamManager {
 
     this.ws.on("error", (error: Error) => {
       this.isConnecting = false;
-      logger.error(`❌ BinanceStreamManager: WebSocket error: ${error.message}`, {
+      logger.error(`❌ BinanceTickerManager: WebSocket error: ${error.message}`, {
         name: error.name,
         message: error.message,
         stack: error.stack,
@@ -158,7 +158,7 @@ class BinanceStreamManager {
     this.ws.on("close", (code: number, reason: Buffer) => {
       this.isConnecting = false;
       logger.info(
-        `BinanceStreamManager: WebSocket connection closed. Code: ${code}, Reason: ${
+        `BinanceTickerManager: WebSocket connection closed. Code: ${code}, Reason: ${
           reason ? reason.toString() : "N/A"
         }`
       );
@@ -174,7 +174,7 @@ class BinanceStreamManager {
       clearTimeout(this.reconnectTimeoutId);
     }
     logger.info(
-      `BinanceStreamManager: Scheduling reconnection in ${
+      `BinanceTickerManager: Scheduling reconnection in ${
         RECONNECT_DELAY_MS / 1000
       } seconds.`
     );
@@ -190,7 +190,7 @@ class BinanceStreamManager {
       this.reconnectTimeoutId = null;
     }
     if (this.ws) {
-      logger.info("BinanceStreamManager: Disconnecting WebSocket.");
+      logger.info("BinanceTickerManager: Disconnecting WebSocket.");
       this.ws.close();
     }
   }
@@ -200,4 +200,4 @@ class BinanceStreamManager {
   // unsubscribeFromStreams(streams: string[]): void { ... }
 }
 
-export default BinanceStreamManager;
+export default BinanceTickerManager;

@@ -114,11 +114,11 @@ class CandlestickStreamHandler {
   /**
    * Returns the stream names this handler is interested in.
    * This would be dynamically generated based on MAJOR_SYMBOLS and desired intervals.
-   * For this example, we assume the BinanceStreamManager will construct these.
-   * @returns An empty array, as stream names are determined by BinanceStreamManager.
+   * For this example, we assume the BinanceTickerManager will construct these.
+   * @returns An empty array, as stream names are determined by BinanceTickerManager.
    */
   getStreamNames(): string[] {
-    // This method might not be strictly needed if BinanceStreamManager itself constructs the stream names
+    // This method might not be strictly needed if BinanceTickerManager itself constructs the stream names
     // based on constants and passes messages directly. However, it can be useful for introspection or
     // if handlers were to dynamically subscribe/unsubscribe.
     return []; // The actual stream names are like `symbol@kline_interval`
