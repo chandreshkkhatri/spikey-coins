@@ -25,7 +25,6 @@ import { getRateLimitingStatus } from "./src/utils/rateLimiting.js";
 
 // Import the new router factory function
 import { createTickerRoutes } from "./src/api/routes/tickerRoutes.js";
-import adminRoutes from "./src/api/routes/adminRoutes.js";
 
 // Load environment variables
 dotenv.config();
@@ -104,9 +103,6 @@ app.get("/openapi.json", (req: Request, res: Response) => {
 // TickerController now uses static methods directly, no dependency injection needed
 const tickerRoutes = createTickerRoutes();
 app.use("/api/ticker", tickerRoutes);
-
-// Admin routes
-app.use("/api/admin", adminRoutes);
 
 // Health check endpoint
 app.get("/", (req: Request, res: Response) => {

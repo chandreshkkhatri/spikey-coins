@@ -1,7 +1,7 @@
 {
   "name": "spikey-coins-proxy-server",
   "version": "1.0.0",
-  "description": "Proxy server for Spikey Coins application to handle crypto ticker data and bypass CORS issues",
+  "description": "Real-time cryptocurrency data server with WebSocket streams from Binance API",
   "type": "module",
   "main": "dist/app.js",
   "scripts": {
@@ -24,9 +24,9 @@
   "keywords": [
     "crypto",
     "ticker",
-    "proxy",
+    "realtime",
     "binance",
-    "coingecko"
+    "websocket"
   ],
   "author": "",
   "license": "ISC",
