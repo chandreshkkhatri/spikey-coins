@@ -212,16 +212,46 @@ function calculateStringSimilarity(str1: string, str2: string): number {
 
 /**
  * Extract base symbol and multiplier from Binance symbol
- * Examples: "1000FLOKI" -> {symbol: "FLOKI", multiplier: 1000}, "BTC" -> {symbol: "BTC", multiplier: 1}
+ * Handles both prefix and suffix numbers
+ * Examples: 
+ * "1000FLOKI" -> {symbol: "FLOKI", multiplier: 1000}
+ * "1000RATS" -> {symbol: "RATS", multiplier: 1000}
+ * "LUNA2" -> {symbol: "LUNA", multiplier: 1} (special case - version number, not multiplier)
+ * "BTC" -> {symbol: "BTC", multiplier: 1}
  */
 function parseSymbolAndMultiplier(binanceSymbol: string): { symbol: string; multiplier: number } {
-  const match = binanceSymbol.match(/^(\d+)(.+)$/);
+  // Try prefix numbers first (e.g., "1000FLOKI", "1000000MOG")
+  // Only treat as multiplier if number is 10, 100, 1000, 10000, etc.
+  let match = binanceSymbol.match(/^(10+)([A-Z]+)$/);
   if (match) {
     return {
       symbol: match[2],
       multiplier: parseInt(match[1], 10)
     };
   }
+  
+  // For suffix numbers, check if it's a small version number (1-9) or a multiplier
+  match = binanceSymbol.match(/^([A-Z]+)(\d+)$/);
+  if (match) {
+    const number = parseInt(match[2], 10);
+    // If the number is small (1-9), treat it as a version number, not a multiplier
+    // Still extract the base symbol for matching purposes
+    if (number < 10) {
+      return {
+        symbol: match[1], // Extract base symbol (e.g., LUNA2 -> LUNA)
+        multiplier: 1 // Don't scale the price
+      };
+    }
+    // For larger numbers that are powers of 10, treat as multiplier
+    if (number === 10 || number === 100 || number === 1000 || number === 10000 || number === 100000 || number === 1000000) {
+      return {
+        symbol: match[1],
+        multiplier: number
+      };
+    }
+  }
+  
+  // No numbers found or non-standard pattern, return as-is
   return {
     symbol: binanceSymbol,
     multiplier: 1
@@ -229,8 +259,8 @@ function parseSymbolAndMultiplier(binanceSymbol: string): { symbol: string; mult
 }
 
 /**
- * Extract base symbol from Binance symbol by removing number prefixes
- * Examples: "1000FLOKI" -> "FLOKI", "1000000MOG" -> "MOG", "BTC" -> "BTC"
+ * Extract base symbol from Binance symbol by removing number prefixes or suffixes
+ * Examples: "1000FLOKI" -> "FLOKI", "XEC1000" -> "XEC", "BTC" -> "BTC"
  */
 function extractBaseSymbol(binanceSymbol: string): string {
   return parseSymbolAndMultiplier(binanceSymbol).symbol;
@@ -480,11 +510,15 @@ async function matchBinanceWithCoinGecko() {
     
     for (const baseAsset of uniqueBaseAssets) {
       const symbolLower = baseAsset.toLowerCase();
+      const extractedSymbolLower = extractBaseSymbol(baseAsset).toLowerCase();
       
       // Find coins by symbol or name similarity
+      // Search using both original symbol and extracted symbol (for number prefixes)
       const matches = coinsList.filter(coin => {
-        const symbolMatch = coin.symbol.toLowerCase() === symbolLower;
-        const nameMatch = calculateStringSimilarity(baseAsset, coin.name) > 0.6;
+        const coinSymbol = coin.symbol.toLowerCase();
+        const symbolMatch = coinSymbol === symbolLower || 
+                           (extractedSymbolLower !== symbolLower && coinSymbol === extractedSymbolLower);
+        const nameMatch = calculateStringSimilarity(extractedSymbolLower !== symbolLower ? extractBaseSymbol(baseAsset) : baseAsset, coin.name) > 0.6;
         return symbolMatch || nameMatch;
       });
       
