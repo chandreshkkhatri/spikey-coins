@@ -102,7 +102,8 @@ interface MatchedSymbol {
   coingeckoName: string;
   coingeckoPrice: number;
   priceMatchScore: number;
-  nameMatchScore: number;
+  symbolMatchCount: number;  // Number of CoinGecko coins with matching symbol
+  matchCandidates: string;    // JSON string of all candidates with their prices
   marketCap: number;
   marketCapRank: number;
   volume24h: number;
@@ -118,21 +119,23 @@ interface MatchedSymbol {
 }
 
 /**
- * Fetch all spot market symbols from Binance
+ * Fetch all spot market symbols from Binance (USDT pairs only)
  */
 async function fetchBinanceSpotSymbols(): Promise<BinanceExchangeSymbol[]> {
   try {
-    console.log("📡 Fetching Binance spot market symbols...");
+    console.log("📡 Fetching Binance spot market USDT symbols...");
     const response: AxiosResponse<BinanceExchangeInfo> = await axios.get(
       `${BINANCE_BASE_URL}/api/v3/exchangeInfo`,
       { timeout: 30000 }
     );
     
     const activeSymbols = response.data.symbols.filter(
-      (symbol) => symbol.status === "TRADING" && symbol.isSpotTradingAllowed
+      (symbol) => symbol.status === "TRADING" && 
+                   symbol.isSpotTradingAllowed && 
+                   symbol.quoteAsset === "USDT"  // Filter for USDT pairs only
     );
     
-    console.log(`✅ Fetched ${activeSymbols.length} active spot symbols`);
+    console.log(`✅ Fetched ${activeSymbols.length} active USDT spot symbols`);
     return activeSymbols;
   } catch (error: any) {
     console.error("❌ Error fetching spot symbols:", error.message);
@@ -141,21 +144,22 @@ async function fetchBinanceSpotSymbols(): Promise<BinanceExchangeSymbol[]> {
 }
 
 /**
- * Fetch all futures market symbols from Binance
+ * Fetch all futures market symbols from Binance (USDT pairs only)
  */
 async function fetchBinanceFuturesSymbols(): Promise<BinanceFuturesSymbol[]> {
   try {
-    console.log("📡 Fetching Binance futures market symbols...");
+    console.log("📡 Fetching Binance futures market USDT symbols...");
     const response: AxiosResponse<BinanceFuturesExchangeInfo> = await axios.get(
       `${BINANCE_FUTURES_URL}/fapi/v1/exchangeInfo`,
       { timeout: 30000 }
     );
     
     const activeSymbols = response.data.symbols.filter(
-      (symbol) => symbol.status === "TRADING"
+      (symbol) => symbol.status === "TRADING" && 
+                   symbol.quoteAsset === "USDT"  // Filter for USDT pairs only
     );
     
-    console.log(`✅ Fetched ${activeSymbols.length} active futures symbols`);
+    console.log(`✅ Fetched ${activeSymbols.length} active USDT futures symbols`);
     return activeSymbols;
   } catch (error: any) {
     console.error("❌ Error fetching futures symbols:", error.message);
@@ -204,6 +208,32 @@ function calculateStringSimilarity(str1: string, str2: string): number {
   
   const editDistance = levenshteinDistance(shorter, longer);
   return (longer.length - editDistance) / longer.length;
+}
+
+/**
+ * Extract base symbol and multiplier from Binance symbol
+ * Examples: "1000FLOKI" -> {symbol: "FLOKI", multiplier: 1000}, "BTC" -> {symbol: "BTC", multiplier: 1}
+ */
+function parseSymbolAndMultiplier(binanceSymbol: string): { symbol: string; multiplier: number } {
+  const match = binanceSymbol.match(/^(\d+)(.+)$/);
+  if (match) {
+    return {
+      symbol: match[2],
+      multiplier: parseInt(match[1], 10)
+    };
+  }
+  return {
+    symbol: binanceSymbol,
+    multiplier: 1
+  };
+}
+
+/**
+ * Extract base symbol from Binance symbol by removing number prefixes
+ * Examples: "1000FLOKI" -> "FLOKI", "1000000MOG" -> "MOG", "BTC" -> "BTC"
+ */
+function extractBaseSymbol(binanceSymbol: string): string {
+  return parseSymbolAndMultiplier(binanceSymbol).symbol;
 }
 
 /**
@@ -297,58 +327,89 @@ function findBestCoinGeckoMatch(
 ): {
   match: CoinGeckoMarketData | null;
   priceScore: number;
-  nameScore: number;
+  symbolMatchCount: number;
+  candidates: Array<{ symbol: string; name: string; price: number; priceMatchScore: number }>;
 } {
   const symbolLower = baseAsset.toLowerCase();
+  const { symbol: baseSymbol, multiplier } = parseSymbolAndMultiplier(baseAsset);
+  const baseSymbolLower = baseSymbol.toLowerCase();
+  const scaledBinancePrice = binancePrice / multiplier; // Scale down for comparison
+  const candidates: Array<{ symbol: string; name: string; price: number; priceMatchScore: number }> = [];
   
   // Find all coins with matching symbol from the complete list
+  // Try both original symbol and extracted base symbol (for cases like "1000FLOKI" -> "FLOKI")
   const symbolMatches = coinsList.filter(
-    (coin) => coin.symbol.toLowerCase() === symbolLower
+    (coin) => {
+      const coinSymbol = coin.symbol.toLowerCase();
+      return coinSymbol === symbolLower || 
+             (baseSymbolLower !== symbolLower && coinSymbol === baseSymbolLower);
+    }
   );
   
+  // Collect all symbol match candidates with their prices and scores
+  for (const coin of symbolMatches) {
+    const marketData = marketDataMap.get(coin.id);
+    if (marketData) {
+      const priceRatio = Math.min(scaledBinancePrice, marketData.current_price) / 
+                        Math.max(scaledBinancePrice, marketData.current_price);
+      candidates.push({
+        symbol: coin.symbol,
+        name: coin.name,
+        price: marketData.current_price,
+        priceMatchScore: priceRatio
+      });
+    }
+  }
+  
   if (symbolMatches.length === 0) {
-    // Try to find by name if no symbol match
+    // Try to find by name if no symbol match (using extracted base symbol for better matching)
+    const searchTerm = baseSymbolLower !== symbolLower ? baseSymbolLower : symbolLower;
     const nameMatches = coinsList.filter((coin) => {
-      const nameSimilarity = calculateStringSimilarity(baseAsset, coin.name);
+      const nameSimilarity = calculateStringSimilarity(searchTerm, coin.name);
       return nameSimilarity > 0.7;
     });
     
     if (nameMatches.length === 0) {
-      return { match: null, priceScore: 0, nameScore: 0 };
+      return { match: null, priceScore: 0, symbolMatchCount: 0, candidates };
     }
     
     // Get market data for name matches and use price to determine best match
     let bestMatch: CoinGeckoMarketData | null = null;
     let bestPriceScore = 0;
-    let bestNameScore = 0;
     
     for (const coin of nameMatches) {
       const marketData = marketDataMap.get(coin.id);
       if (marketData) {
-        const priceRatio = Math.min(binancePrice, marketData.current_price) / 
-                          Math.max(binancePrice, marketData.current_price);
-        const nameScore = calculateStringSimilarity(baseAsset, coin.name);
+        const priceRatio = Math.min(scaledBinancePrice, marketData.current_price) / 
+                          Math.max(scaledBinancePrice, marketData.current_price);
+        
+        // Add to candidates list with price match score
+        candidates.push({
+          symbol: coin.symbol,
+          name: coin.name,
+          price: marketData.current_price,
+          priceMatchScore: priceRatio
+        });
         
         if (priceRatio > bestPriceScore) {
           bestPriceScore = priceRatio;
-          bestNameScore = nameScore;
           bestMatch = marketData;
         }
       }
     }
     
-    return { match: bestMatch, priceScore: bestPriceScore, nameScore: bestNameScore };
+    return { match: bestMatch, priceScore: bestPriceScore, symbolMatchCount: symbolMatches.length, candidates };
   }
   
   // If single symbol match, get its market data
   if (symbolMatches.length === 1) {
     const marketData = marketDataMap.get(symbolMatches[0].id);
     if (marketData) {
-      const priceRatio = Math.min(binancePrice, marketData.current_price) / 
-                        Math.max(binancePrice, marketData.current_price);
-      return { match: marketData, priceScore: priceRatio, nameScore: 1.0 };
+      const priceRatio = Math.min(scaledBinancePrice, marketData.current_price) / 
+                        Math.max(scaledBinancePrice, marketData.current_price);
+      return { match: marketData, priceScore: priceRatio, symbolMatchCount: symbolMatches.length, candidates };
     }
-    return { match: null, priceScore: 0, nameScore: 0 };
+    return { match: null, priceScore: 0, symbolMatchCount: symbolMatches.length, candidates };
   }
   
   // Multiple symbol matches - use price to determine best one
@@ -358,8 +419,8 @@ function findBestCoinGeckoMatch(
   for (const coin of symbolMatches) {
     const marketData = marketDataMap.get(coin.id);
     if (marketData) {
-      const priceRatio = Math.min(binancePrice, marketData.current_price) / 
-                        Math.max(binancePrice, marketData.current_price);
+      const priceRatio = Math.min(scaledBinancePrice, marketData.current_price) / 
+                        Math.max(scaledBinancePrice, marketData.current_price);
       
       if (priceRatio > bestPriceScore) {
         bestPriceScore = priceRatio;
@@ -368,7 +429,10 @@ function findBestCoinGeckoMatch(
     }
   }
   
-  return { match: bestMatch, priceScore: bestPriceScore, nameScore: 1.0 };
+  // Sort candidates by price match score (best first)
+  candidates.sort((a, b) => b.priceMatchScore - a.priceMatchScore);
+  
+  return { match: bestMatch, priceScore: bestPriceScore, symbolMatchCount: symbolMatches.length, candidates };
 }
 
 /**
@@ -404,9 +468,9 @@ async function matchBinanceWithCoinGecko() {
     // Remove stablecoins
     ["USDT", "USDC", "BUSD", "TUSD", "DAI", "FDUSD", "USDP"].forEach(stable => uniqueBaseAssets.delete(stable));
     
-    console.log(`\\n📊 Data Summary:`);
-    console.log(`  - Spot symbols: ${spotSymbols.length}`);
-    console.log(`  - Futures symbols: ${futuresSymbols.length}`);
+    console.log(`\\n📊 Data Summary (USDT pairs only):`);
+    console.log(`  - USDT Spot symbols: ${spotSymbols.length}`);
+    console.log(`  - USDT Futures symbols: ${futuresSymbols.length}`);
     console.log(`  - Unique base assets to process: ${uniqueBaseAssets.size}`);
     console.log(`  - Total CoinGecko coins available: ${coinsList.length}`);
     
@@ -443,7 +507,7 @@ async function matchBinanceWithCoinGecko() {
     const unmatchedSymbols: { symbol: string; baseAsset: string; marketType: string }[] = [];
     
     // Process spot symbols
-    console.log("\\n🔄 Step 5: Processing spot symbols...");
+    console.log("\\n🔄 Step 5: Processing USDT spot symbols...");
     let processedCount = 0;
     const processedBaseAssets = new Set<string>(); // Track processed base assets to avoid duplicates
     
@@ -461,7 +525,7 @@ async function matchBinanceWithCoinGecko() {
       const binancePrice = spotPrices.get(symbol.symbol);
       if (!binancePrice || binancePrice === 0) continue;
       
-      const { match, priceScore, nameScore } = findBestCoinGeckoMatch(
+      const { match, priceScore, symbolMatchCount, candidates } = findBestCoinGeckoMatch(
         symbol.baseAsset,
         binancePrice,
         coinsList,
@@ -486,7 +550,8 @@ async function matchBinanceWithCoinGecko() {
           coingeckoName: match.name,
           coingeckoPrice: match.current_price,
           priceMatchScore: priceScore,
-          nameMatchScore: nameScore,
+          symbolMatchCount: symbolMatchCount,
+          matchCandidates: JSON.stringify(candidates),
           marketCap: match.market_cap,
           marketCapRank: match.market_cap_rank,
           volume24h: match.total_volume,
@@ -510,7 +575,7 @@ async function matchBinanceWithCoinGecko() {
     }
     
     // Process futures symbols
-    console.log("\\n🔄 Step 6: Processing futures symbols...");
+    console.log("\\n🔄 Step 6: Processing USDT futures symbols...");
     processedCount = 0;
     for (const symbol of futuresSymbols) {
       // Skip perpetual contracts that are already covered in spot
@@ -530,7 +595,7 @@ async function matchBinanceWithCoinGecko() {
       );
       if (alreadyMatched) continue;
       
-      const { match, priceScore, nameScore } = findBestCoinGeckoMatch(
+      const { match, priceScore, symbolMatchCount, candidates } = findBestCoinGeckoMatch(
         symbol.baseAsset,
         binancePrice,
         coinsList,
@@ -554,7 +619,8 @@ async function matchBinanceWithCoinGecko() {
           coingeckoName: match.name,
           coingeckoPrice: match.current_price,
           priceMatchScore: priceScore,
-          nameMatchScore: nameScore,
+          symbolMatchCount: symbolMatchCount,
+          matchCandidates: JSON.stringify(candidates),
           marketCap: match.market_cap,
           marketCapRank: match.market_cap_rank,
           volume24h: match.total_volume,
@@ -595,7 +661,8 @@ async function matchBinanceWithCoinGecko() {
         "coingeckoName",
         "coingeckoPrice",
         "priceMatchScore",
-        "nameMatchScore",
+        "symbolMatchCount",
+        "matchCandidates",
         "marketCap",
         "marketCapRank",
         "volume24h",
