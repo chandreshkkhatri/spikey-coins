@@ -48,11 +48,12 @@ export default function HomePage() {
       setError(null);
       const response = await api.get24hrTicker();
       const rawData = response.data.data || response.data || [];
+      console.log("Raw API data sample:", rawData[0]); // Debug log
       const transformedData: TickerData[] = rawData.map(
         (item: {
-          symbol: string;
+          s: string;                    // Backend sends 's' for symbol
           price: number;
-          price_change_24h_percent: number;
+          change_24h: number;           // Backend sends 'change_24h' 
           change_12h?: number | null;
           change_8h?: number | null;
           change_4h?: number | null;
@@ -65,9 +66,9 @@ export default function HomePage() {
           market_cap?: number | null;
           normalized_volume_score?: number;
         }) => ({
-          s: item.symbol,
+          s: item.s,                    // Use 's' directly from backend
           price: item.price,
-          change_24h: item.price_change_24h_percent,
+          change_24h: item.change_24h,  // Use 'change_24h' directly from backend
           change_12h: item.change_12h,
           change_8h: item.change_8h,
           change_4h: item.change_4h,
@@ -81,10 +82,12 @@ export default function HomePage() {
           normalized_volume_score: item.normalized_volume_score || 0,
         })
       );
+      console.log("Transformed data sample:", transformedData[0]); // Debug log
       const usdtPairs = transformedData.filter(
         (item: TickerData) =>
           item.s && typeof item.s === "string" && item.s.endsWith("USDT")
       );
+      console.log("Final ticker array length:", usdtPairs.length); // Debug log
       setTickerArray(usdtPairs);
     } catch (err) {
       console.error("Error fetching ticker data:", err);

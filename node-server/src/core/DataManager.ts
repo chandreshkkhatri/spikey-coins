@@ -3,6 +3,7 @@
  * Central data storage and management for cryptocurrency ticker and candlestick data
  */
 import logger from "../utils/logger.js";
+import { calculateShortTermChanges, calculate24hRangePosition } from "../utils/calculations.js";
 
 interface TickerData {
   // Original Binance fields
@@ -21,7 +22,15 @@ interface TickerData {
   // Calculated fields
   price: number;
   change_24h: number;
+  change_1h: number | null;
+  change_4h: number | null;
+  change_8h: number | null;
+  change_12h: number | null;
+  high_24h: number;
+  low_24h: number;
+  range_position_24h: number | null;
   volume_usd: number;
+  volume_base: number;
   last_updated: string;
 }
 
@@ -73,6 +82,13 @@ class DataManager {
       // Skip low volume pairs
       if (volume24h < this.MIN_VOLUME_THRESHOLD) continue;
       
+      // Calculate short-term changes from candlestick data
+      const symbolCandlesticks = this.candlesticks.get(symbol) || new Map();
+      const shortTermChanges = calculateShortTermChanges(price, symbolCandlesticks);
+      
+      // Calculate 24h range position
+      const rangePosition = calculate24hRangePosition(rawTicker);
+
       const ticker: TickerData = {
         // Original fields
         s: symbol,
@@ -90,7 +106,15 @@ class DataManager {
         // Calculated fields
         price,
         change_24h: parseFloat(rawTicker.P),
+        change_1h: shortTermChanges.change_1h,
+        change_4h: shortTermChanges.change_4h,
+        change_8h: shortTermChanges.change_8h,
+        change_12h: shortTermChanges.change_12h,
+        high_24h: parseFloat(rawTicker.h),
+        low_24h: parseFloat(rawTicker.l),
+        range_position_24h: rangePosition,
         volume_usd: volume * price,
+        volume_base: volume,
         last_updated: now,
       };
       

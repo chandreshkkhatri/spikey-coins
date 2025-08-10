@@ -2,6 +2,18 @@
  * Calculation utilities for ticker data processing
  */
 
+interface CandlestickData {
+  symbol: string;
+  openTime: number;
+  closeTime: number;
+  open: string;
+  high: string;
+  low: string;
+  close: string;
+  volume: string;
+  interval: string;
+}
+
 interface TickerItem {
   h: string;
   l: string;
@@ -106,4 +118,57 @@ export function calculateAdditionalMetrics(
   metrics.low_24h = parseFloat(item.l);
 
   return metrics;
+}
+
+/**
+ * Calculate short-term price changes from candlestick data
+ */
+export function calculateShortTermChanges(
+  currentPrice: number,
+  candlesticks: Map<string, CandlestickData[]>
+): {
+  change_1h: number | null;
+  change_4h: number | null;
+  change_8h: number | null;
+  change_12h: number | null;
+} {
+  const result = {
+    change_1h: null as number | null,
+    change_4h: null as number | null,
+    change_8h: null as number | null,
+    change_12h: null as number | null,
+  };
+
+  // Calculate 1h change from 5m candlesticks (12 candles back)
+  const fiveMinCandles = candlesticks.get('5m');
+  if (fiveMinCandles && fiveMinCandles.length >= 12) {
+    const oneHourAgo = fiveMinCandles[fiveMinCandles.length - 12];
+    const oldPrice = parseFloat(oneHourAgo.close);
+    result.change_1h = calculatePercentageChange(oldPrice, currentPrice);
+  }
+
+  // Calculate 4h change from 30m candlesticks (8 candles back)
+  const thirtyMinCandles = candlesticks.get('30m');
+  if (thirtyMinCandles && thirtyMinCandles.length >= 8) {
+    const fourHoursAgo = thirtyMinCandles[thirtyMinCandles.length - 8];
+    const oldPrice = parseFloat(fourHoursAgo.close);
+    result.change_4h = calculatePercentageChange(oldPrice, currentPrice);
+  }
+
+  // Calculate 8h change from 30m candlesticks (16 candles back)
+  if (thirtyMinCandles && thirtyMinCandles.length >= 16) {
+    const eightHoursAgo = thirtyMinCandles[thirtyMinCandles.length - 16];
+    const oldPrice = parseFloat(eightHoursAgo.close);
+    result.change_8h = calculatePercentageChange(oldPrice, currentPrice);
+  }
+
+  // Calculate 12h change from 1h candlesticks (12 candles back)
+  const hourlyCandles = candlesticks.get('1h');
+  if (hourlyCandles && hourlyCandles.length >= 12) {
+    const twelveHoursAgo = hourlyCandles[hourlyCandles.length - 12];
+    const oldPrice = parseFloat(twelveHoursAgo.close);
+    result.change_12h = calculatePercentageChange(oldPrice, currentPrice);
+  }
+
+  return result;
 }
