@@ -148,36 +148,36 @@ The server uses a streamlined architecture with real-time data processing:
 ```mermaid
 graph TB
     subgraph "External Data Sources"
-        BinanceWS[Binance WebSocket API<br/>Real-time Ticker & Candlestick]
-        LocalCSV[Local CSV Files<br/>scripts output directory]
+        BinanceWS[Binance WebSocket API - Real-time Ticker and Candlestick]
+        LocalCSV[Local CSV Files - scripts output directory]
     end
 
     subgraph "Core Application (3 files)"
-        BC[BinanceClient.ts<br/>📡 WebSocket Manager<br/>• Ticker stream (all symbols)<br/>• Candlestick streams (5 intervals)<br/>• Auto-reconnection<br/>• Historical data fetch]
-        DM[DataManager.ts<br/>💾 In-Memory Storage<br/>• Ticker data (Map)<br/>• Candlestick data (Map)<br/>• Symbol discovery<br/>• Data calculations]
-        ROUTES[routes.ts<br/>🌐 HTTP Route Handlers<br/>• Direct API responses<br/>• Error handling<br/>• Parameter validation]
+        BC[BinanceClient.ts - WebSocket Manager - Ticker stream - Candlestick streams - Auto-reconnection - Historical data fetch]
+        DM[DataManager.ts - In-Memory Storage - Ticker data Maps - Candlestick data Maps - Symbol discovery - Data calculations]
+        ROUTES[routes.ts - HTTP Route Handlers - Direct API responses - Error handling - Parameter validation]
     end
 
     subgraph "Express Server"
-        APP[app.ts<br/>⚡ Express Application<br/>• CORS & middleware<br/>• Swagger docs<br/>• Error handling<br/>• Graceful shutdown]
+        APP[app.ts - Express Application - CORS and middleware - Swagger docs - Error handling - Graceful shutdown]
     end
 
     subgraph "Complete API Endpoints"
-        E1[GET /<br/>Health Check]
-        E2[GET /api/ticker<br/>Ticker Service Health]
-        E3[GET /api/ticker/24hr<br/>All Ticker Data]
-        E4[GET /api/ticker/symbol/SYMBOL<br/>Individual Ticker Lookup]
-        E5[GET /api/ticker/candlestick<br/>Candlestick Summary]
-        E6[GET /api/ticker/candlestick/SYMBOL<br/>Symbol Candlestick Data<br/>intervals: 1m,5m,15m,30m,1h]
-        E7[GET /api/ticker/storage-stats<br/>Storage Statistics]
-        E8[GET /api/ticker/discovery-stats<br/>Discovery Statistics]
-        E9[GET /api/ticker/marketCap<br/>Market Cap from Local CSV]
-        E10[GET /api/ticker/refreshMarketcapData<br/>Refresh Market Data]
-        E11[GET /docs<br/>Interactive Swagger UI]
+        E1[GET / - Health Check]
+        E2[GET /api/ticker - Ticker Service Health]
+        E3[GET /api/ticker/24hr - All Ticker Data]
+        E4[GET /api/ticker/symbol/SYMBOL - Individual Ticker Lookup]
+        E5[GET /api/ticker/candlestick - Candlestick Summary]
+        E6[GET /api/ticker/candlestick/SYMBOL - Symbol Candlestick Data - intervals 1m 5m 15m 30m 1h]
+        E7[GET /api/ticker/storage-stats - Storage Statistics]
+        E8[GET /api/ticker/discovery-stats - Discovery Statistics]
+        E9[GET /api/ticker/marketCap - Market Cap from Local CSV]
+        E10[GET /api/ticker/refreshMarketcapData - Refresh Market Data]
+        E11[GET /docs - Interactive Swagger UI]
     end
 
     subgraph "Utilities (Kept)"
-        LOG[Winston Logger<br/>Same logging system]
+        LOG[Winston Logger - Same logging system]
     end
 
     %% Data Flow
