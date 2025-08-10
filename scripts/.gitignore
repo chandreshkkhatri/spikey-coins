@@ -25,3 +25,8 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# Generated output files
+output/
+binance-coingecko-matches.csv
+unmatched-symbols.json

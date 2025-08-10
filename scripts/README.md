@@ -6,9 +6,10 @@ This directory contains scripts for generating and maintaining coin data files f
 
 The scripts in this directory are responsible for:
 
-- Fetching market data from CoinGecko API
-- Creating and maintaining CoinGecko ID mappings for Binance symbols
-- Generating static coin data files used by the main application
+- Matching all Binance symbols (spot and futures) with CoinGecko data
+- Generating comprehensive CSV files with market data, market cap, and crypto information
+- Creating CoinGecko ID mappings for Binance symbols
+- Updating market data from CoinGecko API
 
 ## Installation
 
@@ -37,19 +38,23 @@ The scripts in this directory are responsible for:
 ### Available Commands
 
 ```bash
-# Run initial setup (recommended for first time)
+# Match all Binance symbols with CoinGecko and generate comprehensive CSV
+npm run match-binance-coingecko
+
+# Generate market data (alias for match-binance-coingecko)
+npm run generate-market-data
 npm run setup
 
 # Update CoinGecko ID mappings
-npm run update-coingecko-ids
+npm run update-coin-ids
 
 # Update market data
-npm run update-coingecko-data
+npm run update-market-data
 
 # Using the CLI directly
+npx tsx index.ts match-binance-coingecko
 npx tsx index.ts setup
-npx tsx index.ts update-coin-ids
-npx tsx index.ts update-market-data
+npx tsx index.ts generate-market-data
 ```
 
 ### Initial Setup
@@ -61,21 +66,27 @@ npm run setup
 ```
 
 This will:
-1. Fetch the complete list of coins from CoinGecko
-2. Create mappings between Binance symbols and CoinGecko IDs
-3. Fetch and save current market data
+1. Fetch all active trading pairs from Binance (spot and futures)
+2. Fetch the complete list of coins from CoinGecko (18,000+ coins)
+3. Match Binance symbols with CoinGecko data using smart algorithms
+4. Generate comprehensive CSV with market data, rankings, and metrics
 
 ### Regular Updates
 
 For regular market data updates (can be automated):
 
 ```bash
-npm run update-coingecko-data
+npm run match-binance-coingecko
 ```
 
 ## Generated Files
 
-The scripts generate the following files in `../node-server/coin-data/`:
+The main script generates the following files in `output/`:
+
+- **`binance-coingecko-matches.csv`**: Comprehensive CSV with all matched symbols, market data, rankings, and metrics
+- **`unmatched-symbols.json`**: List of Binance symbols that couldn't be matched with CoinGecko
+
+The individual CoinGecko scripts generate these files in `../node-server/coin-data/`:
 
 - **`coingecko-ids.json`**: Maps Binance trading symbols to CoinGecko coin IDs
 - **`coinmarketcap.json`**: Current market data including prices, market caps, and metadata
@@ -84,16 +95,22 @@ The scripts generate the following files in `../node-server/coin-data/`:
 
 ```
 scripts/
-├── package.json              # Dependencies and npm scripts
-├── tsconfig.json             # TypeScript configuration
-├── .env.example              # Environment template
-├── .env                      # Your API keys (git-ignored)
-├── index.ts                  # Main CLI interface
-├── coingecko/
-│   ├── CoinGeckoClient.ts    # CoinGecko API client
-│   ├── updateMarketData.ts   # Market data update script
-│   └── updateCoinIds.ts      # Symbol mapping script
-└── README.md                 # This file
+├── package.json                              # Dependencies and npm scripts
+├── tsconfig.json                             # TypeScript configuration  
+├── .env.example                              # Environment template
+├── .env                                      # Your API keys (git-ignored)
+├── index.ts                                  # Main CLI interface
+├── binance-coingecko-matcher/
+│   ├── binance-coingecko-matcher.ts          # Main matching script
+│   ├── coingecko/
+│   │   ├── CoinGeckoClient.ts                # CoinGecko API client
+│   │   ├── updateMarketData.ts               # Market data update script
+│   │   └── updateCoinIds.ts                  # Symbol mapping script
+│   └── README.md                             # Matcher-specific documentation
+├── output/                                   # Generated output files
+│   ├── binance-coingecko-matches.csv         # Generated: matched symbols data
+│   └── unmatched-symbols.json                # Generated: unmatched symbols
+└── README.md                                 # This file
 ```
 
 ## API Rate Limiting
@@ -120,8 +137,8 @@ You can automate these scripts using cron jobs or CI/CD pipelines:
 ### Cron Example (Update market data every 6 hours)
 
 ```bash
-# Add to crontab
-0 */6 * * * cd /path/to/spikey-coins/scripts && npm run update-coingecko-data
+# Add to crontab  
+0 */6 * * * cd /path/to/spikey-coins/scripts && npm run match-binance-coingecko
 ```
 
 ### GitHub Actions Example
@@ -140,7 +157,7 @@ jobs:
         with:
           node-version: '18'
       - run: cd scripts && npm install
-      - run: cd scripts && npm run update-coingecko-data
+      - run: cd scripts && npm run match-binance-coingecko
         env:
           COINGECKO_API_KEY: ${{ secrets.COINGECKO_API_KEY }}
 ```
@@ -149,9 +166,10 @@ jobs:
 
 This replaces the following functionality that was previously in the Node.js server:
 
-- `POST /api/admin/update-coingecko-data` → `npm run update-coingecko-data`
-- CoinGecko client embedded in server → Standalone script with CoinGecko client
+- `POST /api/admin/update-coingecko-data` → `npm run match-binance-coingecko` or `npm run update-market-data`
+- CoinGecko client embedded in server → Standalone script with CoinGecko client  
 - Admin routes and dependencies → Independent script execution
+- Manual symbol mapping → Automated Binance-CoinGecko matching with smart algorithms
 
 ## Benefits of This Approach
 
@@ -175,14 +193,14 @@ This replaces the following functionality that was previously in the Node.js ser
 Run scripts with debug output:
 
 ```bash
-DEBUG=1 npm run update-coingecko-data
+DEBUG=1 npm run match-binance-coingecko
 ```
 
 ## Contributing
 
-When adding new trading pairs:
+When adding new trading pairs or improving matching:
 
-1. Add the symbol (without USDT) to `MAJOR_SYMBOLS` in `updateCoinIds.ts`
-2. Add any special ID mappings to the `specialMappings` object if needed
-3. Run `npm run update-coingecko-ids` to regenerate the mappings
-4. Run `npm run update-coingecko-data` to fetch market data
+1. The main script automatically fetches all active Binance symbols, so no manual additions needed
+2. For special cases, add manual mappings to `specialMappings` in `updateCoinIds.ts` 
+3. Run `npm run match-binance-coingecko` to generate updated comprehensive data
+4. Review `unmatched-symbols.json` to identify symbols that need manual mapping
