@@ -15,15 +15,17 @@ A comprehensive cryptocurrency tracking application with real-time price monitor
 
 ```
 spikey-coins/
-├── node-server/          # Backend proxy server
-│   ├── app.js           # Main server file
-│   ├── routers/         # API route handlers
-│   └── coin-data/       # Static coin data files
-└── react-ui/            # Frontend React application
+├── scripts/             # Data generation scripts
+│   ├── coingecko/      # CoinGecko API scripts
+│   └── package.json    # Script dependencies
+├── node-server/         # Backend real-time server
+│   ├── src/            # Server source code
+│   └── coin-data/      # Generated data files
+└── react-ui-nextjs/    # Frontend Next.js application
     ├── src/
-    │   ├── components/  # React components
-    │   └── utils/       # API client and utilities
-    └── public/          # Static assets
+    │   ├── components/ # React components
+    │   └── utils/      # API client and utilities
+    └── public/         # Static assets
 ```
 
 ## 🛠️ Quick Start
@@ -34,24 +36,32 @@ spikey-coins/
 - npm or yarn
 - CoinGecko API key (optional, for market cap data)
 
-### 1. Setup Backend Server
+### 1. Setup Data Generation Scripts
+
+```bash
+cd scripts
+npm install
+cp .env.example .env
+# Edit .env with your CoinGecko API key
+npm run setup
+```
+
+### 2. Setup Backend Server
 
 ```bash
 cd node-server
 npm install
-cp .env.example .env
-# Edit .env with your CoinGecko API key
 npm run dev
 ```
 
 The server will start on `http://localhost:8000`
 
-### 2. Setup Frontend Application
+### 3. Setup Frontend Application
 
 ```bash
-cd react-ui
+cd react-ui-nextjs
 npm install
-npm start
+npm run dev
 ```
 
 The React app will start on `http://localhost:3000`
@@ -103,11 +113,19 @@ The React app automatically connects to the backend at `http://localhost:8000`. 
 
 ## 🔄 Data Sources
 
-- **Binance WebSocket** - Real-time ticker data
-- **CoinGecko API** - Market capitalization data
-- **Local JSON files** - Coin mappings and static data
+- **Binance WebSocket** - Real-time ticker data (server)
+- **CoinGecko API** - Market capitalization data (scripts)
+- **Generated JSON files** - Coin mappings and market data
 
 ## 🚧 Development
+
+### Data Scripts Development
+
+```bash
+cd scripts
+npm run update-coingecko-data  # Update market data
+npm run update-coingecko-ids   # Update symbol mappings
+```
 
 ### Backend Development
 

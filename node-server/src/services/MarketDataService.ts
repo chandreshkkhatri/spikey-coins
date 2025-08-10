@@ -42,7 +42,7 @@ class MarketDataService {
       );
       return;
     }
-
+    
     const enrichedTickers = rawTickerArray
       .map((rawTicker) => this.enrichTickerData(rawTicker))
       .filter((ticker): ticker is Ticker => ticker !== null);

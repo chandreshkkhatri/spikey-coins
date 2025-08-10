@@ -18,14 +18,13 @@ import MarketDataService from "./src/services/MarketDataService.js";
 import DataSyncService from "./src/services/DataSyncService.js";
 
 // Realtime components for ticker streaming only
-import BinanceStreamManager from "./src/realtime/BinanceStreamManager.js";
+import BinanceTickerManager from "./src/realtime/BinanceTickerManager.js";
 import TickerStreamHandler from "./src/realtime/handlers/TickerStreamHandler.js";
 
 import { getRateLimitingStatus } from "./src/utils/rateLimiting.js";
 
 // Import the new router factory function
 import { createTickerRoutes } from "./src/api/routes/tickerRoutes.js";
-import adminRoutes from "./src/api/routes/adminRoutes.js";
 
 // Load environment variables
 dotenv.config();
@@ -42,7 +41,7 @@ const tickerStreamHandler = new TickerStreamHandler({
   marketDataService: MarketDataService, // Pass the class/module itself for static access
 });
 
-const binanceStreamManager = new BinanceStreamManager({
+const binanceTickerManager = new BinanceTickerManager({
   tickerStreamHandler,
   // Removed candlestick streaming
 });
@@ -54,7 +53,7 @@ async function initializeAppServices() {
 
     // Connect WebSocket streams FIRST to allow for symbol discovery
     logger.info("Connecting to Binance WebSocket streams...");
-    binanceStreamManager.connect();
+    binanceTickerManager.connect();
     logger.info("Binance WebSocket stream connection process initiated.");
 
     // Now, initialize historical data. This will wait for symbols if needed.
@@ -104,9 +103,6 @@ app.get("/openapi.json", (req: Request, res: Response) => {
 // TickerController now uses static methods directly, no dependency injection needed
 const tickerRoutes = createTickerRoutes();
 app.use("/api/ticker", tickerRoutes);
-
-// Admin routes
-app.use("/api/admin", adminRoutes);
 
 // Health check endpoint
 app.get("/", (req: Request, res: Response) => {
