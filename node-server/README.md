@@ -149,11 +149,11 @@ The server uses a streamlined architecture with real-time data processing:
 graph TB
     subgraph "External Data Sources"
         BinanceWS[Binance WebSocket API<br/>Real-time Ticker & Candlestick]
-        LocalCSV[Local CSV Files<br/>scripts/output/binance-coingecko-matches.csv]
+        LocalCSV[Local CSV Files<br/>scripts output directory]
     end
 
     subgraph "Core Application (3 files)"
-        BC[BinanceClient.ts<br/>📡 WebSocket Manager<br/>• Ticker stream (!ticker@arr)<br/>• Candlestick streams (5 intervals)<br/>• Auto-reconnection<br/>• Historical data fetch]
+        BC[BinanceClient.ts<br/>📡 WebSocket Manager<br/>• Ticker stream (all symbols)<br/>• Candlestick streams (5 intervals)<br/>• Auto-reconnection<br/>• Historical data fetch]
         DM[DataManager.ts<br/>💾 In-Memory Storage<br/>• Ticker data (Map)<br/>• Candlestick data (Map)<br/>• Symbol discovery<br/>• Data calculations]
         ROUTES[routes.ts<br/>🌐 HTTP Route Handlers<br/>• Direct API responses<br/>• Error handling<br/>• Parameter validation]
     end
@@ -166,9 +166,9 @@ graph TB
         E1[GET /<br/>Health Check]
         E2[GET /api/ticker<br/>Ticker Service Health]
         E3[GET /api/ticker/24hr<br/>All Ticker Data]
-        E4[GET /api/ticker/symbol/{symbol}<br/>Individual Ticker Lookup]
+        E4[GET /api/ticker/symbol/SYMBOL<br/>Individual Ticker Lookup]
         E5[GET /api/ticker/candlestick<br/>Candlestick Summary]
-        E6[GET /api/ticker/candlestick/{symbol}<br/>Symbol Candlestick Data<br/>?interval=1m,5m,15m,30m,1h]
+        E6[GET /api/ticker/candlestick/SYMBOL<br/>Symbol Candlestick Data<br/>intervals: 1m,5m,15m,30m,1h]
         E7[GET /api/ticker/storage-stats<br/>Storage Statistics]
         E8[GET /api/ticker/discovery-stats<br/>Discovery Statistics]
         E9[GET /api/ticker/marketCap<br/>Market Cap from Local CSV]
