@@ -1,132 +1,132 @@
-import express, { Application, Request, Response } from "express";
+/**
+ * Spikey Coins Crypto Data Server
+ * Real-time cryptocurrency data proxy with WebSocket streams
+ */
+import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
+import morgan from "morgan";
 import swaggerUi from "swagger-ui-express";
 import YAML from "yamljs";
-import logger from "./src/utils/logger.js"; // Updated path
-import morgan from "morgan";
+import { join } from "path";
+import logger from "./src/utils/logger.js";
+import BinanceClient from "./src/core/BinanceClient.js";
+import * as routes from "./src/routes/routes.js";
 
-// Import clients and services
-import BinanceClient from "./src/external/BinanceClient.js";
-
-// Repositories (instantiated, hold state)
-import CandlestickRepository from "./src/data/repositories/CandlestickRepository.js";
-import TickerRepository from "./src/data/repositories/TickerRepository.js";
-
-// Services (currently designed with static methods, not instantiated)
-import MarketDataService from "./src/services/MarketDataService.js";
-import DataSyncService from "./src/services/DataSyncService.js";
-
-// Realtime components for ticker streaming only
-import BinanceTickerManager from "./src/realtime/BinanceTickerManager.js";
-import TickerStreamHandler from "./src/realtime/handlers/TickerStreamHandler.js";
-
-import { getRateLimitingStatus } from "./src/utils/rateLimiting.js";
-
-// Import the new router factory function
-import { createTickerRoutes } from "./src/api/routes/tickerRoutes.js";
-
-// Load environment variables
-dotenv.config();
-
-// Load OpenAPI specification
-const swaggerDocument = YAML.load("./openapi.yaml");
-
-// Configuration
-const PORT: number = parseInt(process.env.PORT || "8000", 10);
-const app: Application = express();
-
-// Instantiate stream handlers with their dependencies
-const tickerStreamHandler = new TickerStreamHandler({
-  marketDataService: MarketDataService, // Pass the class/module itself for static access
-});
-
-const binanceTickerManager = new BinanceTickerManager({
-  tickerStreamHandler,
-  // Removed candlestick streaming
-});
-
-// Initialize services: fetch initial data and start WebSocket streams
-async function initializeAppServices() {
-  try {
-    logger.info("Initializing application services...");
-
-    // Connect WebSocket streams FIRST to allow for symbol discovery
-    logger.info("Connecting to Binance WebSocket streams...");
-    binanceTickerManager.connect();
-    logger.info("Binance WebSocket stream connection process initiated.");
-
-    // Now, initialize historical data. This will wait for symbols if needed.
-    await DataSyncService.initializeHistoricalData();
-    logger.info("Historical data initialization process complete.");
-
-    logger.info("✅ Application services initialization sequence complete.");
-  } catch (error) {
-    logger.error("❌ Failed to initialize application services:", error);
-    // Depending on the severity, you might want to exit the process
-    // process.exit(1);
-  }
-}
+const app = express();
+const PORT = process.env.PORT || 8000;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(morgan('combined', { 
+  stream: { 
+    write: (message: string) => logger.info(message.trim()) 
+  } 
+}));
 
-// Use morgan for HTTP request logging, piped through Winston
-app.use(
-  morgan("combined", {
-    stream: { write: (message: string) => logger.info(message.trim()) },
-  })
-);
+// Initialize Binance client
+const binanceClient = new BinanceClient();
+routes.setBinanceClient(binanceClient);
 
 // API Documentation
-app.use(
-  "/docs",
-  swaggerUi.serve,
-  swaggerUi.setup(swaggerDocument, {
-    customSiteTitle: "Spikey Coins API Documentation",
-    customCss: `
-    .swagger-ui .topbar { display: none }
-    .swagger-ui .info .title { color: #3b82f6 }
-  `,
-    customCssUrl:
-      "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui.min.css",
-  })
-);
+try {
+  const swaggerDocument = YAML.load(join(process.cwd(), 'openapi.yaml'));
+  app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'Spikey Coins API Documentation',
+  }));
+  app.get('/openapi.json', (req, res) => {
+    res.json(swaggerDocument);
+  });
+} catch (error) {
+  logger.warn('Could not load OpenAPI documentation:', error);
+}
 
-// Serve OpenAPI spec as JSON
-app.get("/openapi.json", (req: Request, res: Response) => {
-  res.json(swaggerDocument);
-});
+// Routes
+app.get('/', routes.healthCheck);
+app.get('/api/ticker', routes.tickerHealth);
+app.get('/api/ticker/24hr', routes.get24hrTicker);
+app.get('/api/ticker/symbol/:symbol', routes.getTickerBySymbol);
+app.get('/api/ticker/candlestick', routes.getCandlestickSummary);
+app.get('/api/ticker/candlestick/:symbol', routes.getCandlestickData);
+app.get('/api/ticker/storage-stats', routes.getStorageStats);
+app.get('/api/ticker/discovery-stats', routes.getDiscoveryStats);
+app.get('/api/ticker/marketCap', routes.getMarketCapData);
+app.get('/api/ticker/refreshMarketcapData', routes.refreshMarketCapData);
 
-// Create and use the new ticker routes
-// TickerController now uses static methods directly, no dependency injection needed
-const tickerRoutes = createTickerRoutes();
-app.use("/api/ticker", tickerRoutes);
-
-// Health check endpoint
-app.get("/", (req: Request, res: Response) => {
-  res.json({
-    message: "Spikey Coins Proxy Server",
-    description: "Tunneling requests to bypass CORS issues",
-    status: "healthy",
-    timestamp: new Date().toISOString(),
-    documentation: {
-      swaggerUI: `http://localhost:${PORT}/docs`,
-      openAPISpec: `http://localhost:${PORT}/openapi.json`,
-    },
+// Global error handler
+app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  logger.error('Unhandled error:', error);
+  res.status(500).json({
+    success: false,
+    error: 'Internal server error',
   });
 });
 
-// Start server
-app.listen(PORT, async () => {
-  // Make the callback async
-  logger.info(`🚀 Server running on port ${PORT}`);
-  logger.info(
-    `📚 API documentation available at http://localhost:${PORT}/docs`
-  );
-  logger.info(
-    `📄 OpenAPI specification available at http://localhost:${PORT}/openapi.json`
-  );
-  await initializeAppServices(); // Initialize services after server starts listening
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    error: 'Endpoint not found',
+    availableEndpoints: [
+      'GET /',
+      'GET /api/ticker',
+      'GET /api/ticker/24hr',
+      'GET /api/ticker/symbol/:symbol',
+      'GET /api/ticker/candlestick',
+      'GET /api/ticker/candlestick/:symbol',
+      'GET /api/ticker/storage-stats',
+      'GET /api/ticker/discovery-stats',
+      'GET /api/ticker/marketCap',
+      'GET /api/ticker/refreshMarketcapData',
+      'GET /docs',
+    ],
+  });
 });
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  logger.info('SIGTERM received, shutting down gracefully');
+  binanceClient.cleanup();
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  logger.info('SIGINT received, shutting down gracefully');
+  binanceClient.cleanup();
+  process.exit(0);
+});
+
+// Start server
+async function startServer() {
+  try {
+    // Start Binance WebSocket connections
+    await binanceClient.start();
+    
+    // Start Express server
+    app.listen(PORT, () => {
+      logger.info(`✅ Spikey Coins Server running on port ${PORT}`);
+      logger.info(`📊 API Documentation: http://localhost:${PORT}/docs`);
+      logger.info(`🔄 Health Check: http://localhost:${PORT}/`);
+      logger.info(`📈 Ticker Data: http://localhost:${PORT}/api/ticker/24hr`);
+    });
+  } catch (error) {
+    logger.error('Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught exception:', error);
+  binanceClient.cleanup();
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled rejection at:', promise, 'reason:', reason);
+  binanceClient.cleanup();
+  process.exit(1);
+});
+
+startServer();
