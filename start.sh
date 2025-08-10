@@ -6,7 +6,7 @@
 echo "🚀 Starting Spikey Coins Application..."
 
 # Check if we're in the right directory
-if [ ! -d "node-server" ] || [ ! -d "react-ui" ]; then
+if [ ! -d "node-server" ] || [ ! -d "react-ui-nextjs" ]; then
     echo "❌ Error: Please run this script from the spikey-coins root directory"
     exit 1
 fi
@@ -47,7 +47,7 @@ cd ..
 
 # Install frontend dependencies
 echo "   - Installing frontend dependencies..."
-cd react-ui
+cd react-ui-nextjs
 if [ ! -d "node_modules" ]; then
     npm install
 fi
@@ -69,8 +69,8 @@ sleep 3
 
 # Start frontend server
 echo "   - Starting frontend server on port 3000..."
-cd react-ui
-npm start &
+cd react-ui-nextjs
+npm run dev &
 FRONTEND_PID=$!
 
 cd ..
