@@ -147,78 +147,95 @@ The server uses a streamlined architecture with real-time data processing:
 
 ```mermaid
 graph TB
-    subgraph "External Data Sources"
-        BinanceWS[Binance WebSocket API - Real-time Ticker and Candlestick]
-        LocalCSV[Local CSV Files - scripts output directory]
+    %% External Sources
+    subgraph External["🌐 External Data Sources"]
+        Binance["📊 Binance WebSocket API<br/>• Real-time ticker data<br/>• Live candlestick streams<br/>• Price updates"]
+        CSV["📁 Local CSV Files<br/>• Market cap data<br/>• Historical records<br/>• Scripts output"]
     end
 
-    subgraph "Core Application (3 files)"
-        BC[BinanceClient.ts - WebSocket Manager - Ticker stream - Candlestick streams - Auto-reconnection - Historical data fetch]
-        DM[DataManager.ts - In-Memory Storage - Ticker data Maps - Candlestick data Maps - Symbol discovery - Data calculations]
-        ROUTES[routes.ts - HTTP Route Handlers - Direct API responses - Error handling - Parameter validation]
+    %% Core Components
+    subgraph Core["⚙️ Core Application Layer"]
+        Client["🔌 BinanceClient.ts<br/>• WebSocket connection manager<br/>• Auto-reconnection logic<br/>• Stream data parsing<br/>• Historical data fetching"]
+        
+        Manager["💾 DataManager.ts<br/>• In-memory data storage<br/>• Real-time data caching<br/>• Symbol discovery engine<br/>• Price calculations"]
+        
+        Routes["🛣️ routes.ts<br/>• HTTP request handlers<br/>• Response formatting<br/>• Input validation<br/>• Error management"]
     end
 
-    subgraph "Express Server"
-        APP[app.ts - Express Application - CORS and middleware - Swagger docs - Error handling - Graceful shutdown]
+    %% Server Layer
+    subgraph Server["🖥️ Express Server"]
+        App["⚡ app.ts<br/>• Express application setup<br/>• CORS & middleware config<br/>• Swagger documentation<br/>• Graceful shutdown handling"]
     end
 
-    subgraph "Complete API Endpoints"
-        E1[GET / - Health Check]
-        E2[GET /api/ticker - Ticker Service Health]
-        E3[GET /api/ticker/24hr - All Ticker Data]
-        E4[GET /api/ticker/symbol/SYMBOL - Individual Ticker Lookup]
-        E5[GET /api/ticker/candlestick - Candlestick Summary]
-        E6[GET /api/ticker/candlestick/SYMBOL - Symbol Candlestick Data - intervals 1m 5m 15m 30m 1h]
-        E7[GET /api/ticker/storage-stats - Storage Statistics]
-        E8[GET /api/ticker/discovery-stats - Discovery Statistics]
-        E9[GET /api/ticker/marketCap - Market Cap from Local CSV]
-        E10[GET /api/ticker/refreshMarketcapData - Refresh Market Data]
-        E11[GET /docs - Interactive Swagger UI]
+    %% API Endpoints
+    subgraph API["🔗 REST API Endpoints"]
+        direction TB
+        
+        subgraph Health["🏥 Health & Status"]
+            H1["GET / → Health Check"]
+            H2["GET /api/ticker → Service Status"]
+            H3["GET /api/ticker/storage-stats → Memory Stats"]
+            H4["GET /api/ticker/discovery-stats → Discovery Info"]
+        end
+        
+        subgraph Trading["📈 Trading Data"]
+            T1["GET /api/ticker/24hr → All Tickers"]
+            T2["GET /api/ticker/symbol/:SYMBOL → Single Ticker"]
+            T3["GET /api/ticker/candlestick → Summary"]
+            T4["GET /api/ticker/candlestick/:SYMBOL → OHLCV Data<br/>Intervals: 1m, 5m, 15m, 30m, 1h"]
+        end
+        
+        subgraph Market["💰 Market Data"]
+            M1["GET /api/ticker/marketCap → Market Cap Data"]
+            M2["GET /api/ticker/refreshMarketcapData → Refresh Data"]
+        end
+        
+        subgraph Docs["📚 Documentation"]
+            D1["GET /docs → Interactive Swagger UI"]
+        end
     end
 
-    subgraph "Utilities (Kept)"
-        LOG[Winston Logger - Same logging system]
+    %% Utilities
+    subgraph Utils["🛠️ Utilities"]
+        Logger["📝 Winston Logger<br/>• Structured logging<br/>• Error tracking<br/>• Debug information"]
     end
 
-    %% Data Flow
-    BinanceWS --> BC
-    BC --> DM
-    LocalCSV --> ROUTES
+    %% Data Flow Connections
+    Binance ==> Client
+    Client ==> Manager
+    CSV ==> Routes
     
-    %% App Flow
-    APP --> ROUTES
-    ROUTES --> DM
+    App ==> Routes
+    Routes ==> Manager
     
-    %% Direct Endpoint Responses
-    ROUTES --> E1
-    ROUTES --> E2
-    ROUTES --> E3
-    ROUTES --> E4
-    ROUTES --> E5
-    ROUTES --> E6
-    ROUTES --> E7
-    ROUTES --> E8
-    ROUTES --> E9
-    ROUTES --> E10
-    ROUTES --> E11
+    Routes ==> Health
+    Routes ==> Trading
+    Routes ==> Market
+    Routes ==> Docs
     
-    %% Logging
-    LOG -.-> APP
-    LOG -.-> BC
-    LOG -.-> ROUTES
+    %% Logging Connections
+    Logger -.-> App
+    Logger -.-> Client
+    Logger -.-> Routes
 
     %% Styling
-    classDef external fill:#ffeb3b,stroke:#f57f17,stroke-width:2px
-    classDef core fill:#4caf50,stroke:#2e7d32,stroke-width:3px
-    classDef app fill:#9c27b0,stroke:#6a1b9a,stroke-width:2px
-    classDef endpoint fill:#e91e63,stroke:#ad1457,stroke-width:2px
-    classDef utility fill:#607d8b,stroke:#37474f,stroke-width:2px
+    classDef external fill:#fff3e0,stroke:#ff9800,stroke-width:3px,color:#e65100
+    classDef core fill:#e8f5e8,stroke:#4caf50,stroke-width:3px,color:#2e7d32
+    classDef server fill:#f3e5f5,stroke:#9c27b0,stroke-width:3px,color:#6a1b9a
+    classDef health fill:#e3f2fd,stroke:#2196f3,stroke-width:2px,color:#0d47a1
+    classDef trading fill:#fff8e1,stroke:#ffc107,stroke-width:2px,color:#f57c00
+    classDef market fill:#e8f5e8,stroke:#4caf50,stroke-width:2px,color:#388e3c
+    classDef docs fill:#fce4ec,stroke:#e91e63,stroke-width:2px,color:#ad1457
+    classDef utility fill:#f5f5f5,stroke:#607d8b,stroke-width:2px,color:#37474f
 
-    class BinanceWS,LocalCSV external
-    class BC,DM,ROUTES core
-    class APP app
-    class E1,E2,E3,E4,E5,E6,E7,E8,E9,E10,E11 endpoint
-    class LOG utility
+    class Binance,CSV external
+    class Client,Manager,Routes core
+    class App server
+    class H1,H2,H3,H4 health
+    class T1,T2,T3,T4 trading
+    class M1,M2 market
+    class D1 docs
+    class Logger utility
 ```
 
 **🎯 Modern Architecture Design:**
