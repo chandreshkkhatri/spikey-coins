@@ -78,40 +78,62 @@ Once the server is running, you can access the interactive API documentation at:
 
 ## 🔗 API Endpoints
 
-### Health Check
+### Health & Status
 
 - `GET /` - Server health check and basic information
-- `GET /api/ticker` - Ticker router health check with statistics
+- `GET /api/ticker` - Ticker service health check with detailed statistics
 
 ### Ticker Data
 
-- `GET /api/ticker/24hr` - Get 24-hour ticker data for all symbols with short-term changes (1h, 4h, 8h, 12h)
+- `GET /api/ticker/24hr` - Get 24-hour ticker data for all symbols (400+ coins)
+- `GET /api/ticker/symbol/{symbol}` - Get individual ticker data for a specific symbol
 
 ### Candlestick Data
 
-- `GET /api/ticker/candlestick` - Get summary of available candlestick data
-- `GET /api/ticker/candlestick/{symbol}` - Get detailed candlestick data for a specific symbol
+- `GET /api/ticker/candlestick` - Get summary of all available candlestick data
+- `GET /api/ticker/candlestick/{symbol}` - Get candlestick data for a symbol
+  - **Query Parameters**: `?interval=1m|5m|15m|30m|1h` (default: 15m)
+  - **Examples**: 
+    - `/api/ticker/candlestick/BTCUSDT?interval=1h` (24 hourly candles)
+    - `/api/ticker/candlestick/ETHUSDT?interval=5m` (144 5-minute candles)
+
+### System Statistics
+
+- `GET /api/ticker/storage-stats` - Get storage and memory usage statistics
+- `GET /api/ticker/discovery-stats` - Get symbol discovery and ranking statistics
 
 ### Market Data
 
-- `GET /api/ticker/marketCap` - Get market capitalization data from CoinGecko
+- `GET /api/ticker/marketCap` - Get market capitalization data from local CSV files
 - `GET /api/ticker/refreshMarketcapData` - Refresh market cap data (placeholder)
+
+### Documentation
+
+- `GET /docs` - Interactive Swagger UI documentation
+- `GET /openapi.json` - OpenAPI specification in JSON format
 
 ## 📈 Data Features
 
-### Ticker Data
+### Real-time Ticker Data
 
-- Real-time 24-hour statistics
-- Short-term price changes (1h, 4h, 8h, 12h) calculated from candlestick data
-- Volume and price change information
-- Market cap integration where available
+- **400+ cryptocurrency symbols** tracked continuously
+- **Live WebSocket streams** from Binance API
+- **Multiple intervals**: 1m, 5m, 15m, 30m, 1h candlestick data
+- **Volume and price metrics**: 24h changes, volume USD, range positioning
+- **Symbol discovery**: Automatic detection and ranking by volume
 
-### Candlestick Data
+### Advanced Candlestick Data
 
-- 15-minute interval candlesticks
-- Up to 48 candlesticks per symbol (12 hours of data)
-- OHLCV (Open, High, Low, Close, Volume) data
-- Used for calculating short-term price movements
+- **5 different intervals**: 1m (60 candles), 5m (144 candles), 15m (48 candles), 30m (48 candles), 1h (24 candles)
+- **OHLCV data**: Open, High, Low, Close, Volume for each interval
+- **Historical initialization**: Fetches recent data on startup
+- **Real-time updates**: Continuous data stream processing
+
+### System Analytics
+
+- **Storage statistics**: Memory usage, data counts, interval breakdowns
+- **Discovery metrics**: Symbol rankings, volume thresholds, active pairs
+- **Connection monitoring**: WebSocket status, reconnection handling
 
 ### Rate Limiting
 
@@ -140,13 +162,18 @@ graph TB
         APP[app.ts<br/>⚡ Express Application<br/>• CORS & middleware<br/>• Swagger docs<br/>• Error handling<br/>• Graceful shutdown]
     end
 
-    subgraph "API Endpoints (Same as before)"
+    subgraph "Complete API Endpoints"
         E1[GET /<br/>Health Check]
-        E2[GET /api/ticker/24hr<br/>All Ticker Data]
-        E3[GET /api/ticker/candlestick<br/>Candlestick Summary]
-        E4[GET /api/ticker/candlestick/{symbol}<br/>Symbol Candlestick Data]
-        E5[GET /api/ticker/marketCap<br/>Market Cap from Local CSV]
-        E6[GET /docs<br/>Swagger Documentation]
+        E2[GET /api/ticker<br/>Ticker Service Health]
+        E3[GET /api/ticker/24hr<br/>All Ticker Data]
+        E4[GET /api/ticker/symbol/{symbol}<br/>Individual Ticker Lookup]
+        E5[GET /api/ticker/candlestick<br/>Candlestick Summary]
+        E6[GET /api/ticker/candlestick/{symbol}<br/>Symbol Candlestick Data<br/>?interval=1m,5m,15m,30m,1h]
+        E7[GET /api/ticker/storage-stats<br/>Storage Statistics]
+        E8[GET /api/ticker/discovery-stats<br/>Discovery Statistics]
+        E9[GET /api/ticker/marketCap<br/>Market Cap from Local CSV]
+        E10[GET /api/ticker/refreshMarketcapData<br/>Refresh Market Data]
+        E11[GET /docs<br/>Interactive Swagger UI]
     end
 
     subgraph "Utilities (Kept)"
@@ -169,6 +196,11 @@ graph TB
     ROUTES --> E4
     ROUTES --> E5
     ROUTES --> E6
+    ROUTES --> E7
+    ROUTES --> E8
+    ROUTES --> E9
+    ROUTES --> E10
+    ROUTES --> E11
     
     %% Logging
     LOG -.-> APP
@@ -185,7 +217,7 @@ graph TB
     class BinanceWS,LocalCSV external
     class BC,DM,ROUTES core
     class APP app
-    class E1,E2,E3,E4,E5,E6 endpoint
+    class E1,E2,E3,E4,E5,E6,E7,E8,E9,E10,E11 endpoint
     class LOG utility
 ```
 
@@ -216,26 +248,51 @@ graph TB
 
 ### Major Tracked Symbols
 
-The server initially tracks these major cryptocurrency pairs:
+The server tracks **400+ active USDT pairs** automatically discovered from live data, with detailed candlestick data for major pairs:
 
-- BTCUSDT, ETHUSDT, BNBUSDT, ADAUSDT
-- SOLUSDT, XRPUSDT, DOTUSDT, DOGEUSDT
+- **Primary pairs**: BTCUSDT, ETHUSDT, BNBUSDT, ADAUSDT, SOLUSDT, XRPUSDT, DOGEUSDT, AVAXUSDT
+- **Auto-discovery**: All pairs with >$1000 24h volume are automatically tracked
+- **Rankings**: Symbols ranked by trading volume and updated continuously
 
 ## 🚦 Usage Examples
 
-### Get All Ticker Data
+### Get All Ticker Data (400+ symbols)
 
 ```bash
 curl http://localhost:8000/api/ticker/24hr
 ```
 
-### Get Candlestick Data for Bitcoin
+### Get Individual Ticker
 
 ```bash
-curl http://localhost:8000/api/ticker/candlestick/BTCUSDT
+# Get specific symbol data
+curl http://localhost:8000/api/ticker/symbol/BTCUSDT
 ```
 
-### Get Market Cap Data
+### Get Candlestick Data with Different Intervals
+
+```bash
+# Default 15m interval
+curl http://localhost:8000/api/ticker/candlestick/BTCUSDT
+
+# 1 hour intervals (24 candles)
+curl "http://localhost:8000/api/ticker/candlestick/BTCUSDT?interval=1h"
+
+# 5 minute intervals (144 candles)
+curl "http://localhost:8000/api/ticker/candlestick/ETHUSDT?interval=5m"
+```
+
+### System Statistics
+
+```bash
+# Storage and memory usage
+curl http://localhost:8000/api/ticker/storage-stats
+
+# Symbol discovery metrics
+curl http://localhost:8000/api/ticker/discovery-stats
+```
+
+### Market Cap Data
 
 ```bash
 curl http://localhost:8000/api/ticker/marketCap
@@ -243,12 +300,23 @@ curl http://localhost:8000/api/ticker/marketCap
 
 ## 🔍 Monitoring
 
-The server provides real-time statistics including:
+The server provides comprehensive real-time monitoring:
 
-- Number of tracked ticker symbols
-- Candlestick data availability
-- Rate limiting status
-- Request counts and windows
+### Available Statistics
+- **Ticker symbols**: 400+ actively tracked pairs
+- **Candlestick symbols**: 8 major pairs with full interval support
+- **WebSocket connections**: Status of all data streams
+- **Symbol discovery**: Rankings, volume thresholds, and active pairs
+- **Storage usage**: Memory consumption and data counts
+
+### Health Endpoints
+```bash
+# Overall server health
+curl http://localhost:8000/
+
+# Detailed ticker service status  
+curl http://localhost:8000/api/ticker
+```
 
 ## 🛡️ Error Handling
 

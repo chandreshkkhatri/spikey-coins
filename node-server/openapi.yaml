@@ -53,7 +53,7 @@ paths:
                     example: "Spikey Coins Proxy Server"
                   description:
                     type: string
-                    example: "Tunneling requests to bypass CORS issues"
+                    example: "Real-time cryptocurrency data proxy server"
                   status:
                     type: string
                     example: "healthy"
@@ -158,6 +158,76 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /api/ticker/symbol/{symbol}:
+    get:
+      summary: Get Individual Ticker Data
+      description: |
+        Returns ticker data for a specific cryptocurrency symbol.
+        
+        This endpoint provides detailed information for a single symbol including:
+        - Current price and 24-hour changes
+        - Volume and price change information
+        - Calculated metrics like volume USD and range positioning
+      tags:
+        - Ticker
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          description: The cryptocurrency symbol (e.g., BTCUSDT, ETHUSDT)
+          schema:
+            type: string
+            example: "BTCUSDT"
+      responses:
+        "200":
+          description: Successful response with ticker data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: "#/components/schemas/TickerData"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2025-05-30T10:30:00.000Z"
+        "400":
+          description: Bad request - Symbol parameter missing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "Symbol parameter is required"
+        "404":
+          description: Symbol not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "No ticker data available for UNKNOWN"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /api/ticker/candlestick:
     get:
       summary: Get Candlestick Summary
@@ -224,8 +294,8 @@ paths:
         Returns detailed candlestick data for a specific cryptocurrency symbol.
 
         The data includes:
-        - 15-minute interval candlesticks
-        - Up to 48 candlesticks (covering 12 hours)
+        - Multiple interval options: 1m, 5m, 15m, 30m, 1h
+        - Variable candle counts: 1m (60 candles), 5m (144 candles), 15m (48 candles), 30m (48 candles), 1h (24 candles)
         - OHLCV (Open, High, Low, Close, Volume) data
         - Timestamps for each candlestick
 
@@ -240,6 +310,15 @@ paths:
           schema:
             type: string
             example: "BTCUSDT"
+        - name: interval
+          in: query
+          required: false
+          description: The candlestick interval
+          schema:
+            type: string
+            enum: ["1m", "5m", "15m", "30m", "1h"]
+            default: "15m"
+            example: "1h"
       responses:
         "200":
           description: Successful response with candlestick data
@@ -254,6 +333,9 @@ paths:
                   symbol:
                     type: string
                     example: "BTCUSDT"
+                  interval:
+                    type: string
+                    example: "1h"
                   data:
                     type: array
                     items:
@@ -376,6 +458,140 @@ paths:
                   message:
                     type: string
                     example: "Market cap data refresh feature is not yet implemented"
+
+  /api/ticker/storage-stats:
+    get:
+      summary: Get Storage Statistics
+      description: |
+        Returns detailed storage statistics and metadata about the server's data storage.
+        
+        This endpoint provides information about:
+        - Storage type (in-memory vs persistent)
+        - Data counts and memory usage
+        - Storage metadata and configuration
+        - Candlestick and ticker symbol counts
+      tags:
+        - System
+      responses:
+        "200":
+          description: Successful response with storage statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  storage:
+                    type: object
+                    properties:
+                      metadata:
+                        type: object
+                        properties:
+                          type:
+                            type: string
+                            example: "in-memory"
+                          persistent:
+                            type: boolean
+                            example: false
+                          note:
+                            type: string
+                            example: "Data is stored in memory only and will be lost on restart"
+                      filesCount:
+                        type: integer
+                        example: 0
+                      totalSizeBytes:
+                        type: integer
+                        example: 2500000
+                      totalSizeMB:
+                        type: number
+                        format: float
+                        example: 2.38
+                  inMemory:
+                    type: object
+                    properties:
+                      tickerSymbols:
+                        type: integer
+                        example: 400
+                      candlestickSymbols:
+                        type: integer
+                        example: 8
+                      totalCandles:
+                        type: integer
+                        example: 2400
+                      intervalStats:
+                        type: object
+                        example: {"1m": {"symbols": 8, "candles": 480}, "5m": {"symbols": 8, "candles": 1152}}
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2025-05-30T10:30:00.000Z"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/ticker/discovery-stats:
+    get:
+      summary: Get Symbol Discovery Statistics
+      description: |
+        Returns statistics about the symbol discovery process and rankings.
+        
+        This endpoint provides information about:
+        - Total discovered symbols
+        - Symbol rankings by volume
+        - Volume thresholds and settings
+        - Discovery process metadata
+      tags:
+        - System
+      responses:
+        "200":
+          description: Successful response with discovery statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  discovery:
+                    type: object
+                    properties:
+                      totalSymbols:
+                        type: integer
+                        example: 408
+                      lastUpdate:
+                        type: integer
+                        format: int64
+                        example: 1725925800000
+                      topSymbols:
+                        type: array
+                        items:
+                          type: string
+                        example: ["ETHUSDT", "BTCUSDT", "USDCUSDT", "SOLUSDT", "XRPUSDT"]
+                      avgVolume:
+                        type: integer
+                        example: 15000000
+                      minVolumeThreshold:
+                        type: integer
+                        example: 1000
+                      symbolExpiryTime:
+                        type: integer
+                        example: 1800000
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2025-05-30T10:30:00.000Z"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
 components:
   schemas:
@@ -712,6 +928,8 @@ tags:
     description: Historical candlestick chart data
   - name: Market Data
     description: Market capitalization and additional market information
+  - name: System
+    description: System statistics and monitoring endpoints
 
 externalDocs:
   description: GitHub Repository
