@@ -41,12 +41,33 @@ A comprehensive Node.js proxy server for cryptocurrency data that provides real-
 4. Start the server:
 
    ```bash
-   # Development mode (with nodemon)
+   # Development mode with auto-reload (recommended)
    npm run dev
 
    # Production mode
    npm start
+   
+   # TypeScript mode (direct execution)
+   npm run start:ts
    ```
+
+
+## 🚀 Quick Start
+
+```bash
+cd node-server
+npm install
+npm run dev
+```
+
+This server features a **streamlined architecture** that provides:
+- **Efficient design** - 3 core files with direct data flow  
+- **Complete API coverage** - All cryptocurrency data endpoints
+- **Multiple data intervals** - 1m, 5m, 15m, 30m, 1h candlestick support
+- **Real-time data** - WebSocket streams from Binance API
+- **Discovery & statistics** - Symbol discovery metrics and storage stats  
+- **Market data** - Local CSV file integration for market cap data
+- **Production ready** - Error handling, logging, documentation
 
 ## 📚 API Documentation
 
@@ -100,15 +121,91 @@ Once the server is running, you can access the interactive API documentation at:
 
 ## 🏗️ Architecture
 
-The server uses:
+The server uses a streamlined architecture with real-time data processing:
 
-- **Express.js** for the REST API framework
-- **WebSocket connections** to Binance for real-time data
-- **Axios** for HTTP requests to external APIs
-- **CORS middleware** for cross-origin support
-- **Rate limiting** to prevent API abuse
+```mermaid
+graph TB
+    subgraph "External Data Sources"
+        BinanceWS[Binance WebSocket API<br/>Real-time Ticker & Candlestick]
+        LocalCSV[Local CSV Files<br/>scripts/output/binance-coingecko-matches.csv]
+    end
 
-![system diagram](./assets/system-diagram.png "System Diagram")
+    subgraph "Core Application (3 files)"
+        BC[BinanceClient.ts<br/>📡 WebSocket Manager<br/>• Ticker stream (!ticker@arr)<br/>• Candlestick streams (5 intervals)<br/>• Auto-reconnection<br/>• Historical data fetch]
+        DM[DataManager.ts<br/>💾 In-Memory Storage<br/>• Ticker data (Map)<br/>• Candlestick data (Map)<br/>• Symbol discovery<br/>• Data calculations]
+        ROUTES[routes.ts<br/>🌐 HTTP Route Handlers<br/>• Direct API responses<br/>• Error handling<br/>• Parameter validation]
+    end
+
+    subgraph "Express Server"
+        APP[app.ts<br/>⚡ Express Application<br/>• CORS & middleware<br/>• Swagger docs<br/>• Error handling<br/>• Graceful shutdown]
+    end
+
+    subgraph "API Endpoints (Same as before)"
+        E1[GET /<br/>Health Check]
+        E2[GET /api/ticker/24hr<br/>All Ticker Data]
+        E3[GET /api/ticker/candlestick<br/>Candlestick Summary]
+        E4[GET /api/ticker/candlestick/{symbol}<br/>Symbol Candlestick Data]
+        E5[GET /api/ticker/marketCap<br/>Market Cap from Local CSV]
+        E6[GET /docs<br/>Swagger Documentation]
+    end
+
+    subgraph "Utilities (Kept)"
+        LOG[Winston Logger<br/>Same logging system]
+    end
+
+    %% Data Flow
+    BinanceWS --> BC
+    BC --> DM
+    LocalCSV --> ROUTES
+    
+    %% App Flow
+    APP --> ROUTES
+    ROUTES --> DM
+    
+    %% Direct Endpoint Responses
+    ROUTES --> E1
+    ROUTES --> E2
+    ROUTES --> E3
+    ROUTES --> E4
+    ROUTES --> E5
+    ROUTES --> E6
+    
+    %% Logging
+    LOG -.-> APP
+    LOG -.-> BC
+    LOG -.-> ROUTES
+
+    %% Styling
+    classDef external fill:#ffeb3b,stroke:#f57f17,stroke-width:2px
+    classDef core fill:#4caf50,stroke:#2e7d32,stroke-width:3px
+    classDef app fill:#9c27b0,stroke:#6a1b9a,stroke-width:2px
+    classDef endpoint fill:#e91e63,stroke:#ad1457,stroke-width:2px
+    classDef utility fill:#607d8b,stroke:#37474f,stroke-width:2px
+
+    class BinanceWS,LocalCSV external
+    class BC,DM,ROUTES core
+    class APP app
+    class E1,E2,E3,E4,E5,E6 endpoint
+    class LOG utility
+```
+
+**🎯 Modern Architecture Design:**
+
+**Current Implementation:**
+- **BinanceClient.ts** - WebSocket connection management and data fetching
+- **DataManager.ts** - Centralized data storage with advanced calculations
+- **routes.ts** - Direct HTTP request handlers
+
+**Key Features:**
+- ✅ **Complete API Coverage** - All cryptocurrency data endpoints
+- ✅ **Real-time WebSocket Streams** - Live data from Binance API
+- ✅ **Multiple Candlestick Intervals** - 1m, 5m, 15m, 30m, 1h support
+- ✅ **Individual Ticker Lookup** - `GET /api/ticker/symbol/{symbol}`
+- ✅ **Storage & Discovery Statistics** - System metrics and monitoring
+- ✅ **Market Cap Integration** - Local CSV file data (reliable)
+- ✅ **Production Grade** - Error handling, logging, documentation
+- ✅ **Developer Experience** - Swagger docs, CORS support
+
 
 ## 🔧 Configuration
 
