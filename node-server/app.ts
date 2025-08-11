@@ -18,10 +18,16 @@ const PORT = process.env.PORT || 8000;
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(morgan('combined', { 
+// Use 'common' instead of 'combined' for less verbose HTTP logging
+// Only log HTTP requests at info level or higher (not debug)
+app.use(morgan('common', { 
   stream: { 
     write: (message: string) => logger.info(message.trim()) 
-  } 
+  },
+  skip: (req, res) => {
+    // Skip logging for health check endpoints to reduce log noise
+    return req.url === '/' || req.url === '/api/ticker'
+  }
 }));
 
 // Initialize Binance client
