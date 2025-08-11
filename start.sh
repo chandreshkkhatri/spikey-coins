@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Spikey Coins - Start Script
-# This script starts both the Node.js backend and React frontend
+# Spikey Coins - Start Script with PM2
+# This script deploys both the Node.js backend and React frontend using PM2
 
-echo "🚀 Starting Spikey Coins Application..."
+echo "🚀 Starting Spikey Coins Application with PM2..."
 
 # Check if we're in the right directory
-if [ ! -d "node-server" ] || [ ! -d "react-ui-nextjs" ]; then
+if [ ! -d "node-server" ] || [ ! -d "react-ui-nextjs" ] || [ ! -d "bash-scripts" ]; then
     echo "❌ Error: Please run this script from the spikey-coins root directory"
     exit 1
 fi
@@ -28,73 +28,66 @@ if ! command_exists npm; then
     exit 1
 fi
 
-echo "📦 Installing dependencies..."
-
-# Install backend dependencies
-echo "   - Installing backend dependencies..."
-cd node-server
-if [ ! -d "node_modules" ]; then
-    npm install
+# Check for PM2
+if ! command_exists pm2; then
+    echo "📦 PM2 not found, installing globally..."
+    npm install -g pm2
 fi
 
-# Check for .env file
-if [ ! -f ".env" ]; then
-    echo "⚠️  Warning: .env file not found in node-server/"
-    echo "   Please copy .env.example to .env and configure your API keys"
+echo "📦 Checking dependencies..."
+
+# Check backend dependencies
+if [ ! -d "node-server/node_modules" ]; then
+    echo "   - Installing backend dependencies..."
+    cd node-server && npm install && cd ..
 fi
 
-cd ..
-
-# Install frontend dependencies
-echo "   - Installing frontend dependencies..."
-cd react-ui-nextjs
-if [ ! -d "node_modules" ]; then
-    npm install
+# Check frontend dependencies
+if [ ! -d "react-ui-nextjs/node_modules" ]; then
+    echo "   - Installing frontend dependencies..."
+    cd react-ui-nextjs && npm install && cd ..
 fi
 
-cd ..
+echo "🚀 Deploying with PM2..."
 
-echo "🚀 Starting servers..."
-
-# Start backend server in background
-echo "   - Starting backend server on port 8000..."
-cd node-server
-npm run dev &
-BACKEND_PID=$!
-
-cd ..
-
-# Wait a moment for backend to start
-sleep 3
-
-# Start frontend server
-echo "   - Starting frontend server on port 3000..."
-cd react-ui-nextjs
-npm run dev &
-FRONTEND_PID=$!
-
+# Deploy backend first (priority)
+echo "   - Deploying backend server..."
+cd bash-scripts
+./start-backend.sh
 cd ..
 
 echo ""
-echo "✅ Both servers are starting up!"
+read -p "🤔 Do you want to also start the frontend? (y/n): " -n 1 -r
 echo ""
-echo "📊 Backend API: http://localhost:8000"
-echo "🌐 Frontend UI: http://localhost:3000"
-echo ""
-echo "Press Ctrl+C to stop both servers"
 
-# Function to cleanup processes on exit
-cleanup() {
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    echo "   - Deploying frontend server..."
+    cd bash-scripts
+    ./start-frontend.sh
+    cd ..
+    
     echo ""
-    echo "🛑 Stopping servers..."
-    kill $BACKEND_PID 2>/dev/null
-    kill $FRONTEND_PID 2>/dev/null
-    echo "✅ Servers stopped"
-    exit 0
-}
+    echo "✅ Both servers deployed successfully!"
+    echo ""
+    echo "📊 Backend API: http://localhost:8000"
+    echo "🌐 Frontend UI: http://localhost:3000"
+else
+    echo ""
+    echo "✅ Backend deployed successfully!"
+    echo ""
+    echo "📊 Backend API: http://localhost:8000"
+fi
 
-# Trap Ctrl+C and call cleanup
-trap cleanup INT
-
-# Wait for both processes
-wait $BACKEND_PID $FRONTEND_PID
+echo ""
+echo "🔧 Useful PM2 Commands:"
+echo "   pm2 status                        - Show all processes"
+echo "   pm2 logs                          - Show all logs"
+echo "   pm2 monit                         - Monitor processes"
+echo "   pm2 restart all                   - Restart all processes"
+echo "   pm2 stop all                      - Stop all processes"
+echo "   pm2 delete all                    - Delete all processes"
+echo ""
+echo "📚 Individual Scripts:"
+echo "   ./bash-scripts/start-backend.sh   - Deploy only backend"
+echo "   ./bash-scripts/start-frontend.sh  - Deploy only frontend"
+echo ""
