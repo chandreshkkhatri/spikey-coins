@@ -148,7 +148,10 @@ class DataManager {
       this.lastDiscoveryUpdate = timestamp;
     }
     
-    logger.debug(`DataManager: Updated ${tickerArray.length} tickers, tracking ${this.tickers.size} symbols`);
+    // Only log ticker updates periodically to avoid log spam
+    if (timestamp - this.lastDiscoveryUpdate > this.DISCOVERY_UPDATE_INTERVAL) {
+      logger.debug(`DataManager: Updated ${tickerArray.length} tickers, tracking ${this.tickers.size} symbols`);
+    }
   }
 
   /**
@@ -174,7 +177,10 @@ class DataManager {
     
     // Store data for the specific interval
     this.candlesticks.get(symbol)!.set(interval, candlesticks);
-    logger.debug(`DataManager: Updated ${candlesticks.length} candlesticks for ${symbol} (${interval})`);
+    // Reduce candlestick logging frequency
+    if (Math.random() < 0.1) { // Log only 10% of candlestick updates
+      logger.debug(`DataManager: Updated ${candlesticks.length} candlesticks for ${symbol} (${interval})`);
+    }
   }
 
   /**

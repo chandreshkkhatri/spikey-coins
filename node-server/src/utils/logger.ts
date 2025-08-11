@@ -58,7 +58,7 @@ const logger: winston.Logger = winston.createLogger({
       zippedArchive: true, // Archive old logs
       maxSize: "20m", // Rotate if log file exceeds 20MB
       maxFiles: "14d", // Keep logs for 14 days
-      level: process.env.LOG_LEVEL_FILE || "debug", // Configurable file log level
+      level: process.env.LOG_LEVEL_FILE || "info", // Configurable file log level
     }),
     // Separate file for error logs
     new winston.transports.DailyRotateFile({
