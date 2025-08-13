@@ -43,6 +43,13 @@ npm install
 echo "🔨 Building TypeScript..."
 npm run build
 
+# Verify build was successful
+if [ ! -f "dist/app.js" ]; then
+    echo "❌ Error: Build failed - dist/app.js not found"
+    exit 1
+fi
+echo "✅ TypeScript build successful"
+
 # Check for .env file
 if [ ! -f ".env" ]; then
     echo "⚠️  Warning: .env file not found in node-server/"
@@ -51,8 +58,11 @@ fi
 
 echo "🔧 Configuring PM2..."
 
-# Create PM2 ecosystem file if it doesn't exist
-if [ ! -f "ecosystem.config.cjs" ]; then
+# Remove any old ecosystem configs
+rm -f ecosystem.config.js ecosystem.config.cjs 2>/dev/null || true
+
+# Create PM2 ecosystem file
+echo "✅ Creating new PM2 ecosystem configuration..."
     cat > ecosystem.config.cjs << 'EOF'
 module.exports = {
   apps: [{
@@ -85,8 +95,12 @@ module.exports = {
   }]
 }
 EOF
-    echo "✅ Created PM2 ecosystem configuration"
-fi
+
+# Test the built app quickly
+echo "🧪 Testing built application..."
+timeout 5 node dist/app.js > /dev/null 2>&1 || {
+    echo "⚠️  Warning: App test failed, but proceeding with PM2 deployment"
+}
 
 # Stop existing instance if running
 echo "🛑 Stopping existing backend instance..."
