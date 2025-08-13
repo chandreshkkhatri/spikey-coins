@@ -26,6 +26,7 @@
     "logs",
     "coin-data",
     "debug-routes.ts",
-    "tests_old"
+    "tests_old",
+    "tests"
   ]
 }

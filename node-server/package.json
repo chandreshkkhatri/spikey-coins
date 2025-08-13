@@ -32,10 +32,12 @@
   "license": "ISC",
   "dependencies": {
     "@binance/connector": "^3.5.0",
+    "@types/mongodb": "^4.0.6",
     "axios": "^0.18.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.16.4",
+    "mongodb": "^6.18.0",
     "morgan": "^1.10.0",
     "nodemon": "^1.18.9",
     "swagger-ui-express": "^5.0.1",

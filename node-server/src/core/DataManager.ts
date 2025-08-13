@@ -3,7 +3,9 @@
  * Central data storage and management for cryptocurrency ticker and candlestick data
  */
 import logger from "../utils/logger.js";
-import { calculateShortTermChanges, calculate24hRangePosition } from "../utils/calculations.js";
+import { calculate24hRangePosition } from "../utils/calculations.js";
+import MarketCapService from "../services/MarketCapService.js";
+import CandlestickStorage from "../services/CandlestickStorage.js";
 
 interface TickerData {
   // Original Binance fields
@@ -31,6 +33,8 @@ interface TickerData {
   range_position_24h: number | null;
   volume_usd: number;
   volume_base: number;
+  market_cap: number | null;
+  is_futures: boolean;
   last_updated: string;
 }
 
@@ -82,13 +86,33 @@ class DataManager {
       // Skip low volume pairs
       if (volume24h < this.MIN_VOLUME_THRESHOLD) continue;
       
-      // Calculate short-term changes from candlestick data
-      const symbolCandlesticks = this.candlesticks.get(symbol) || new Map();
-      const shortTermChanges = calculateShortTermChanges(price, symbolCandlesticks);
+      // Calculate short-term changes using CandlestickStorage (non-blocking)
+      let shortTermChanges = {
+        change_1h: null as number | null,
+        change_4h: null as number | null,
+        change_8h: null as number | null,
+        change_12h: null as number | null,
+      };
+      
+      // Calculate changes asynchronously and update ticker later
+      CandlestickStorage.calculatePriceChanges(symbol, price).then(changes => {
+        const existingTicker = this.tickers.get(symbol);
+        if (existingTicker) {
+          existingTicker.change_1h = changes.change_1h;
+          existingTicker.change_4h = changes.change_4h;
+          existingTicker.change_8h = changes.change_8h;
+          existingTicker.change_12h = changes.change_12h;
+        }
+      }).catch(error => {
+        // Silently ignore errors to avoid log spam
+      });
       
       // Calculate 24h range position
       const rangePosition = calculate24hRangePosition(rawTicker);
 
+      // Get market cap data if available
+      const marketCapData = MarketCapService.getMarketCapData(symbol);
+      
       const ticker: TickerData = {
         // Original fields
         s: symbol,
@@ -115,6 +139,8 @@ class DataManager {
         range_position_24h: rangePosition,
         volume_usd: volume * price,
         volume_base: volume,
+        market_cap: marketCapData?.marketCap || null,
+        is_futures: marketCapData?.marketType === 'futures' || false,
         last_updated: now,
       };
       
@@ -198,6 +224,24 @@ class DataManager {
     const symbolData = this.candlesticks.get(symbol);
     if (!symbolData) return [];
     return symbolData.get(interval) || [];
+  }
+  
+  /**
+   * Get all active symbols (symbols with recent ticker updates)
+   */
+  static getActiveSymbols(): string[] {
+    const activeSymbols: string[] = [];
+    const now = Date.now();
+    const ACTIVE_THRESHOLD = 5 * 60 * 1000; // 5 minutes
+    
+    this.tickers.forEach((ticker, symbol) => {
+      const lastUpdate = new Date(ticker.last_updated).getTime();
+      if (now - lastUpdate < ACTIVE_THRESHOLD) {
+        activeSymbols.push(symbol);
+      }
+    });
+    
+    return activeSymbols;
   }
 
   /**

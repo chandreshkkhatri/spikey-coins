@@ -5,7 +5,7 @@
 
 import request from "supertest";
 import app from "./testApp";
-import type { Ticker } from "../src/data/models/Ticker.js";
+// import type { Ticker } from "../src/core/DataManager.js";
 
 describe("Integration Tests", () => {
   describe("Full API Workflow", () => {

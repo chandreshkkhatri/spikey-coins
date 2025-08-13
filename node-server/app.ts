@@ -10,6 +10,7 @@ import YAML from "yamljs";
 import { join } from "path";
 import logger from "./src/utils/logger.js";
 import BinanceClient from "./src/core/BinanceClient.js";
+import CandlestickStorage from "./src/services/CandlestickStorage.js";
 import * as routes from "./src/routes/routes.js";
 
 const app = express();
@@ -57,6 +58,7 @@ app.get('/api/ticker/candlestick', routes.getCandlestickSummary);
 app.get('/api/ticker/candlestick/:symbol', routes.getCandlestickData);
 app.get('/api/ticker/storage-stats', routes.getStorageStats);
 app.get('/api/ticker/discovery-stats', routes.getDiscoveryStats);
+app.get('/api/ticker/candlestick-storage-stats', routes.getCandlestickStorageStats);
 app.get('/api/ticker/marketCap', routes.getMarketCapData);
 app.get('/api/ticker/refreshMarketcapData', routes.refreshMarketCapData);
 
@@ -94,12 +96,14 @@ app.use('*', (req, res) => {
 process.on('SIGTERM', () => {
   logger.info('SIGTERM received, shutting down gracefully');
   binanceClient.cleanup();
+  CandlestickStorage.cleanup();
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
   logger.info('SIGINT received, shutting down gracefully');
   binanceClient.cleanup();
+  CandlestickStorage.cleanup();
   process.exit(0);
 });
 
@@ -126,12 +130,14 @@ async function startServer() {
 process.on('uncaughtException', (error) => {
   logger.error('Uncaught exception:', error);
   binanceClient.cleanup();
+  CandlestickStorage.cleanup();
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
   logger.error('Unhandled rejection at:', promise, 'reason:', reason);
   binanceClient.cleanup();
+  CandlestickStorage.cleanup();
   process.exit(1);
 });
 

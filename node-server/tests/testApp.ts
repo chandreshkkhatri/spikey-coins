@@ -15,7 +15,7 @@ const logger = {
   warn: jest.fn(),
   debug: jest.fn(),
 };
-import type { Ticker } from "../src/data/models/Ticker.js";
+// import type { Ticker } from "../src/core/DataManager.js";
 
 // Create Express app
 const app: Application = express();

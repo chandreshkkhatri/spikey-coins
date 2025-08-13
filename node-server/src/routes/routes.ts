@@ -8,6 +8,7 @@ import { join } from "path";
 import logger from "../utils/logger.js";
 import DataManager from "../core/DataManager.js";
 import BinanceClient from "../core/BinanceClient.js";
+import CandlestickStorage from "../services/CandlestickStorage.js";
 
 // Global client instance
 let binanceClient: BinanceClient | null = null;
@@ -300,6 +301,27 @@ export function getMarketCapData(req: Request, res: Response): void {
     res.status(500).json({
       success: false,
       error: "Failed to retrieve market cap data",
+    });
+  }
+}
+
+/**
+ * Get candlestick storage statistics
+ */
+export function getCandlestickStorageStats(req: Request, res: Response): void {
+  try {
+    const stats = CandlestickStorage.getStats();
+    
+    res.json({
+      success: true,
+      candlestickStorage: stats,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error("Routes: Error getting candlestick storage stats:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to retrieve candlestick storage statistics",
     });
   }
 }
