@@ -158,7 +158,7 @@ export default function Ticker({
         enableSorting: false,
       }),
       columnHelper.accessor("range_position_24h", {
-        header: "24h Range %",
+        header: "24hr Range Position",
         cell: (info) => {
           const value = info.getValue();
           if (value === null || value === undefined)
