@@ -37,10 +37,8 @@ fi
 echo "📦 Installing backend dependencies..."
 cd ../node-server
 
-# Install dependencies if needed
-if [ ! -d "node_modules" ]; then
-    npm install
-fi
+# Always install/update dependencies to ensure all packages are available
+npm install
 
 echo "🔨 Building TypeScript..."
 npm run build

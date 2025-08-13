@@ -217,7 +217,7 @@ class CandlestickStorage {
         .limit(this.MAX_CANDLES_PER_SYMBOL)
         .toArray();
 
-      const candles: Candlestick[] = docs.map(doc => ({
+      const candles: Candlestick[] = docs.map((doc: CandlestickDocument) => ({
         openTime: doc.openTime,
         open: doc.open,
         high: doc.high,
@@ -384,7 +384,7 @@ class CandlestickStorage {
       ];
 
       const results = await this.collection.aggregate(pipeline).toArray();
-      return results.map(r => r.symbol);
+      return results.map((r: any) => r.symbol);
     } catch (error) {
       logger.error('CandlestickStorage: Error getting symbols needing update:', error);
       return [];
