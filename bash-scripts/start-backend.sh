@@ -42,6 +42,9 @@ if [ ! -d "node_modules" ]; then
     npm install
 fi
 
+echo "🔨 Building TypeScript..."
+npm run build
+
 # Check for .env file
 if [ ! -f ".env" ]; then
     echo "⚠️  Warning: .env file not found in node-server/"
@@ -51,14 +54,13 @@ fi
 echo "🔧 Configuring PM2..."
 
 # Create PM2 ecosystem file if it doesn't exist
-if [ ! -f "ecosystem.config.js" ]; then
-    cat > ecosystem.config.js << 'EOF'
+if [ ! -f "ecosystem.config.cjs" ]; then
+    cat > ecosystem.config.cjs << 'EOF'
 module.exports = {
   apps: [{
     name: 'spikey-coins-backend',
-    script: 'app.ts',
+    script: 'dist/app.js',
     interpreter: 'node',
-    interpreter_args: '--loader tsx/esm',
     instances: 1,
     exec_mode: 'fork',
     watch: false,
@@ -95,7 +97,7 @@ pm2 delete spikey-coins-backend 2>/dev/null || true
 
 # Start with PM2
 echo "🚀 Starting backend with PM2..."
-pm2 start ecosystem.config.js --env development
+pm2 start ecosystem.config.cjs --env development
 
 # Show status
 echo ""
