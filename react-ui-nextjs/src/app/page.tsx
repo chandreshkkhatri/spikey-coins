@@ -1,19 +1,47 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import Sidebar from "@/components/Sidebar";
 import MarketOverview from "@/components/dashboard/MarketOverview";
 import MarketSummary from "@/components/dashboard/MarketSummary";
 import Watchlist from "@/components/dashboard/Watchlist";
 import GainersLosers from "@/components/dashboard/GainersLosers";
 import ChatInput from "@/components/dashboard/ChatInput";
+import { api } from "@/utils/api";
 
 export default function HomePage() {
+  const [loading, setLoading] = useState(false);
+
+  const handleRefreshTicker = useCallback(async () => {
+    try {
+      setLoading(true);
+      await api.get24hrTicker();
+      window.location.reload();
+    } catch (error) {
+      console.error("Error refreshing ticker data:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const handleRefreshMarketCap = useCallback(async () => {
+    try {
+      setLoading(true);
+      await api.refreshMarketcapData();
+      window.location.reload();
+    } catch (error) {
+      console.error("Error refreshing market cap data:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar
-        onRefreshTicker={() => {}}
-        onRefreshMarketCap={() => {}}
-        loading={false}
+        onRefreshTicker={handleRefreshTicker}
+        onRefreshMarketCap={handleRefreshMarketCap}
+        loading={loading}
         tickerCount={0}
       />
       

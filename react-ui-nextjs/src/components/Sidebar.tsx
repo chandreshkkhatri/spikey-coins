@@ -12,6 +12,7 @@ import {
   Activity,
   Settings,
   HelpCircle,
+  RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -60,7 +61,9 @@ export default function Sidebar({
           disabled={loading}
           title="Refresh Market Cap Data"
         >
-          <TrendingUp className="h-5 w-5 text-gray-600" />
+          <RotateCcw
+            className={`h-5 w-5 text-gray-600 ${loading ? "animate-spin" : ""}`}
+          />
         </Button>
 
         <div className="flex flex-col items-center gap-4 mt-4">
@@ -81,6 +84,7 @@ export default function Sidebar({
             icon={<Activity className="h-5 w-5" />}
             label="Markets"
             active={false}
+            disabled={true}
           />
         </div>
 
@@ -92,7 +96,7 @@ export default function Sidebar({
             </div>
           </div>
           <NavItem
-            href="#"
+            href="/settings"
             icon={<Settings className="h-5 w-5" />}
             label="Settings"
           />
@@ -116,26 +120,51 @@ function NavItem({
   icon,
   label,
   active = false,
+  disabled = false,
 }: {
   href: string;
   icon: React.ReactNode;
   label: string;
   active?: boolean;
+  disabled?: boolean;
 }) {
-  return (
-    <Link href={href} className="flex flex-col items-center gap-1 group">
+  const content = (
+    <>
       <Button
         variant="ghost"
         size="icon"
-        className={`rounded-full hover:bg-gray-200 ${
-          active ? "bg-gray-200" : ""
-        }`}
+        className={`rounded-full ${
+          disabled 
+            ? "cursor-not-allowed" 
+            : "hover:bg-gray-200"
+        } ${active ? "bg-gray-200" : ""}`}
+        disabled={disabled}
       >
-        <span className="text-gray-600">{icon}</span>
+        <span className={disabled ? "text-gray-400" : "text-gray-600"}>
+          {icon}
+        </span>
       </Button>
-      <span className="text-xs text-gray-500 group-hover:text-gray-700">
+      <span className={`text-xs ${
+        disabled 
+          ? "text-gray-400" 
+          : "text-gray-500 group-hover:text-gray-700"
+      }`}>
         {label}
       </span>
+    </>
+  );
+
+  if (disabled) {
+    return (
+      <div className="flex flex-col items-center gap-1 cursor-not-allowed">
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <Link href={href} className="flex flex-col items-center gap-1 group">
+      {content}
     </Link>
   );
 }
