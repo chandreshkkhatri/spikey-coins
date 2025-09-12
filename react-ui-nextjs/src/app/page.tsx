@@ -24,23 +24,10 @@ export default function HomePage() {
     }
   }, []);
 
-  const handleRefreshMarketCap = useCallback(async () => {
-    try {
-      setLoading(true);
-      await api.refreshMarketcapData();
-      window.location.reload();
-    } catch (error) {
-      console.error("Error refreshing market cap data:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar
         onRefreshTicker={handleRefreshTicker}
-        onRefreshMarketCap={handleRefreshMarketCap}
         loading={loading}
         tickerCount={0}
       />

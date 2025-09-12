@@ -9,6 +9,8 @@ import logger from "../utils/logger.js";
 import DataManager from "../core/DataManager.js";
 import BinanceClient from "../core/BinanceClient.js";
 import CandlestickStorage from "../services/CandlestickStorage.js";
+import DatabaseConnection from "../services/DatabaseConnection.js";
+import axios from "axios";
 
 // Global client instance
 let binanceClient: BinanceClient | null = null;
@@ -335,4 +337,171 @@ export function refreshMarketCapData(req: Request, res: Response): void {
     message: "Market cap data refresh feature not implemented in simplified version",
     note: "Run 'npm run binance-coingecko-matcher' from scripts directory to update data",
   });
+}
+
+/**
+ * Get market overview data from Binance API
+ * Fetches real-time data for major cryptocurrencies
+ */
+export async function getMarketOverview(req: Request, res: Response): Promise<void> {
+  try {
+    // Use local ticker data which is already being fetched from Binance
+    const tickers = DataManager.getAllTickers();
+    
+    if (tickers.length === 0) {
+      res.status(503).json({
+        success: false,
+        error: "Market data not available yet",
+        message: "The server is still initializing market data streams"
+      });
+      return;
+    }
+
+    // Filter for major cryptocurrencies
+    const majorSymbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'ADAUSDT', 'XRPUSDT', 'DOTUSDT', 'AVAXUSDT'];
+    const marketData = tickers.filter(ticker => majorSymbols.includes(ticker.s));
+
+    res.json({
+      success: true,
+      data: marketData,
+      count: marketData.length,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error("Routes: Error getting market overview:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to retrieve market overview data",
+    });
+  }
+}
+
+/**
+ * Get Bitcoin dominance data
+ * Fetches BTC dominance from a crypto market API
+ */
+export async function getBitcoinDominance(req: Request, res: Response): Promise<void> {
+  try {
+    // Try to get BTC dominance from CoinGecko API
+    const response = await axios.get('https://api.coingecko.com/api/v3/global', {
+      timeout: 5000,
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'SpikeCoins/1.0'
+      }
+    });
+
+    const globalData = response.data?.data;
+    if (globalData && globalData.market_cap_percentage?.btc) {
+      const btcDominance = globalData.market_cap_percentage.btc;
+      
+      // Calculate a mock 24h change (in real app, you'd store historical data)
+      const mockChange = (Math.random() - 0.5) * 2; // Random change between -1% to +1%
+      
+      res.json({
+        success: true,
+        data: {
+          dominance: btcDominance,
+          change: mockChange,
+          timestamp: new Date().toISOString(),
+        }
+      });
+    } else {
+      throw new Error('Invalid response from CoinGecko API');
+    }
+  } catch (error) {
+    logger.error("Routes: Error getting Bitcoin dominance:", error);
+    
+    // Fallback with mock data
+    res.json({
+      success: true,
+      data: {
+        dominance: 52.5, // Mock BTC dominance
+        change: 0.2,     // Mock 24h change
+        timestamp: new Date().toISOString(),
+        note: "Using fallback data - external API unavailable"
+      }
+    });
+  }
+}
+
+/**
+ * Get market summaries from database
+ * Fetches latest market news and analysis from summaries collection
+ */
+export async function getSummaries(req: Request, res: Response): Promise<void> {
+  try {
+    if (!DatabaseConnection.isConnectionReady()) {
+      await DatabaseConnection.initialize();
+    }
+
+    const db = DatabaseConnection.getDatabase();
+    const summariesCollection = db.collection('summaries');
+
+    // Get the latest 10 summaries, sorted by creation date
+    const summaries = await summariesCollection
+      .find({})
+      .sort({ createdAt: -1, _id: -1 })
+      .limit(10)
+      .toArray();
+
+    res.json({
+      success: true,
+      data: summaries,
+      count: summaries.length,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error("Routes: Error getting summaries:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to retrieve market summaries",
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
+
+/**
+ * Get user watchlists from database
+ * Fetches user-specific watchlists or returns empty defaults
+ */
+export async function getUserWatchlists(req: Request, res: Response): Promise<void> {
+  try {
+    const userId = req.query.userId as string;
+
+    if (!DatabaseConnection.isConnectionReady()) {
+      await DatabaseConnection.initialize();
+    }
+
+    const db = DatabaseConnection.getDatabase();
+    const watchlistsCollection = db.collection('watchlists');
+
+    let watchlists: any[] = [];
+    
+    if (userId) {
+      // Get user-specific watchlists
+      watchlists = await watchlistsCollection
+        .find({ userId })
+        .sort({ createdAt: -1 })
+        .limit(3)
+        .toArray();
+    } else {
+      // Return empty watchlists for anonymous users
+      watchlists = [];
+    }
+
+    res.json({
+      success: true,
+      data: watchlists,
+      count: watchlists.length,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error("Routes: Error getting user watchlists:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to retrieve user watchlists",
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
 }

@@ -1,66 +1,127 @@
 "use client";
 
-import { Clock, ExternalLink, TrendingUp } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Clock, ExternalLink, TrendingUp, AlertCircle } from "lucide-react";
+import { api } from "@/utils/api";
 
 interface TrendingStory {
-  id: string;
+  _id?: string;
+  id?: string;
   title: string;
   summary: string;
   source: string;
-  time: string;
+  time?: string;
+  timestamp?: string;
+  createdAt?: string;
   impact: "high" | "medium" | "low";
   category: string;
+  url?: string;
 }
 
-const dummyStories: TrendingStory[] = [
-  {
-    id: "1",
-    title: "Bitcoin ETF Sees Record Inflows of $500M in Single Day",
-    summary: "Institutional investors continue to pour money into Bitcoin ETFs, signaling strong confidence in cryptocurrency markets.",
-    source: "CoinDesk",
-    time: "2 hours ago",
-    impact: "high",
-    category: "Bitcoin"
-  },
-  {
-    id: "2",
-    title: "Ethereum's Dencun Upgrade Successfully Deployed on Mainnet",
-    summary: "The much-anticipated upgrade brings significant improvements to layer-2 scaling solutions and reduces transaction costs.",
-    source: "The Block",
-    time: "5 hours ago",
-    impact: "high",
-    category: "Ethereum"
-  },
-  {
-    id: "3",
-    title: "Solana Network Achieves 5000 TPS Milestone",
-    summary: "Solana demonstrates its high-performance capabilities with record transaction throughput during peak trading hours.",
-    source: "Decrypt",
-    time: "8 hours ago",
-    impact: "medium",
-    category: "Solana"
-  },
-  {
-    id: "4",
-    title: "DeFi Total Value Locked Surpasses $50 Billion",
-    summary: "Decentralized finance protocols see renewed interest as TVL reaches highest levels since 2022.",
-    source: "DeFi Pulse",
-    time: "12 hours ago",
-    impact: "medium",
-    category: "DeFi"
-  },
-  {
-    id: "5",
-    title: "Major Exchange Lists New AI-Focused Cryptocurrency",
-    summary: "Binance announces listing of AI token, leading to 40% price surge in pre-market trading.",
-    source: "Binance News",
-    time: "1 day ago",
-    impact: "low",
-    category: "Altcoins"
-  },
-];
-
 export default function MarketSummary() {
+  const [stories, setStories] = useState<TrendingStory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const formatTimeAgo = (timestamp: string): string => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    
+    const minutes = Math.floor(diff / (1000 * 60));
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    
+    if (days > 0) {
+      return `${days} day${days > 1 ? 's' : ''} ago`;
+    } else if (hours > 0) {
+      return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    } else if (minutes > 0) {
+      return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+    } else {
+      return 'Just now';
+    }
+  };
+
+  useEffect(() => {
+    const fetchSummaries = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const response = await api.getSummaries();
+        const summariesData = response.data?.data || response.data || [];
+        
+        const formattedStories = summariesData.slice(0, 5).map((story: any) => ({
+          ...story,
+          id: story._id || story.id || Math.random().toString(36).substr(2, 9),
+          time: story.time || (story.timestamp || story.createdAt ? formatTimeAgo(story.timestamp || story.createdAt) : 'Recently'),
+          impact: story.impact || 'medium',
+          category: story.category || 'General',
+        }));
+        
+        setStories(formattedStories);
+      } catch (err) {
+        console.error("Error fetching summaries:", err);
+        setError("Failed to load market summaries");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSummaries();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Market Summary</h2>
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <TrendingUp className="h-4 w-4" />
+            <span>Top Stories</span>
+          </div>
+        </div>
+        
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="p-3 bg-gray-50 rounded-lg animate-pulse">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="h-4 bg-gray-200 rounded w-16"></div>
+                <div className="h-4 bg-gray-200 rounded w-12"></div>
+              </div>
+              <div className="h-5 bg-gray-200 rounded mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded mb-2"></div>
+              <div className="flex items-center gap-3">
+                <div className="h-3 bg-gray-200 rounded w-16"></div>
+                <div className="h-3 bg-gray-200 rounded w-20"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error || stories.length === 0) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Market Summary</h2>
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <TrendingUp className="h-4 w-4" />
+            <span>Top Stories</span>
+          </div>
+        </div>
+        <div className="flex items-center justify-center py-8 text-gray-500">
+          <div className="text-center">
+            <AlertCircle className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+            <p className="text-sm">{error || "No market summaries available yet"}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
   const getImpactColor = (impact: string) => {
     switch (impact) {
       case "high":
@@ -85,10 +146,11 @@ export default function MarketSummary() {
       </div>
       
       <div className="space-y-3">
-        {dummyStories.map((story) => (
+        {stories.map((story) => (
           <div
-            key={story.id}
+            key={story.id || story._id}
             className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer group"
+            onClick={() => story.url && window.open(story.url, '_blank')}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1">
@@ -114,7 +176,9 @@ export default function MarketSummary() {
                   <span className="font-medium">{story.source}</span>
                 </div>
               </div>
-              <ExternalLink className="h-4 w-4 text-gray-400 group-hover:text-blue-600 transition-colors flex-shrink-0 mt-1" />
+              {story.url && (
+                <ExternalLink className="h-4 w-4 text-gray-400 group-hover:text-blue-600 transition-colors flex-shrink-0 mt-1" />
+              )}
             </div>
           </div>
         ))}

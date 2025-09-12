@@ -11,6 +11,7 @@ import { join } from "path";
 import logger from "./src/utils/logger.js";
 import BinanceClient from "./src/core/BinanceClient.js";
 import CandlestickStorage from "./src/services/CandlestickStorage.js";
+import DatabaseConnection from "./src/services/DatabaseConnection.js";
 import * as routes from "./src/routes/routes.js";
 
 const app = express();
@@ -62,6 +63,12 @@ app.get('/api/ticker/candlestick-storage-stats', routes.getCandlestickStorageSta
 app.get('/api/ticker/marketCap', routes.getMarketCapData);
 app.get('/api/ticker/refreshMarketcapData', routes.refreshMarketCapData);
 
+// New dashboard API routes
+app.get('/api/market/overview', routes.getMarketOverview);
+app.get('/api/market/btc-dominance', routes.getBitcoinDominance);
+app.get('/api/summaries', routes.getSummaries);
+app.get('/api/watchlists', routes.getUserWatchlists);
+
 // Global error handler
 app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   logger.error('Unhandled error:', error);
@@ -87,6 +94,10 @@ app.use('*', (req, res) => {
       'GET /api/ticker/discovery-stats',
       'GET /api/ticker/marketCap',
       'GET /api/ticker/refreshMarketcapData',
+      'GET /api/market/overview',
+      'GET /api/market/btc-dominance',
+      'GET /api/summaries',
+      'GET /api/watchlists',
       'GET /docs',
     ],
   });
@@ -97,6 +108,7 @@ process.on('SIGTERM', () => {
   logger.info('SIGTERM received, shutting down gracefully');
   binanceClient.cleanup();
   CandlestickStorage.cleanup();
+  DatabaseConnection.cleanup();
   process.exit(0);
 });
 
@@ -104,12 +116,21 @@ process.on('SIGINT', () => {
   logger.info('SIGINT received, shutting down gracefully');
   binanceClient.cleanup();
   CandlestickStorage.cleanup();
+  DatabaseConnection.cleanup();
   process.exit(0);
 });
 
 // Start server
 async function startServer() {
   try {
+    // Initialize database connection
+    try {
+      await DatabaseConnection.initialize();
+      logger.info('✅ Database connection established');
+    } catch (dbError) {
+      logger.warn('⚠️  Database connection failed - some features may not work:', dbError);
+    }
+    
     // Start Binance WebSocket connections
     await binanceClient.start();
     
@@ -119,6 +140,8 @@ async function startServer() {
       logger.info(`📊 API Documentation: http://localhost:${PORT}/docs`);
       logger.info(`🔄 Health Check: http://localhost:${PORT}/`);
       logger.info(`📈 Ticker Data: http://localhost:${PORT}/api/ticker/24hr`);
+      logger.info(`🌐 Market Overview: http://localhost:${PORT}/api/market/overview`);
+      logger.info(`📰 Market Summaries: http://localhost:${PORT}/api/summaries`);
     });
   } catch (error) {
     logger.error('Failed to start server:', error);
@@ -131,6 +154,7 @@ process.on('uncaughtException', (error) => {
   logger.error('Uncaught exception:', error);
   binanceClient.cleanup();
   CandlestickStorage.cleanup();
+  DatabaseConnection.cleanup();
   process.exit(1);
 });
 
@@ -138,6 +162,7 @@ process.on('unhandledRejection', (reason, promise) => {
   logger.error('Unhandled rejection at:', promise, 'reason:', reason);
   binanceClient.cleanup();
   CandlestickStorage.cleanup();
+  DatabaseConnection.cleanup();
   process.exit(1);
 });
 

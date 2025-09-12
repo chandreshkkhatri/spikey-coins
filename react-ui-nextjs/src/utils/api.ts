@@ -35,4 +35,45 @@ export const api = {
       throw error;
     }
   },
+
+  async getMarketOverview() {
+    try {
+      const response = await apiClient.get("/api/market/overview");
+      return response;
+    } catch (error) {
+      console.error("Error fetching market overview data:", error);
+      throw error;
+    }
+  },
+
+  async getSummaries() {
+    try {
+      const response = await apiClient.get("/api/summaries");
+      return response;
+    } catch (error) {
+      console.error("Error fetching summaries:", error);
+      throw error;
+    }
+  },
+
+  async getUserWatchlists(userId?: string) {
+    try {
+      const url = userId ? `/api/watchlists?userId=${userId}` : "/api/watchlists";
+      const response = await apiClient.get(url);
+      return response;
+    } catch (error) {
+      console.error("Error fetching user watchlists:", error);
+      throw error;
+    }
+  },
+
+  async getBitcoinDominance() {
+    try {
+      const response = await apiClient.get("/api/market/btc-dominance");
+      return response;
+    } catch (error) {
+      console.error("Error fetching bitcoin dominance:", error);
+      throw error;
+    }
+  },
 };

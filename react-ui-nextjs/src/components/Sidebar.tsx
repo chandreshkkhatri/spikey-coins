@@ -6,26 +6,22 @@ import { usePathname } from "next/navigation";
 import {
   Home,
   BarChart2,
-  TrendingUp,
   RefreshCw,
   Coins,
   Activity,
   Settings,
   HelpCircle,
-  RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface SidebarProps {
   onRefreshTicker?: () => void;
-  onRefreshMarketCap?: () => void;
   loading?: boolean;
   tickerCount?: number;
 }
 
 export default function Sidebar({
   onRefreshTicker,
-  onRefreshMarketCap,
   loading = false,
   tickerCount = 0,
 }: SidebarProps) {
@@ -53,18 +49,6 @@ export default function Sidebar({
           />
         </Button>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className="rounded-full hover:bg-gray-200"
-          onClick={onRefreshMarketCap}
-          disabled={loading}
-          title="Refresh Market Cap Data"
-        >
-          <RotateCcw
-            className={`h-5 w-5 text-gray-600 ${loading ? "animate-spin" : ""}`}
-          />
-        </Button>
 
         <div className="flex flex-col items-center gap-4 mt-4">
           <NavItem
