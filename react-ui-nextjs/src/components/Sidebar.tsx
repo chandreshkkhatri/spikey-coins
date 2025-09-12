@@ -2,6 +2,7 @@
 
 import type React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Home,
   BarChart2,
@@ -27,6 +28,8 @@ export default function Sidebar({
   loading = false,
   tickerCount = 0,
 }: SidebarProps) {
+  const pathname = usePathname();
+  
   return (
     <div className="w-16 h-full border-r border-gray-200 bg-gray-50 flex flex-col items-center py-4">
       <div className="flex flex-col items-center gap-6 h-full">
@@ -65,17 +68,19 @@ export default function Sidebar({
             href="/"
             icon={<Home className="h-5 w-5" />}
             label="Home"
-            active
+            active={pathname === "/"}
           />
           <NavItem
-            href="#"
+            href="/screener"
             icon={<BarChart2 className="h-5 w-5" />}
-            label="Analytics"
+            label="Screener"
+            active={pathname === "/screener"}
           />
           <NavItem
             href="#"
             icon={<Activity className="h-5 w-5" />}
             label="Markets"
+            active={false}
           />
         </div>
 
