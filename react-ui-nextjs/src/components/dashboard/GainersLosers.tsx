@@ -160,7 +160,7 @@ export default function GainersLosers() {
               Top Losers
             </button>
           </div>
-          <span className="text-xs text-gray-500">24h Change</span>
+          <span className="text-xs text-gray-500">Change</span>
         </div>
         <div className="flex items-center justify-center py-8 text-gray-500">
           <div className="text-center">
@@ -199,7 +199,7 @@ export default function GainersLosers() {
             Top Losers
           </button>
         </div>
-        <span className="text-xs text-gray-500">24h Change</span>
+        <span className="text-xs text-gray-500">Change</span>
       </div>
 
       <div className="space-y-2">
@@ -223,22 +223,29 @@ export default function GainersLosers() {
               </div>
             </div>
             
-            <div className="flex flex-col items-end">
-              <div className="flex items-center gap-1">
-                {item.change > 0 ? (
-                  <ArrowUp className="h-3.5 w-3.5 text-green-500" />
-                ) : (
-                  <ArrowDown className="h-3.5 w-3.5 text-red-500" />
-                )}
-                <span
-                  className={`text-sm font-semibold ${
-                    item.change > 0 ? "text-green-600" : "text-red-600"
-                  }`}
-                >
-                  {item.change > 0 ? "+" : ""}{item.change.toFixed(2)}%
-                </span>
+            <div className="flex items-center gap-6">
+              <div className="text-center">
+                <span className="text-xs text-gray-500 block">Timeframe</span>
+                <span className="text-sm font-medium text-gray-700">24h</span>
               </div>
-              <span className="text-xs text-gray-500">Vol: {item.volume}</span>
+
+              <div className="flex flex-col items-end">
+                <div className="flex items-center gap-1">
+                  {item.change > 0 ? (
+                    <ArrowUp className="h-3.5 w-3.5 text-green-500" />
+                  ) : (
+                    <ArrowDown className="h-3.5 w-3.5 text-red-500" />
+                  )}
+                  <span
+                    className={`text-sm font-semibold ${
+                      item.change > 0 ? "text-green-600" : "text-red-600"
+                    }`}
+                  >
+                    {item.change > 0 ? "+" : ""}{item.change.toFixed(2)}%
+                  </span>
+                </div>
+                <span className="text-xs text-gray-500">Vol: {item.volume}</span>
+              </div>
             </div>
           </div>
         ))}

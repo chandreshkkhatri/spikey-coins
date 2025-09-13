@@ -34,9 +34,11 @@
     "@binance/connector": "^3.5.0",
     "@types/mongodb": "^4.0.6",
     "axios": "^0.18.0",
+    "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.16.4",
+    "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.18.0",
     "morgan": "^1.10.0",
     "nodemon": "^1.18.9",
@@ -47,9 +49,11 @@
     "yamljs": "^0.3.0"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/jest": "^29.5.14",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.10",
     "@types/node": "^22.15.30",
     "@types/supertest": "^6.0.3",

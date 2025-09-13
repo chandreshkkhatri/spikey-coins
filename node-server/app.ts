@@ -14,6 +14,8 @@ import CandlestickStorage from "./src/services/CandlestickStorage.js";
 import DatabaseConnection from "./src/services/DatabaseConnection.js";
 import MarketOverviewService from "./src/services/MarketOverviewService.js";
 import * as routes from "./src/routes/routes.js";
+import * as authRoutes from "./src/routes/auth.js";
+import { authenticateToken, requireAdminAuth } from "./src/middleware/auth.js";
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -70,6 +72,13 @@ app.post('/api/market/overview/refresh', routes.forceRefreshMarketOverview);
 app.get('/api/summaries', routes.getSummaries);
 app.get('/api/watchlists', routes.getUserWatchlists);
 
+// Authentication routes
+app.post('/api/auth/login', authRoutes.login);
+app.post('/api/auth/setup/initial-admin', authRoutes.createInitialAdmin);
+app.post('/api/auth/users/create', requireAdminAuth, authRoutes.createUser);
+app.get('/api/auth/verify', authenticateToken, authRoutes.verifyToken);
+app.get('/api/auth/profile', authenticateToken, authRoutes.getProfile);
+
 // Global error handler
 app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   logger.error('Unhandled error:', error);
@@ -99,6 +108,11 @@ app.use('*', (req, res) => {
       'POST /api/market/overview/refresh',
       'GET /api/summaries',
       'GET /api/watchlists',
+      'POST /api/auth/login',
+      'POST /api/auth/setup/initial-admin (first admin only)',
+      'POST /api/auth/users/create (requires admin auth)',
+      'GET /api/auth/verify (requires auth)',
+      'GET /api/auth/profile (requires auth)',
       'GET /docs',
     ],
   });
