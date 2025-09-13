@@ -3,7 +3,7 @@
  * JWT token generation, validation, and password hashing utilities
  */
 
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { JWTPayload, User, UserResponse } from '../models/User.js';
 
@@ -32,7 +32,7 @@ export function generateToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string 
   return jwt.sign(payload, JWT_SECRET, {
     expiresIn: JWT_EXPIRY,
     issuer: 'spikey-coins-api'
-  });
+  } as SignOptions);
 }
 
 /**
@@ -49,8 +49,8 @@ export function sanitizeUser(user: User): UserResponse {
   const { password, ...sanitizedUser } = user;
   return {
     ...sanitizedUser,
-    _id: user._id || '',
-  };
+    _id: user._id ? user._id.toString() : '',
+  } as UserResponse;
 }
 
 /**

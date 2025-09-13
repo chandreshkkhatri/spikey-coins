@@ -20,6 +20,9 @@ import * as routes from "./src/routes/routes.js";
 import * as authRoutes from "./src/routes/auth.js";
 import * as adminRoutes from "./src/routes/admin.js";
 import { authenticateToken, requireAdminAuth } from "./src/middleware/auth.js";
+import { validate } from "./src/middleware/validate.js";
+import { loginSchema, createInitialAdminSchema, createUserSchema } from "./src/validations/auth.validation.js";
+import { runBinanceCoinGeckoMatcherSchema } from "./src/validations/admin.validation.js";
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -77,14 +80,14 @@ app.get('/api/summaries', routes.getSummaries);
 app.get('/api/watchlists', routes.getUserWatchlists);
 
 // Authentication routes
-app.post('/api/auth/login', authRoutes.login);
-app.post('/api/auth/setup/initial-admin', authRoutes.createInitialAdmin);
-app.post('/api/auth/users/create', requireAdminAuth, authRoutes.createUser);
+app.post('/api/auth/login', validate(loginSchema), authRoutes.login);
+app.post('/api/auth/setup/initial-admin', validate(createInitialAdminSchema), authRoutes.createInitialAdmin);
+app.post('/api/auth/users/create', requireAdminAuth, validate(createUserSchema), authRoutes.createUser);
 app.get('/api/auth/verify', authenticateToken, authRoutes.verifyToken);
 app.get('/api/auth/profile', authenticateToken, authRoutes.getProfile);
 
 // Admin routes (require admin authentication)
-app.post('/api/admin/binance-coingecko/run', requireAdminAuth, adminRoutes.runBinanceCoinGeckoMatcher);
+app.post('/api/admin/binance-coingecko/run', requireAdminAuth, validate(runBinanceCoinGeckoMatcherSchema), adminRoutes.runBinanceCoinGeckoMatcher);
 app.get('/api/admin/binance-coingecko/status', requireAdminAuth, adminRoutes.getBinanceCoinGeckoMatcherStatus);
 app.get('/api/admin/binance-coingecko/matches', requireAdminAuth, adminRoutes.getLatestMatches);
 

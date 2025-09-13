@@ -17,14 +17,6 @@ export async function login(req: Request, res: Response): Promise<void> {
   try {
     const { username, password }: UserLoginRequest = req.body;
 
-    if (!username || !password) {
-      res.status(400).json({
-        success: false,
-        error: 'Username and password are required'
-      });
-      return;
-    }
-
     if (!DatabaseConnection.isConnectionReady()) {
       await DatabaseConnection.initialize();
     }
@@ -102,14 +94,6 @@ export async function login(req: Request, res: Response): Promise<void> {
 export async function createInitialAdmin(req: Request, res: Response): Promise<void> {
   try {
     const { username, email, password, setupKey }: UserCreateRequest & { setupKey?: string } = req.body;
-
-    if (!username || !email || !password) {
-      res.status(400).json({
-        success: false,
-        error: 'Username, email, and password are required'
-      });
-      return;
-    }
 
     if (!DatabaseConnection.isConnectionReady()) {
       await DatabaseConnection.initialize();
@@ -198,31 +182,13 @@ export async function createInitialAdmin(req: Request, res: Response): Promise<v
  */
 export async function createUser(req: Request, res: Response): Promise<void> {
   try {
-    const { username, email, password, role = UserRole.USER }: UserCreateRequest = req.body;
-
-    if (!username || !email || !password) {
-      res.status(400).json({
-        success: false,
-        error: 'Username, email, and password are required'
-      });
-      return;
-    }
-
-    // Validate role
-    if (!Object.values(UserRole).includes(role)) {
-      res.status(400).json({
-        success: false,
-        error: `Invalid role. Must be one of: ${Object.values(UserRole).join(', ')}`
-      });
-      return;
-    }
+    const { username, email, password, role = UserRole.USER, adminKey }: UserCreateRequest & { adminKey?: string } = req.body;
 
     // If creating another admin, require additional confirmation
     if (role === UserRole.ADMIN) {
-      const adminConfirmKey = req.body.adminConfirmKey;
       const ADMIN_CREATE_KEY = process.env.ADMIN_CREATE_KEY || process.env.ADMIN_SETUP_KEY || 'default-setup-key-change-in-production';
 
-      if (!adminConfirmKey || adminConfirmKey !== ADMIN_CREATE_KEY) {
+      if (!adminKey || adminKey !== ADMIN_CREATE_KEY) {
         logger.warn(`Auth: Admin ${req.user?.username} attempted to create admin without valid confirmation key`);
         res.status(403).json({
           success: false,
