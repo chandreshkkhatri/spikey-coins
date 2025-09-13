@@ -57,7 +57,7 @@ export default function GainersLosers() {
 
         const formattedData = tickerData
           .map((item: any) => ({
-            id: item._id || item.s || Math.random().toString(36).substr(2, 9),
+            id: item._id || item.s || Math.random().toString(36).substring(2, 11),
             symbol: item.s?.replace('USDT', '') || 'Unknown',
             name: item.s?.replace('USDT', ''),
             price: formatPrice(parseFloat(item.price || item.c || 0)),

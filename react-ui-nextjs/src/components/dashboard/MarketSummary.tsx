@@ -54,7 +54,7 @@ export default function MarketSummary() {
         
         const formattedStories = summariesData.slice(0, 5).map((story: any) => ({
           ...story,
-          id: story._id || story.id || Math.random().toString(36).substr(2, 9),
+          id: story._id || story.id || Math.random().toString(36).substring(2, 11),
           time: story.time || (story.timestamp || story.createdAt ? formatTimeAgo(story.timestamp || story.createdAt) : 'Recently'),
           impact: story.impact || 'medium',
           category: story.category || 'General',

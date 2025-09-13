@@ -10,7 +10,7 @@ import DataManager from "../core/DataManager.js";
 import BinanceClient from "../core/BinanceClient.js";
 import CandlestickStorage from "../services/CandlestickStorage.js";
 import DatabaseConnection from "../services/DatabaseConnection.js";
-import axios from "axios";
+import MarketOverviewService from "../services/MarketOverviewService.js";
 
 // Global client instance
 let binanceClient: BinanceClient | null = null;
@@ -340,87 +340,86 @@ export function refreshMarketCapData(req: Request, res: Response): void {
 }
 
 /**
- * Get market overview data from Binance API
- * Fetches real-time data for major cryptocurrencies
+ * Get market overview data (cryptocurrencies + Bitcoin dominance)
+ * Returns cached data updated every 30 seconds
  */
-export async function getMarketOverview(req: Request, res: Response): Promise<void> {
+export function getMarketOverview(req: Request, res: Response): void {
   try {
-    // Use local ticker data which is already being fetched from Binance
-    const tickers = DataManager.getAllTickers();
-    
-    if (tickers.length === 0) {
+    const marketService = MarketOverviewService.getInstance();
+    const cachedData = marketService.getCachedData();
+    const status = marketService.getStatus();
+
+    logger.info(`MarketOverview API: Service status - hasData: ${status.hasData}, cryptoCount: ${status.cryptoCount}`);
+
+    if (!cachedData || !cachedData.cryptocurrencies || cachedData.cryptocurrencies.length === 0) {
+      logger.warn("MarketOverview API: No cached data available, returning service status");
       res.status(503).json({
         success: false,
         error: "Market data not available yet",
-        message: "The server is still initializing market data streams"
+        message: "Service is initializing, please try again in a few seconds",
+        status: status,
+        debug: {
+          hasCachedData: !!cachedData,
+          cryptoCount: cachedData?.cryptocurrencies?.length || 0,
+          lastUpdated: cachedData?.last_updated || null
+        }
       });
       return;
     }
 
-    // Filter for major cryptocurrencies
-    const majorSymbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'ADAUSDT', 'XRPUSDT', 'DOTUSDT', 'AVAXUSDT'];
-    const marketData = tickers.filter(ticker => majorSymbols.includes(ticker.s));
+    logger.info(`MarketOverview API: Returning ${cachedData.cryptocurrencies.length} cryptocurrencies`);
 
     res.json({
       success: true,
-      data: marketData,
-      count: marketData.length,
-      timestamp: new Date().toISOString(),
+      data: {
+        cryptocurrencies: cachedData.cryptocurrencies,
+        bitcoin_dominance: cachedData.bitcoin_dominance
+      },
+      meta: {
+        crypto_count: cachedData.cryptocurrencies.length,
+        last_updated: cachedData.last_updated,
+        next_update: cachedData.next_update,
+        update_interval_seconds: status.updateInterval
+      },
+      timestamp: new Date().toISOString()
     });
+
   } catch (error) {
     logger.error("Routes: Error getting market overview:", error);
     res.status(500).json({
       success: false,
       error: "Failed to retrieve market overview data",
+      details: error instanceof Error ? error.message : String(error)
     });
   }
 }
 
 /**
- * Get Bitcoin dominance data
- * Fetches BTC dominance from a crypto market API
+ * Force refresh market overview data
+ * Triggers immediate update of cached data
  */
-export async function getBitcoinDominance(req: Request, res: Response): Promise<void> {
+export async function forceRefreshMarketOverview(req: Request, res: Response): Promise<void> {
   try {
-    // Try to get BTC dominance from CoinGecko API
-    const response = await axios.get('https://api.coingecko.com/api/v3/global', {
-      timeout: 5000,
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'SpikeCoins/1.0'
-      }
-    });
-
-    const globalData = response.data?.data;
-    if (globalData && globalData.market_cap_percentage?.btc) {
-      const btcDominance = globalData.market_cap_percentage.btc;
-      
-      // Calculate a mock 24h change (in real app, you'd store historical data)
-      const mockChange = (Math.random() - 0.5) * 2; // Random change between -1% to +1%
-      
-      res.json({
-        success: true,
-        data: {
-          dominance: btcDominance,
-          change: mockChange,
-          timestamp: new Date().toISOString(),
-        }
-      });
-    } else {
-      throw new Error('Invalid response from CoinGecko API');
-    }
-  } catch (error) {
-    logger.error("Routes: Error getting Bitcoin dominance:", error);
+    const marketService = MarketOverviewService.getInstance();
+    await marketService.forceUpdate();
     
-    // Fallback with mock data
+    const cachedData = marketService.getCachedData();
+    const status = marketService.getStatus();
+
     res.json({
       success: true,
-      data: {
-        dominance: 52.5, // Mock BTC dominance
-        change: 0.2,     // Mock 24h change
-        timestamp: new Date().toISOString(),
-        note: "Using fallback data - external API unavailable"
-      }
+      message: "Market overview data refreshed successfully",
+      data: cachedData,
+      status: status,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    logger.error("Routes: Error force refreshing market overview:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to refresh market overview data",
+      details: error instanceof Error ? error.message : String(error)
     });
   }
 }

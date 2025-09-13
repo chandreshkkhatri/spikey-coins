@@ -52,7 +52,7 @@ export default function Watchlist() {
             id: list._id || list.id || (index + 1).toString(),
             items: (list.items || []).map((item: any) => ({
               ...item,
-              id: item._id || item.id || Math.random().toString(36).substr(2, 9),
+              id: item._id || item.id || Math.random().toString(36).substring(2, 11),
             }))
           }));
           

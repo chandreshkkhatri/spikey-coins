@@ -5,24 +5,26 @@ import { TrendingUp, TrendingDown, AlertCircle } from "lucide-react";
 import { api } from "@/utils/api";
 
 interface CryptoIndex {
-  name: string;
   symbol: string;
-  price: string;
-  change: number;
-  volume: string;
-  marketCap?: string;
+  name: string;
+  price: number;
+  change_24h: number;
+  volume_usd: number;
 }
 
 interface BitcoinDominance {
   dominance: number;
-  change: number;
+  change_24h: number;
+  last_updated: string;
 }
 
-const hardcodedSymbols = ["BTC", "ETH", "BNB", "SOL", "ADA", "XRP", "DOT", "AVAX"];
+interface MarketOverviewResponse {
+  cryptocurrencies: CryptoIndex[];
+  bitcoin_dominance: BitcoinDominance;
+}
 
 export default function MarketOverview() {
-  const [cryptoData, setCryptoData] = useState<CryptoIndex[]>([]);
-  const [btcDominance, setBtcDominance] = useState<BitcoinDominance | null>(null);
+  const [marketData, setMarketData] = useState<MarketOverviewResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,36 +56,59 @@ export default function MarketOverview() {
         setLoading(true);
         setError(null);
 
-        const [overviewResponse, dominanceResponse] = await Promise.all([
-          api.getMarketOverview(),
-          api.getBitcoinDominance().catch(() => null),
-        ]);
-
-        const overviewData = overviewResponse.data?.data || overviewResponse.data || [];
+        const response = await api.getMarketOverview();
+        console.log('Market overview API response:', response.data);
+        const responseData = response.data?.data;
         
-        const filteredData = hardcodedSymbols
-          .map(symbol => {
-            const item = overviewData.find((crypto: any) => 
-              crypto.symbol?.replace('USDT', '') === symbol
-            );
-            if (item) {
-              return {
-                name: symbol,
-                symbol,
-                price: formatPrice(parseFloat(item.price || item.lastPrice || 0)),
-                change: parseFloat(item.priceChangePercent || item.change || 0),
-                volume: formatVolume(parseFloat(item.volume || item.quoteVolume || 0)),
-              };
-            }
-            return null;
-          })
-          .filter(Boolean) as CryptoIndex[];
-
-        setCryptoData(filteredData);
-
-        if (dominanceResponse?.data) {
-          setBtcDominance(dominanceResponse.data);
+        if (!responseData) {
+          throw new Error('No data received from API');
         }
+
+        // Check if response is in new format or old format
+        let marketOverviewData;
+        
+        console.log('API responseData type:', typeof responseData);
+        console.log('API responseData isArray:', Array.isArray(responseData));
+        console.log('API responseData keys:', Object.keys(responseData || {}));
+        
+        if (responseData.cryptocurrencies && responseData.bitcoin_dominance) {
+          // New format
+          console.log('Using new API format');
+          console.log('cryptocurrencies data:', responseData.cryptocurrencies);
+          console.log('bitcoin_dominance data:', responseData.bitcoin_dominance);
+          
+          marketOverviewData = {
+            cryptocurrencies: responseData.cryptocurrencies || [],
+            bitcoin_dominance: responseData.bitcoin_dominance
+          };
+        } else if (Array.isArray(responseData)) {
+          // Old format - convert to new format
+          console.warn('Using old API format, consider updating server');
+          console.log('Old format data length:', responseData.length);
+          console.log('First item in old format:', responseData[0]);
+          
+          marketOverviewData = {
+            cryptocurrencies: responseData.slice(0, 8).map((item: any) => ({
+              symbol: item.s?.replace('USDT', '') || item.symbol?.replace('USDT', '') || 'Unknown',
+              name: item.s?.replace('USDT', '') || item.symbol?.replace('USDT', '') || 'Unknown',
+              price: parseFloat(item.price || item.c || 0),
+              change_24h: parseFloat(item.change_24h || item.P || 0),
+              volume_usd: parseFloat(item.volume_usd || item.q || 0),
+            })),
+            bitcoin_dominance: {
+              dominance: 52.5,
+              change_24h: 0.2,
+              last_updated: new Date().toISOString()
+            }
+          };
+        } else {
+          console.error('Unexpected API response format:', responseData);
+          throw new Error('Unexpected API response format');
+        }
+        
+        console.log('Final marketOverviewData:', marketOverviewData);
+
+        setMarketData(marketOverviewData);
       } catch (err) {
         console.error("Error fetching market overview:", err);
         setError("Failed to load market data");
@@ -93,6 +118,10 @@ export default function MarketOverview() {
     };
 
     fetchData();
+    
+    // Set up periodic refresh every 30 seconds
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   if (loading) {
@@ -112,7 +141,7 @@ export default function MarketOverview() {
     );
   }
 
-  if (error || cryptoData.length === 0) {
+  if (error || !marketData) {
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-4">
         <h2 className="text-lg font-semibold mb-3 text-gray-900">Market Overview</h2>
@@ -125,56 +154,65 @@ export default function MarketOverview() {
       </div>
     );
   }
+
+  const { cryptocurrencies = [], bitcoin_dominance } = marketData;
+
+  // Debug logging
+  console.log('MarketOverview render - marketData:', marketData);
+  console.log('MarketOverview render - cryptocurrencies length:', cryptocurrencies.length);
+  console.log('MarketOverview render - cryptocurrencies:', cryptocurrencies);
+  console.log('MarketOverview render - bitcoin_dominance:', bitcoin_dominance);
+
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
       <h2 className="text-lg font-semibold mb-3 text-gray-900">Market Overview</h2>
       <div className="flex gap-3 overflow-x-auto pb-2">
-        {btcDominance && (
+        {bitcoin_dominance && (
           <div className="flex-shrink-0 bg-orange-50 rounded-lg p-3 min-w-[140px] hover:bg-orange-100 transition-colors cursor-pointer border border-orange-200">
             <div className="flex items-center justify-between mb-1">
               <span className="font-medium text-sm text-orange-900">BTC DOM</span>
-              {btcDominance.change > 0 ? (
+              {bitcoin_dominance.change_24h > 0 ? (
                 <TrendingUp className="h-4 w-4 text-green-500" />
               ) : (
                 <TrendingDown className="h-4 w-4 text-red-500" />
               )}
             </div>
-            <div className="text-lg font-semibold text-orange-900">{btcDominance.dominance.toFixed(1)}%</div>
+            <div className="text-lg font-semibold text-orange-900">{bitcoin_dominance.dominance.toFixed(1)}%</div>
             <div className="flex items-center gap-2 mt-1">
               <span
                 className={`text-xs font-medium ${
-                  btcDominance.change > 0 ? "text-green-600" : "text-red-600"
+                  bitcoin_dominance.change_24h > 0 ? "text-green-600" : "text-red-600"
                 }`}
               >
-                {btcDominance.change > 0 ? "+" : ""}{btcDominance.change.toFixed(2)}%
+                {bitcoin_dominance.change_24h > 0 ? "+" : ""}{bitcoin_dominance.change_24h.toFixed(2)}%
               </span>
               <span className="text-xs text-orange-600">Dominance</span>
             </div>
           </div>
         )}
-        {cryptoData.map((crypto) => (
+        {cryptocurrencies.map((crypto) => (
           <div
             key={crypto.symbol}
             className="flex-shrink-0 bg-gray-50 rounded-lg p-3 min-w-[140px] hover:bg-gray-100 transition-colors cursor-pointer"
           >
             <div className="flex items-center justify-between mb-1">
               <span className="font-medium text-sm text-gray-900">{crypto.symbol}</span>
-              {crypto.change > 0 ? (
+              {crypto.change_24h > 0 ? (
                 <TrendingUp className="h-4 w-4 text-green-500" />
               ) : (
                 <TrendingDown className="h-4 w-4 text-red-500" />
               )}
             </div>
-            <div className="text-lg font-semibold text-gray-900">{crypto.price}</div>
+            <div className="text-lg font-semibold text-gray-900">{formatPrice(crypto.price)}</div>
             <div className="flex items-center gap-2 mt-1">
               <span
                 className={`text-xs font-medium ${
-                  crypto.change > 0 ? "text-green-600" : "text-red-600"
+                  crypto.change_24h > 0 ? "text-green-600" : "text-red-600"
                 }`}
               >
-                {crypto.change > 0 ? "+" : ""}{crypto.change.toFixed(2)}%
+                {crypto.change_24h > 0 ? "+" : ""}{crypto.change_24h.toFixed(2)}%
               </span>
-              <span className="text-xs text-gray-500">Vol: {crypto.volume}</span>
+              <span className="text-xs text-gray-500">Vol: {formatVolume(crypto.volume_usd)}</span>
             </div>
           </div>
         ))}

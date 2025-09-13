@@ -67,12 +67,12 @@ export const api = {
     }
   },
 
-  async getBitcoinDominance() {
+  async forceRefreshMarketOverview() {
     try {
-      const response = await apiClient.get("/api/market/btc-dominance");
+      const response = await apiClient.post("/api/market/overview/refresh");
       return response;
     } catch (error) {
-      console.error("Error fetching bitcoin dominance:", error);
+      console.error("Error forcing market overview refresh:", error);
       throw error;
     }
   },
