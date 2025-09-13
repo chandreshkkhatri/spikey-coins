@@ -18,6 +18,20 @@ interface TrendingStory {
   url?: string;
 }
 
+interface SummaryData {
+  _id?: string;
+  id?: string;
+  title?: string;
+  summary?: string;
+  source?: string;
+  time?: string;
+  timestamp?: string;
+  createdAt?: string;
+  impact?: string;
+  category?: string;
+  url?: string;
+}
+
 export default function MarketSummary() {
   const [stories, setStories] = useState<TrendingStory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,12 +66,18 @@ export default function MarketSummary() {
         const response = await api.getSummaries();
         const summariesData = response.data?.data || response.data || [];
         
-        const formattedStories = summariesData.slice(0, 5).map((story: any) => ({
-          ...story,
+        const formattedStories = summariesData.slice(0, 5).map((story: SummaryData): TrendingStory => ({
+          _id: story._id,
           id: story._id || story.id || Math.random().toString(36).substring(2, 11),
-          time: story.time || (story.timestamp || story.createdAt ? formatTimeAgo(story.timestamp || story.createdAt) : 'Recently'),
-          impact: story.impact || 'medium',
+          title: story.title || 'Untitled',
+          summary: story.summary || 'No summary available',
+          source: story.source || 'Unknown',
+          time: story.time || (story.timestamp || story.createdAt ? formatTimeAgo(story.timestamp || story.createdAt || '') : 'Recently'),
+          timestamp: story.timestamp,
+          createdAt: story.createdAt,
+          impact: (story.impact as "high" | "medium" | "low") || 'medium',
           category: story.category || 'General',
+          url: story.url,
         }));
         
         setStories(formattedStories);

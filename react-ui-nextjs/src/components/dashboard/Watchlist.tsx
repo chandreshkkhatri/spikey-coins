@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Star, Trash2, TrendingUp, TrendingDown, MoreVertical, AlertCircle, Edit } from "lucide-react";
+import { Plus, Star, TrendingUp, TrendingDown, MoreVertical } from "lucide-react";
 import { api } from "@/utils/api";
 
 interface WatchlistItem {
@@ -22,6 +22,24 @@ interface Watchlist {
   userId?: string;
 }
 
+interface WatchlistData {
+  _id?: string;
+  id?: string;
+  name?: string;
+  items?: WatchlistItemData[];
+  userId?: string;
+}
+
+interface WatchlistItemData {
+  _id?: string;
+  id?: string;
+  symbol?: string;
+  name?: string;
+  price?: string;
+  change?: number;
+  volume?: string;
+}
+
 // Default empty watchlists for new users
 const defaultWatchlists: Watchlist[] = [
   { id: "1", name: "Portfolio", items: [] },
@@ -33,7 +51,7 @@ export default function Watchlist() {
   const [activeWatchlist, setActiveWatchlist] = useState("1");
   const [watchlists, setWatchlists] = useState<Watchlist[]>(defaultWatchlists);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchWatchlists = async () => {
@@ -47,13 +65,20 @@ export default function Watchlist() {
         if (watchlistsData.length === 0) {
           setWatchlists(defaultWatchlists);
         } else {
-          const formattedWatchlists = watchlistsData.slice(0, 3).map((list: any, index: number) => ({
-            ...list,
+          const formattedWatchlists = watchlistsData.slice(0, 3).map((list: WatchlistData, index: number): Watchlist => ({
+            _id: list._id,
             id: list._id || list.id || (index + 1).toString(),
-            items: (list.items || []).map((item: any) => ({
-              ...item,
+            name: list.name || `Watchlist ${index + 1}`,
+            items: (list.items || []).map((item: WatchlistItemData): WatchlistItem => ({
+              _id: item._id,
               id: item._id || item.id || Math.random().toString(36).substring(2, 11),
-            }))
+              symbol: item.symbol || 'Unknown',
+              name: item.name || 'Unknown',
+              price: item.price || '$0.00',
+              change: item.change || 0,
+              volume: item.volume || '$0',
+            })),
+            userId: list.userId,
           }));
           
           while (formattedWatchlists.length < 3) {

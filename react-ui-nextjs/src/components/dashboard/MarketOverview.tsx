@@ -23,6 +23,17 @@ interface MarketOverviewResponse {
   bitcoin_dominance: BitcoinDominance;
 }
 
+interface LegacyTickerData {
+  s?: string;
+  symbol?: string;
+  price?: string;
+  c?: string;
+  change_24h?: string;
+  P?: string;
+  volume_usd?: string;
+  q?: string;
+}
+
 export default function MarketOverview() {
   const [marketData, setMarketData] = useState<MarketOverviewResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -88,12 +99,12 @@ export default function MarketOverview() {
           console.log('First item in old format:', responseData[0]);
           
           marketOverviewData = {
-            cryptocurrencies: responseData.slice(0, 8).map((item: any) => ({
+            cryptocurrencies: responseData.slice(0, 8).map((item: LegacyTickerData) => ({
               symbol: item.s?.replace('USDT', '') || item.symbol?.replace('USDT', '') || 'Unknown',
               name: item.s?.replace('USDT', '') || item.symbol?.replace('USDT', '') || 'Unknown',
-              price: parseFloat(item.price || item.c || 0),
-              change_24h: parseFloat(item.change_24h || item.P || 0),
-              volume_usd: parseFloat(item.volume_usd || item.q || 0),
+              price: parseFloat(item.price || item.c || '0'),
+              change_24h: parseFloat(item.change_24h || item.P || '0'),
+              volume_usd: parseFloat(item.volume_usd || item.q || '0'),
             })),
             bitcoin_dominance: {
               dominance: 52.5,

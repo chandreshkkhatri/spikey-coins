@@ -14,6 +14,18 @@ interface CryptoItem {
   volume: string;
 }
 
+interface TickerData {
+  _id?: string;
+  s?: string;
+  symbol?: string;
+  price?: string;
+  c?: string;
+  change_24h?: string;
+  P?: string;
+  volume_usd?: string;
+  q?: string;
+}
+
 export default function GainersLosers() {
   const [activeTab, setActiveTab] = useState<"gainers" | "losers">("gainers");
   const [gainers, setGainers] = useState<CryptoItem[]>([]);
@@ -56,13 +68,13 @@ export default function GainersLosers() {
         }
 
         const formattedData = tickerData
-          .map((item: any) => ({
+          .map((item: TickerData) => ({
             id: item._id || item.s || Math.random().toString(36).substring(2, 11),
             symbol: item.s?.replace('USDT', '') || 'Unknown',
             name: item.s?.replace('USDT', ''),
-            price: formatPrice(parseFloat(item.price || item.c || 0)),
-            change: parseFloat(item.change_24h || item.P || 0),
-            volume: formatVolume(parseFloat(item.volume_usd || item.q || 0)),
+            price: formatPrice(parseFloat(item.price || item.c || '0')),
+            change: parseFloat(item.change_24h || item.P || '0'),
+            volume: formatVolume(parseFloat(item.volume_usd || item.q || '0')),
           }))
           .filter((item: CryptoItem) => !isNaN(item.change) && item.change !== 0);
 
