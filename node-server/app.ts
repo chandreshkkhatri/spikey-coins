@@ -15,6 +15,7 @@ import DatabaseConnection from "./src/services/DatabaseConnection.js";
 import MarketOverviewService from "./src/services/MarketOverviewService.js";
 import * as routes from "./src/routes/routes.js";
 import * as authRoutes from "./src/routes/auth.js";
+import * as adminRoutes from "./src/routes/admin.js";
 import { authenticateToken, requireAdminAuth } from "./src/middleware/auth.js";
 
 const app = express();
@@ -79,6 +80,11 @@ app.post('/api/auth/users/create', requireAdminAuth, authRoutes.createUser);
 app.get('/api/auth/verify', authenticateToken, authRoutes.verifyToken);
 app.get('/api/auth/profile', authenticateToken, authRoutes.getProfile);
 
+// Admin routes (require admin authentication)
+app.post('/api/admin/binance-coingecko/run', requireAdminAuth, adminRoutes.runBinanceCoinGeckoMatcher);
+app.get('/api/admin/binance-coingecko/status', requireAdminAuth, adminRoutes.getBinanceCoinGeckoMatcherStatus);
+app.get('/api/admin/binance-coingecko/matches', requireAdminAuth, adminRoutes.getLatestMatches);
+
 // Global error handler
 app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   logger.error('Unhandled error:', error);
@@ -113,6 +119,9 @@ app.use('*', (req, res) => {
       'POST /api/auth/users/create (requires admin auth)',
       'GET /api/auth/verify (requires auth)',
       'GET /api/auth/profile (requires auth)',
+      'POST /api/admin/binance-coingecko/run (requires admin auth)',
+      'GET /api/admin/binance-coingecko/status (requires admin auth)',
+      'GET /api/admin/binance-coingecko/matches (requires admin auth)',
       'GET /docs',
     ],
   });
