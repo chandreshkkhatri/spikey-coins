@@ -124,7 +124,6 @@ export default function ScreenerPage() {
       <div className="flex h-screen bg-white">
         <Sidebar
           onRefreshTicker={getSpikes}
-          onRefreshMarketCap={refreshMarketcapData}
           loading={loading}
           tickerCount={tickerArray.length}
         />
