@@ -93,9 +93,6 @@ jspm_packages/
 # MacOS
 .DS_Store
 
-# VS Code
-.vscode/
-
 # JetBrains IDEs
 .idea/
 
