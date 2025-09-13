@@ -127,3 +127,19 @@ export const databaseOperationSchema = Joi.object({
       'any.required': 'Backup path is required for backup/restore operations'
     })
 });
+
+/**
+ * Schema for article summarization
+ */
+export const summarizeArticleSchema = Joi.object({
+  url: Joi.string()
+    .uri({
+      scheme: ['http', 'https']
+    })
+    .required()
+    .messages({
+      'string.base': 'URL must be a string',
+      'string.uri': 'URL must be a valid HTTP or HTTPS URL',
+      'any.required': 'Article URL is required'
+    })
+});

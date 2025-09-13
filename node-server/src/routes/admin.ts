@@ -6,6 +6,7 @@
 import { Request, Response } from 'express';
 import DatabaseConnection from '../services/DatabaseConnection.js';
 import BinanceCoinGeckoMatcher from '../services/BinanceCoinGeckoMatcher.js';
+import SummarizationService from '../services/SummarizationService.js';
 import logger from '../utils/logger.js';
 
 /**
@@ -329,6 +330,78 @@ export async function getLatestMatches(req: Request, res: Response): Promise<voi
     res.status(500).json({
       success: false,
       error: 'Failed to get latest matches',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
+
+/**
+ * Summarize article from URL using OpenAI (admin only)
+ */
+export async function summarizeArticle(req: Request, res: Response): Promise<void> {
+  try {
+    const { url } = req.body;
+
+    if (!url) {
+      res.status(400).json({
+        success: false,
+        error: 'URL is required',
+        message: 'Please provide a valid article URL in the request body'
+      });
+      return;
+    }
+
+    // Validate URL format
+    try {
+      new URL(url);
+    } catch (urlError) {
+      res.status(400).json({
+        success: false,
+        error: 'Invalid URL format',
+        message: 'Please provide a valid URL'
+      });
+      return;
+    }
+
+    // Check if OPENAI_API_KEY is configured
+    if (!process.env.OPENAI_API_KEY) {
+      res.status(503).json({
+        success: false,
+        error: 'OpenAI API key not configured',
+        message: 'Please set OPENAI_API_KEY environment variable'
+      });
+      return;
+    }
+
+    logger.info(`Admin: Article summarization started by ${req.user?.username} for URL: ${url}`);
+
+    // Process the article using the summarization service
+    const summarizationService = SummarizationService.getInstance();
+    const summary = await summarizationService.processArticleUrl(url);
+
+    logger.info(`Admin: Article summarization completed by ${req.user?.username} - Title: ${summary.title}`);
+
+    res.json({
+      success: true,
+      message: 'Article summarized and saved successfully',
+      data: {
+        title: summary.title,
+        summary: summary.summary,
+        source: summary.source,
+        category: summary.category,
+        impact: summary.impact,
+        url: summary.url,
+        createdAt: summary.createdAt.toISOString()
+      },
+      performedBy: req.user?.username,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    logger.error('Admin: Article summarization error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to summarize article',
       details: error instanceof Error ? error.message : String(error)
     });
   }
