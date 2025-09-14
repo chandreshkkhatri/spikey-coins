@@ -19,6 +19,7 @@ import MarketOverviewService from "./src/services/MarketOverviewService.js";
 import * as routes from "./src/routes/routes.js";
 import * as authRoutes from "./src/routes/auth.js";
 import * as adminRoutes from "./src/routes/admin.js";
+import chatRouter from "./src/routes/chat.js";
 import { authenticateToken, requireAdminAuth } from "./src/middleware/auth.js";
 import { validate } from "./src/middleware/validate.js";
 import { loginSchema, createInitialAdminSchema, createUserSchema } from "./src/validations/auth.validation.js";
@@ -78,6 +79,9 @@ app.get('/api/market/overview', routes.getMarketOverview);
 app.post('/api/market/overview/refresh', routes.forceRefreshMarketOverview);
 app.get('/api/summaries', routes.getSummaries);
 app.get('/api/watchlists', routes.getUserWatchlists);
+
+// Chat route
+app.use('/api/chat', chatRouter);
 
 // Authentication routes
 app.post('/api/auth/login', validate(loginSchema), authRoutes.login);
