@@ -4,9 +4,9 @@
  */
 
 import { Request, Response } from 'express';
-import { ObjectId } from 'mongodb';
+import mongoose from 'mongoose';
 import DatabaseConnection from '../services/DatabaseConnection.js';
-import { User, UserRole, UserCreateRequest, UserLoginRequest, AuthResponse } from '../models/User.js';
+import { User, UserRole, UserCreateRequest, UserLoginRequest, AuthResponse, UserModel } from '../models/User.js';
 import { hashPassword, comparePassword, generateToken, sanitizeUser } from '../utils/auth.js';
 import logger from '../utils/logger.js';
 
@@ -21,11 +21,8 @@ export async function login(req: Request, res: Response): Promise<void> {
       await DatabaseConnection.initialize();
     }
 
-    const db = DatabaseConnection.getDatabase();
-    const usersCollection = db.collection<User>('users');
-
     // Find user by username
-    const user = await usersCollection.findOne({
+    const user = await UserModel.findOne({
       username: username.toLowerCase(),
       isActive: true
     });
@@ -51,7 +48,7 @@ export async function login(req: Request, res: Response): Promise<void> {
     }
 
     // Update last login time
-    await usersCollection.updateOne(
+    await UserModel.updateOne(
       { _id: user._id },
       {
         $set: {
@@ -99,11 +96,8 @@ export async function createInitialAdmin(req: Request, res: Response): Promise<v
       await DatabaseConnection.initialize();
     }
 
-    const db = DatabaseConnection.getDatabase();
-    const usersCollection = db.collection<User>('users');
-
     // Check if ANY users exist (database must be empty)
-    const userCount = await usersCollection.countDocuments();
+    const userCount = await UserModel.countDocuments();
     if (userCount > 0) {
       res.status(403).json({
         success: false,
@@ -124,7 +118,7 @@ export async function createInitialAdmin(req: Request, res: Response): Promise<v
     }
 
     // Check if username already exists (shouldn't happen if DB is empty, but being safe)
-    const existingUser = await usersCollection.findOne({
+    const existingUser = await UserModel.findOne({
       username: username.toLowerCase()
     });
     if (existingUser) {
@@ -149,8 +143,7 @@ export async function createInitialAdmin(req: Request, res: Response): Promise<v
       updatedAt: new Date()
     };
 
-    const result = await usersCollection.insertOne(newUser);
-    const createdUser = await usersCollection.findOne({ _id: result.insertedId });
+    const createdUser = await UserModel.create(newUser);
 
     if (!createdUser) {
       res.status(500).json({
@@ -202,11 +195,8 @@ export async function createUser(req: Request, res: Response): Promise<void> {
       await DatabaseConnection.initialize();
     }
 
-    const db = DatabaseConnection.getDatabase();
-    const usersCollection = db.collection<User>('users');
-
     // Check if username already exists
-    const existingUser = await usersCollection.findOne({
+    const existingUser = await UserModel.findOne({
       username: username.toLowerCase()
     });
     if (existingUser) {
@@ -218,7 +208,7 @@ export async function createUser(req: Request, res: Response): Promise<void> {
     }
 
     // Check if email already exists
-    const existingEmail = await usersCollection.findOne({
+    const existingEmail = await UserModel.findOne({
       email: email.toLowerCase()
     });
     if (existingEmail) {
@@ -243,8 +233,7 @@ export async function createUser(req: Request, res: Response): Promise<void> {
       updatedAt: new Date()
     };
 
-    const result = await usersCollection.insertOne(newUser);
-    const createdUser = await usersCollection.findOne({ _id: result.insertedId });
+    const createdUser = await UserModel.create(newUser);
 
     if (!createdUser) {
       res.status(500).json({
@@ -300,11 +289,8 @@ export async function getProfile(req: Request, res: Response): Promise<void> {
       await DatabaseConnection.initialize();
     }
 
-    const db = DatabaseConnection.getDatabase();
-    const usersCollection = db.collection<User>('users');
-
-    const user = await usersCollection.findOne({
-      _id: new ObjectId(req.user.userId),
+    const user = await UserModel.findOne({
+      _id: new mongoose.Types.ObjectId(req.user.userId),
       isActive: true
     });
 

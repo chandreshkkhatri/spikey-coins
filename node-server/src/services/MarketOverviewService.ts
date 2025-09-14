@@ -104,8 +104,11 @@ class MarketOverviewService {
       }
 
       const db = DatabaseConnection.getDatabase();
+      if (!db) {
+        throw new Error('Database connection not available');
+      }
       const collection = db.collection('market_overview_cache');
-      
+
       const cached = await collection.findOne(
         {},
         { sort: { timestamp: -1 } }
@@ -276,8 +279,11 @@ class MarketOverviewService {
       }
 
       const db = DatabaseConnection.getDatabase();
+      if (!db) {
+        throw new Error('Database connection not available');
+      }
       const collection = db.collection('market_overview_cache');
-      
+
       // Insert new cache entry
       await collection.insertOne({
         ...this.cachedData,

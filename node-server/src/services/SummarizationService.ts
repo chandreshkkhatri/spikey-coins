@@ -149,6 +149,9 @@ Please browse and read this article, then provide a summary: ${url}`,
       }
 
       const db = DatabaseConnection.getDatabase();
+      if (!db) {
+        throw new Error('Database connection not available');
+      }
       const summariesCollection = db.collection("summaries");
 
       // Check if we already have a summary for this URL

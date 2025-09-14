@@ -1,14 +1,12 @@
 /**
- * MongoDB Database Connection Service
- * Handles connection management and provides database instance
+ * Mongoose Database Connection Service
+ * Handles connection management using Mongoose ODM
  */
 
-import { MongoClient, Db } from 'mongodb';
+import mongoose from 'mongoose';
 import logger from '../utils/logger.js';
 
 class DatabaseConnection {
-  private static client: MongoClient | null = null;
-  private static db: Db | null = null;
   private static isConnected = false;
 
   // MongoDB connection configuration
@@ -19,31 +17,40 @@ class DatabaseConnection {
     serverSelectionTimeoutMS: 5000,
     socketTimeoutMS: 45000,
     family: 4, // Use IPv4, skip trying IPv6
+    dbName: process.env.DATABASE_NAME || 'spikey_coins',
   };
 
   /**
-   * Initialize MongoDB connection
+   * Initialize Mongoose connection
    */
   static async initialize(): Promise<void> {
-    if (this.isConnected && this.client && this.db) {
+    if (this.isConnected && mongoose.connection.readyState === 1) {
       return;
     }
 
     try {
       logger.info(`DatabaseConnection: Connecting to MongoDB at ${this.CONNECTION_STRING}`);
-      
-      this.client = new MongoClient(this.CONNECTION_STRING, this.CONNECTION_OPTIONS);
-      await this.client.connect();
-      
-      this.db = this.client.db(this.DATABASE_NAME);
+
+      await mongoose.connect(this.CONNECTION_STRING, this.CONNECTION_OPTIONS);
       this.isConnected = true;
-      
+
       logger.info(`DatabaseConnection: Successfully connected to database '${this.DATABASE_NAME}'`);
-      
-      // Test connection
-      await this.db.admin().ping();
-      logger.info('DatabaseConnection: Database ping successful');
-      
+
+      // Set up connection event listeners
+      mongoose.connection.on('error', (error) => {
+        logger.error('DatabaseConnection: Mongoose connection error:', error);
+      });
+
+      mongoose.connection.on('disconnected', () => {
+        logger.warn('DatabaseConnection: Mongoose disconnected');
+        this.isConnected = false;
+      });
+
+      mongoose.connection.on('reconnected', () => {
+        logger.info('DatabaseConnection: Mongoose reconnected');
+        this.isConnected = true;
+      });
+
     } catch (error) {
       logger.error('DatabaseConnection: Failed to connect to MongoDB:', error);
       this.isConnected = false;
@@ -52,20 +59,30 @@ class DatabaseConnection {
   }
 
   /**
-   * Get database instance
+   * Get mongoose connection
    */
-  static getDatabase(): Db {
-    if (!this.db || !this.isConnected) {
+  static getConnection() {
+    if (!this.isConnected || mongoose.connection.readyState !== 1) {
       throw new Error('Database not connected. Call initialize() first.');
     }
-    return this.db;
+    return mongoose.connection;
+  }
+
+  /**
+   * Get native MongoDB database instance (for backward compatibility)
+   */
+  static getDatabase() {
+    if (!this.isConnected || mongoose.connection.readyState !== 1) {
+      throw new Error('Database not connected. Call initialize() first.');
+    }
+    return mongoose.connection.db;
   }
 
   /**
    * Get connection status
    */
   static isConnectionReady(): boolean {
-    return this.isConnected && this.client !== null && this.db !== null;
+    return this.isConnected && mongoose.connection.readyState === 1;
   }
 
   /**
@@ -76,6 +93,7 @@ class DatabaseConnection {
       isConnected: this.isConnected,
       databaseName: this.DATABASE_NAME,
       connectionString: this.CONNECTION_STRING.replace(/\/\/.*@/, '//***:***@'), // Hide credentials
+      readyState: mongoose.connection.readyState,
     };
   }
 
@@ -83,15 +101,13 @@ class DatabaseConnection {
    * Close database connection
    */
   static async cleanup(): Promise<void> {
-    if (this.client) {
+    if (mongoose.connection.readyState !== 0) {
       try {
-        await this.client.close();
-        logger.info('DatabaseConnection: MongoDB connection closed');
+        await mongoose.disconnect();
+        logger.info('DatabaseConnection: Mongoose connection closed');
       } catch (error) {
         logger.error('DatabaseConnection: Error closing connection:', error);
       } finally {
-        this.client = null;
-        this.db = null;
         this.isConnected = false;
       }
     }

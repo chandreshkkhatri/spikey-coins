@@ -1,17 +1,65 @@
 "use client";
 
 import { useState } from "react";
-import { Send, Sparkles, Paperclip, Mic } from "lucide-react";
+import { Send, Sparkles, Paperclip, Mic, Loader2 } from "lucide-react";
+import axios from "axios";
 
-export default function ChatInput() {
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+
+interface ChatMessage {
+  role: "developer" | "user" | "assistant";
+  content: string;
+}
+
+interface ChatInputProps {
+  onResponse?: (message: string) => void;
+}
+
+export default function ChatInput({ onResponse }: ChatInputProps = {}) {
   const [message, setMessage] = useState("");
   const [isFocused, setIsFocused] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [response, setResponse] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [conversationHistory, setConversationHistory] = useState<ChatMessage[]>([]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (message.trim()) {
-      console.log("Sending message:", message);
-      setMessage("");
+    if (message.trim() && !isLoading) {
+      const currentMessage = message.trim();
+      setIsLoading(true);
+      setError(null);
+      setResponse(null);
+
+      try {
+        const result = await axios.post(`${API_BASE_URL}/api/chat`, {
+          message: currentMessage,
+          conversationHistory: conversationHistory
+        });
+
+        if (result.data.success && result.data.data) {
+          const responseMessage = result.data.data.message;
+          setResponse(responseMessage);
+
+          // Update conversation history
+          const newHistory: ChatMessage[] = [
+            ...conversationHistory,
+            { role: "user", content: currentMessage },
+            { role: "assistant", content: responseMessage }
+          ];
+          setConversationHistory(newHistory);
+
+          if (onResponse) {
+            onResponse(responseMessage);
+          }
+        }
+        setMessage("");
+      } catch (err) {
+        console.error("Error sending message:", err);
+        setError("Failed to get response. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -62,15 +110,19 @@ export default function ChatInput() {
               
               <button
                 type="submit"
-                disabled={!message.trim()}
+                disabled={!message.trim() || isLoading}
                 className={`p-2 rounded-lg transition-colors ${
-                  message.trim()
+                  message.trim() && !isLoading
                     ? "bg-blue-500 hover:bg-blue-600 text-white"
                     : "bg-gray-100 text-gray-400 cursor-not-allowed"
                 }`}
                 aria-label="Send message"
               >
-                <Send className="h-5 w-5" />
+                {isLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Send className="h-5 w-5" />
+                )}
               </button>
             </div>
           </div>
@@ -106,6 +158,17 @@ export default function ChatInput() {
             </div>
           )}
         </form>
+
+        {/* Response Display */}
+        {(response || error) && (
+          <div className="mt-4 p-4 bg-white rounded-xl border shadow-sm max-h-60 overflow-y-auto">
+            {error ? (
+              <div className="text-red-600">{error}</div>
+            ) : (
+              <div className="text-gray-800 whitespace-pre-wrap">{response}</div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

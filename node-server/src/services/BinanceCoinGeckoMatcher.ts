@@ -479,6 +479,9 @@ class BinanceCoinGeckoMatcher {
       // Save to database
       if (DatabaseConnection.isConnectionReady()) {
         const db = DatabaseConnection.getDatabase();
+        if (!db) {
+          throw new Error('Database connection not available');
+        }
         const collection = db.collection('binance_coingecko_matches');
 
         // Clear old data
@@ -555,6 +558,9 @@ class BinanceCoinGeckoMatcher {
     }
 
     const db = DatabaseConnection.getDatabase();
+    if (!db) {
+      throw new Error('Database connection not available');
+    }
     const collection = db.collection('binance_coingecko_matches');
 
     const matches = await collection

@@ -3,10 +3,21 @@
  * Defines user structure and roles for the authentication system
  */
 
-import { ObjectId } from 'mongodb';
+import mongoose, { Document, Schema } from 'mongoose';
+
+export interface IUser extends Document {
+  username: string;
+  email: string;
+  password: string;
+  role: UserRole;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  lastLogin?: Date;
+}
 
 export interface User {
-  _id?: ObjectId;
+  _id?: mongoose.Types.ObjectId;
   username: string;
   email: string;
   password: string;
@@ -58,3 +69,47 @@ export interface AuthResponse {
   token: string;
   expiresIn: string;
 }
+
+const userSchema = new Schema<IUser>({
+  username: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+    minlength: 3,
+    maxlength: 50,
+    index: true,
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+    lowercase: true,
+    index: true,
+  },
+  password: {
+    type: String,
+    required: true,
+    minlength: 6,
+  },
+  role: {
+    type: String,
+    enum: Object.values(UserRole),
+    default: UserRole.USER,
+  },
+  isActive: {
+    type: Boolean,
+    default: true,
+  },
+  lastLogin: {
+    type: Date,
+  },
+}, {
+  timestamps: true,
+});
+
+// Additional index for role queries
+userSchema.index({ role: 1 });
+
+export const UserModel = mongoose.model<IUser>('User', userSchema);

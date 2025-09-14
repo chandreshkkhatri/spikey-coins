@@ -45,7 +45,7 @@ export function verifyToken(token: string): JWTPayload {
 /**
  * Convert User to UserResponse (remove password)
  */
-export function sanitizeUser(user: User): UserResponse {
+export function sanitizeUser(user: any): UserResponse {
   const { password, ...sanitizedUser } = user;
   return {
     ...sanitizedUser,

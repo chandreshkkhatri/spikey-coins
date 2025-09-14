@@ -1,12 +1,12 @@
 /**
- * CandlestickStorage Service with MongoDB Backend
+ * CandlestickStorage Service with Mongoose Backend
  * Efficiently stores and retrieves historical candlestick data
  * Optimized for 5-minute candles to calculate 1h, 4h, 8h, 12h changes
  */
 
-import { Collection } from 'mongodb';
 import logger from '../utils/logger.js';
 import DatabaseConnection from './DatabaseConnection.js';
+import { CandlestickModel, ICandlestick } from '../models/Candlestick.js';
 
 interface Candlestick {
   openTime: number;
@@ -18,23 +18,7 @@ interface Candlestick {
   closeTime: number;
 }
 
-interface CandlestickDocument {
-  _id?: string;
-  symbol: string;
-  openTime: number;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-  closeTime: number;
-  interval: string;
-  updatedAt: Date;
-}
-
 class CandlestickStorage {
-  private static collection: Collection<CandlestickDocument> | null = null;
-  private static readonly COLLECTION_NAME = 'candlesticks_5m';
   private static readonly MAX_CANDLES_PER_SYMBOL = 288; // 24 hours of 5m candles
   private static isInitialized = false;
 
@@ -44,26 +28,20 @@ class CandlestickStorage {
   private static readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   /**
-   * Initialize storage and MongoDB collection
+   * Initialize storage and Mongoose connection
    */
   static async initialize(): Promise<void> {
     if (this.isInitialized) return;
-    
+
     try {
       // Ensure database connection
       if (!DatabaseConnection.isConnectionReady()) {
         await DatabaseConnection.initialize();
       }
 
-      const db = DatabaseConnection.getDatabase();
-      this.collection = db.collection<CandlestickDocument>(this.COLLECTION_NAME);
-
-      // Create indexes for better performance
-      await this.createIndexes();
-
       this.isInitialized = true;
-      logger.info(`CandlestickStorage: Initialized with MongoDB collection '${this.COLLECTION_NAME}'`);
-      
+      logger.info('CandlestickStorage: Initialized with Mongoose CandlestickModel');
+
     } catch (error) {
       logger.error('CandlestickStorage: Failed to initialize:', error);
       throw error;
@@ -71,40 +49,15 @@ class CandlestickStorage {
   }
 
   /**
-   * Create database indexes for optimal performance
-   */
-  private static async createIndexes(): Promise<void> {
-    if (!this.collection) return;
-
-    try {
-      // Compound index for efficient queries by symbol and time
-      await this.collection.createIndex(
-        { symbol: 1, openTime: 1 },
-        { background: true }
-      );
-
-      // Index for cleanup operations
-      await this.collection.createIndex(
-        { updatedAt: 1 },
-        { background: true, expireAfterSeconds: 7 * 24 * 60 * 60 } // 7 days TTL
-      );
-
-      logger.debug('CandlestickStorage: Database indexes created');
-    } catch (error) {
-      logger.error('CandlestickStorage: Error creating indexes:', error);
-    }
-  }
-
-  /**
    * Store candlestick data for a symbol
    */
   static async storeCandlesticks(symbol: string, candlesticks: any[]): Promise<void> {
-    if (!this.collection) {
+    if (!this.isInitialized) {
       throw new Error('CandlestickStorage not initialized');
     }
 
     try {
-      const processed: CandlestickDocument[] = candlesticks.map(c => ({
+      const processed = candlesticks.map(c => ({
         symbol,
         openTime: c[0],
         open: parseFloat(c[1]),
@@ -114,7 +67,6 @@ class CandlestickStorage {
         volume: parseFloat(c[5]),
         closeTime: c[6],
         interval: '5m',
-        updatedAt: new Date()
       }));
 
       // Use bulk upsert for better performance
@@ -127,8 +79,8 @@ class CandlestickStorage {
       }));
 
       if (bulkOps.length > 0) {
-        await this.collection.bulkWrite(bulkOps, { ordered: false });
-        
+        await CandlestickModel.bulkWrite(bulkOps, { ordered: false });
+
         // Update cache
         this.updateCache(symbol, processed.map(doc => ({
           openTime: doc.openTime,
@@ -143,7 +95,7 @@ class CandlestickStorage {
         // Clean old data for this symbol (keep only latest 288 candles)
         await this.cleanOldCandles(symbol);
       }
-      
+
     } catch (error) {
       logger.error(`CandlestickStorage: Error storing candlesticks for ${symbol}:`, error);
       throw error;
@@ -154,24 +106,21 @@ class CandlestickStorage {
    * Clean old candles to keep only the most recent ones
    */
   private static async cleanOldCandles(symbol: string): Promise<void> {
-    if (!this.collection) return;
-
     try {
       // Get the count of candles for this symbol
-      const count = await this.collection.countDocuments({ symbol });
-      
+      const count = await CandlestickModel.countDocuments({ symbol });
+
       if (count > this.MAX_CANDLES_PER_SYMBOL) {
         // Find the timestamp to keep (288th most recent)
-        const oldestToKeep = await this.collection
+        const oldestToKeep = await CandlestickModel
           .find({ symbol })
           .sort({ openTime: -1 })
           .skip(this.MAX_CANDLES_PER_SYMBOL - 1)
-          .limit(1)
-          .toArray();
+          .limit(1);
 
         if (oldestToKeep.length > 0) {
           const cutoffTime = oldestToKeep[0].openTime;
-          await this.collection.deleteMany({
+          await CandlestickModel.deleteMany({
             symbol,
             openTime: { $lt: cutoffTime }
           });
@@ -206,18 +155,14 @@ class CandlestickStorage {
     }
 
     // Load from database
-    if (!this.collection) {
-      return [];
-    }
-
     try {
-      const docs = await this.collection
+      const docs = await CandlestickModel
         .find({ symbol })
         .sort({ openTime: 1 })
         .limit(this.MAX_CANDLES_PER_SYMBOL)
-        .toArray();
+        .lean();
 
-      const candles: Candlestick[] = docs.map((doc: CandlestickDocument) => ({
+      const candles: Candlestick[] = docs.map((doc: any) => ({
         openTime: doc.openTime,
         open: doc.open,
         high: doc.high,
@@ -229,7 +174,7 @@ class CandlestickStorage {
 
       // Update cache
       this.updateCache(symbol, candles);
-      
+
       return candles;
     } catch (error) {
       logger.error(`CandlestickStorage: Error loading candlesticks for ${symbol}:`, error);
@@ -319,18 +264,15 @@ class CandlestickStorage {
    * Check if we have recent data for a symbol
    */
   static async hasRecentData(symbol: string, maxAgeMinutes: number = 10): Promise<boolean> {
-    if (!this.collection) return false;
-
     try {
       const cutoffTime = Date.now() - (maxAgeMinutes * 60 * 1000);
-      const recentCandle = await this.collection.findOne(
-        { 
-          symbol, 
-          openTime: { $gt: cutoffTime } 
-        },
-        { sort: { openTime: -1 } }
-      );
-      
+      const recentCandle = await CandlestickModel.findOne(
+        {
+          symbol,
+          openTime: { $gt: cutoffTime }
+        }
+      ).sort({ openTime: -1 });
+
       return recentCandle !== null;
     } catch (error) {
       logger.error(`CandlestickStorage: Error checking recent data for ${symbol}:`, error);
@@ -342,10 +284,8 @@ class CandlestickStorage {
    * Get all symbols with stored data
    */
   static async getStoredSymbols(): Promise<string[]> {
-    if (!this.collection) return [];
-
     try {
-      const symbols = await this.collection.distinct('symbol');
+      const symbols = await CandlestickModel.distinct('symbol');
       return symbols;
     } catch (error) {
       logger.error('CandlestickStorage: Error getting stored symbols:', error);
@@ -357,11 +297,9 @@ class CandlestickStorage {
    * Get symbols that need updating
    */
   static async getSymbolsNeedingUpdate(maxAgeMinutes: number = 10): Promise<string[]> {
-    if (!this.collection) return [];
-
     try {
       const cutoffTime = new Date(Date.now() - (maxAgeMinutes * 60 * 1000));
-      
+
       // Find symbols that either have no recent data or haven't been updated recently
       const pipeline = [
         {
@@ -383,7 +321,7 @@ class CandlestickStorage {
         }
       ];
 
-      const results = await this.collection.aggregate(pipeline).toArray();
+      const results = await CandlestickModel.aggregate(pipeline);
       return results.map((r: any) => r.symbol);
     } catch (error) {
       logger.error('CandlestickStorage: Error getting symbols needing update:', error);
@@ -395,17 +333,6 @@ class CandlestickStorage {
    * Get statistics about stored data
    */
   static async getStats(): Promise<any> {
-    if (!this.collection) {
-      return {
-        symbolCount: 0,
-        symbolsWithFullData: 0,
-        totalCandles: 0,
-        avgCandlesPerSymbol: 0,
-        oldestUpdate: null,
-        newestUpdate: null
-      };
-    }
-
     try {
       const pipeline = [
         {
@@ -430,8 +357,8 @@ class CandlestickStorage {
         }
       ];
 
-      const results = await this.collection.aggregate(pipeline).toArray();
-      
+      const results = await CandlestickModel.aggregate(pipeline);
+
       if (results.length === 0) {
         return {
           symbolCount: 0,
@@ -469,10 +396,8 @@ class CandlestickStorage {
    * Clear all data for a symbol
    */
   static async clearSymbol(symbol: string): Promise<void> {
-    if (!this.collection) return;
-
     try {
-      await this.collection.deleteMany({ symbol });
+      await CandlestickModel.deleteMany({ symbol });
       this.cache.delete(symbol);
       this.cacheTimestamps.delete(symbol);
       logger.info(`CandlestickStorage: Cleared data for ${symbol}`);

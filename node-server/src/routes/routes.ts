@@ -435,6 +435,9 @@ export async function getSummaries(req: Request, res: Response): Promise<void> {
     }
 
     const db = DatabaseConnection.getDatabase();
+    if (!db) {
+      throw new Error('Database connection not available');
+    }
     const summariesCollection = db.collection('summaries');
 
     // Get the latest 10 published summaries, sorted by creation date
@@ -473,6 +476,9 @@ export async function getUserWatchlists(req: Request, res: Response): Promise<vo
     }
 
     const db = DatabaseConnection.getDatabase();
+    if (!db) {
+      throw new Error('Database connection not available');
+    }
     const watchlistsCollection = db.collection('watchlists');
 
     let watchlists: any[] = [];

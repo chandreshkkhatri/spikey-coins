@@ -4,8 +4,9 @@
  */
 
 import { Request, Response } from 'express';
-import { ObjectId } from 'mongodb';
+import mongoose from 'mongoose';
 import DatabaseConnection from '../services/DatabaseConnection.js';
+import { UserModel } from '../models/User.js';
 import BinanceCoinGeckoMatcher from '../services/BinanceCoinGeckoMatcher.js';
 import SummarizationService from '../services/SummarizationService.js';
 import logger from '../utils/logger.js';
@@ -20,10 +21,13 @@ export async function getAdminDashboard(req: Request, res: Response): Promise<vo
     }
 
     const db = DatabaseConnection.getDatabase();
+    if (!db) {
+      throw new Error('Database connection not available');
+    }
 
     // Get system statistics
     const stats = await Promise.all([
-      db.collection('users').countDocuments(),
+      UserModel.countDocuments(),
       db.collection('summaries').countDocuments(),
       db.collection('watchlists').countDocuments(),
       db.stats()
@@ -77,13 +81,10 @@ export async function getAllUsers(req: Request, res: Response): Promise<void> {
       await DatabaseConnection.initialize();
     }
 
-    const db = DatabaseConnection.getDatabase();
-    const usersCollection = db.collection('users');
-
-    const users = await usersCollection
-      .find({}, { projection: { password: 0 } })
+    const users = await UserModel
+      .find({}, { password: 0 })
       .sort({ createdAt: -1 })
-      .toArray();
+      .lean();
 
     logger.info(`Admin: User list accessed by ${req.user?.username} - ${users.length} users found`);
     res.json({
@@ -156,6 +157,9 @@ export async function clearOldData(req: Request, res: Response): Promise<void> {
     }
 
     const db = DatabaseConnection.getDatabase();
+    if (!db) {
+      throw new Error('Database connection not available');
+    }
     const targetCollection = db.collection(collection);
 
     const cutoffDate = new Date();
@@ -420,11 +424,14 @@ export async function updateSummaryPublication(req: Request, res: Response): Pro
     }
 
     const db = DatabaseConnection.getDatabase();
+    if (!db) {
+      throw new Error('Database connection not available');
+    }
     const summariesCollection = db.collection('summaries');
 
     // Check if summary exists
     const summary = await summariesCollection.findOne({
-      _id: new ObjectId(summaryId)
+      _id: new mongoose.Types.ObjectId(summaryId)
     });
 
     if (!summary) {
@@ -438,7 +445,7 @@ export async function updateSummaryPublication(req: Request, res: Response): Pro
 
     // Update publication status
     const result = await summariesCollection.updateOne(
-      { _id: new ObjectId(summaryId) },
+      { _id: new mongoose.Types.ObjectId(summaryId) },
       {
         $set: {
           isPublished: isPublished,
@@ -497,6 +504,9 @@ export async function getAllSummaries(req: Request, res: Response): Promise<void
     }
 
     const db = DatabaseConnection.getDatabase();
+    if (!db) {
+      throw new Error('Database connection not available');
+    }
     const summariesCollection = db.collection('summaries');
 
     // Build query filter
