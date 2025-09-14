@@ -4,6 +4,7 @@
  */
 
 import { Request, Response } from 'express';
+import { ObjectId } from 'mongodb';
 import DatabaseConnection from '../services/DatabaseConnection.js';
 import BinanceCoinGeckoMatcher from '../services/BinanceCoinGeckoMatcher.js';
 import SummarizationService from '../services/SummarizationService.js';
@@ -402,6 +403,136 @@ export async function summarizeArticle(req: Request, res: Response): Promise<voi
     res.status(500).json({
       success: false,
       error: 'Failed to summarize article',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
+
+/**
+ * Update summary publication status (admin only)
+ */
+export async function updateSummaryPublication(req: Request, res: Response): Promise<void> {
+  try {
+    const { summaryId, isPublished } = req.body;
+
+    if (!DatabaseConnection.isConnectionReady()) {
+      await DatabaseConnection.initialize();
+    }
+
+    const db = DatabaseConnection.getDatabase();
+    const summariesCollection = db.collection('summaries');
+
+    // Check if summary exists
+    const summary = await summariesCollection.findOne({
+      _id: new ObjectId(summaryId)
+    });
+
+    if (!summary) {
+      res.status(404).json({
+        success: false,
+        error: 'Summary not found',
+        message: `No summary found with ID: ${summaryId}`
+      });
+      return;
+    }
+
+    // Update publication status
+    const result = await summariesCollection.updateOne(
+      { _id: new ObjectId(summaryId) },
+      {
+        $set: {
+          isPublished: isPublished,
+          updatedAt: new Date()
+        }
+      }
+    );
+
+    if (result.matchedCount === 0) {
+      res.status(404).json({
+        success: false,
+        error: 'Summary not found or could not be updated'
+      });
+      return;
+    }
+
+    logger.info(`Admin: Summary publication status updated by ${req.user?.username} - ID: ${summaryId}, Published: ${isPublished}`);
+
+    res.json({
+      success: true,
+      message: `Summary ${isPublished ? 'published' : 'unpublished'} successfully`,
+      data: {
+        summaryId,
+        isPublished,
+        updatedAt: new Date().toISOString(),
+        summary: {
+          title: summary.title,
+          source: summary.source,
+          category: summary.category
+        }
+      },
+      performedBy: req.user?.username,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    logger.error('Admin: Update summary publication error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update summary publication status',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
+
+/**
+ * Get all summaries including unpublished ones (admin only)
+ */
+export async function getAllSummaries(req: Request, res: Response): Promise<void> {
+  try {
+    const limit = parseInt(req.query.limit as string) || 50;
+    const includeUnpublished = req.query.includeUnpublished === 'true';
+
+    if (!DatabaseConnection.isConnectionReady()) {
+      await DatabaseConnection.initialize();
+    }
+
+    const db = DatabaseConnection.getDatabase();
+    const summariesCollection = db.collection('summaries');
+
+    // Build query filter
+    const filter = includeUnpublished ? {} : { isPublished: true };
+
+    // Get summaries with pagination
+    const summaries = await summariesCollection
+      .find(filter)
+      .sort({ createdAt: -1, _id: -1 })
+      .limit(limit)
+      .toArray();
+
+    // Get counts
+    const totalCount = await summariesCollection.countDocuments({});
+    const publishedCount = await summariesCollection.countDocuments({ isPublished: true });
+    const unpublishedCount = totalCount - publishedCount;
+
+    logger.info(`Admin: Summaries list accessed by ${req.user?.username} - ${summaries.length} summaries returned`);
+
+    res.json({
+      success: true,
+      data: summaries,
+      count: summaries.length,
+      stats: {
+        total: totalCount,
+        published: publishedCount,
+        unpublished: unpublishedCount
+      },
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    logger.error('Admin: Get all summaries error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve summaries',
       details: error instanceof Error ? error.message : String(error)
     });
   }

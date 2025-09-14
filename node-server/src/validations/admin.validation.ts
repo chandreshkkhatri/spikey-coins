@@ -143,3 +143,25 @@ export const summarizeArticleSchema = Joi.object({
       'any.required': 'Article URL is required'
     })
 });
+
+/**
+ * Schema for updating summary publication status
+ */
+export const updateSummaryPublicationSchema = Joi.object({
+  summaryId: Joi.string()
+    .hex()
+    .length(24)
+    .required()
+    .messages({
+      'string.base': 'Summary ID must be a string',
+      'string.hex': 'Summary ID must be a valid MongoDB ObjectId',
+      'string.length': 'Summary ID must be 24 characters long',
+      'any.required': 'Summary ID is required'
+    }),
+  isPublished: Joi.boolean()
+    .required()
+    .messages({
+      'boolean.base': 'isPublished must be a boolean value',
+      'any.required': 'Publication status is required'
+    })
+});

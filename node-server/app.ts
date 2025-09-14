@@ -22,7 +22,7 @@ import * as adminRoutes from "./src/routes/admin.js";
 import { authenticateToken, requireAdminAuth } from "./src/middleware/auth.js";
 import { validate } from "./src/middleware/validate.js";
 import { loginSchema, createInitialAdminSchema, createUserSchema } from "./src/validations/auth.validation.js";
-import { runBinanceCoinGeckoMatcherSchema, summarizeArticleSchema } from "./src/validations/admin.validation.js";
+import { runBinanceCoinGeckoMatcherSchema, summarizeArticleSchema, updateSummaryPublicationSchema } from "./src/validations/admin.validation.js";
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -91,6 +91,8 @@ app.post('/api/admin/binance-coingecko/run', requireAdminAuth, validate(runBinan
 app.get('/api/admin/binance-coingecko/status', requireAdminAuth, adminRoutes.getBinanceCoinGeckoMatcherStatus);
 app.get('/api/admin/binance-coingecko/matches', requireAdminAuth, adminRoutes.getLatestMatches);
 app.post('/api/admin/summarize-article', requireAdminAuth, validate(summarizeArticleSchema), adminRoutes.summarizeArticle);
+app.put('/api/admin/summaries/publication', requireAdminAuth, validate(updateSummaryPublicationSchema), adminRoutes.updateSummaryPublication);
+app.get('/api/admin/summaries', requireAdminAuth, adminRoutes.getAllSummaries);
 
 // Global error handler
 app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -130,6 +132,8 @@ app.use('*', (req, res) => {
       'GET /api/admin/binance-coingecko/status (requires admin auth)',
       'GET /api/admin/binance-coingecko/matches (requires admin auth)',
       'POST /api/admin/summarize-article (requires admin auth)',
+      'PUT /api/admin/summaries/publication (requires admin auth)',
+      'GET /api/admin/summaries (requires admin auth)',
       'GET /docs',
     ],
   });

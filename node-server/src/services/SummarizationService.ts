@@ -14,6 +14,7 @@ interface ArticleSummary {
   url: string;
   category: string;
   impact: "high" | "medium" | "low";
+  isPublished: boolean;
   timestamp: Date;
   createdAt: Date;
 }
@@ -116,6 +117,7 @@ Please browse and read this article, then provide a summary: ${url}`,
         url: url,
         category: parsedResponse.category || "General",
         impact: parsedResponse.impact || "medium",
+        isPublished: false, // Requires review before publishing
         timestamp: now,
         createdAt: now,
       };

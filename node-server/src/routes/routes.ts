@@ -437,9 +437,9 @@ export async function getSummaries(req: Request, res: Response): Promise<void> {
     const db = DatabaseConnection.getDatabase();
     const summariesCollection = db.collection('summaries');
 
-    // Get the latest 10 summaries, sorted by creation date
+    // Get the latest 10 published summaries, sorted by creation date
     const summaries = await summariesCollection
-      .find({})
+      .find({ isPublished: true })
       .sort({ createdAt: -1, _id: -1 })
       .limit(10)
       .toArray();
