@@ -492,12 +492,14 @@ export async function updateSummaryPublication(req: Request, res: Response): Pro
 }
 
 /**
- * Get all summaries including unpublished ones (admin only)
+ * Get all summaries (admin only)
+ * By default shows all summaries (published and unpublished)
+ * Use ?publishedOnly=true to filter to published summaries only
  */
 export async function getAllSummaries(req: Request, res: Response): Promise<void> {
   try {
     const limit = parseInt(req.query.limit as string) || 50;
-    const includeUnpublished = req.query.includeUnpublished === 'true';
+    const publishedOnly = req.query.publishedOnly === 'true';
 
     if (!DatabaseConnection.isConnectionReady()) {
       await DatabaseConnection.initialize();
@@ -509,8 +511,8 @@ export async function getAllSummaries(req: Request, res: Response): Promise<void
     }
     const summariesCollection = db.collection('summaries');
 
-    // Build query filter
-    const filter = includeUnpublished ? {} : { isPublished: true };
+    // Build query filter - for admin, show all by default, filter to published only if requested
+    const filter = publishedOnly ? { isPublished: true } : {};
 
     // Get summaries with pagination
     const summaries = await summariesCollection
