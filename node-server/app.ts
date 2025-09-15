@@ -29,7 +29,52 @@ const app = express();
 const PORT = process.env.PORT || 8000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    // Allow all Vercel domains and localhost for development
+    const allowedOrigins = [
+      /^https:\/\/.*\.vercel\.app$/,
+      /^https:\/\/vercel\.app$/,
+      /^http:\/\/localhost:\d+$/,
+      /^https:\/\/localhost:\d+$/,
+    ];
+
+    // Add your specific Vercel domain if you have a custom one
+    if (process.env.FRONTEND_URL) {
+      allowedOrigins.push(process.env.FRONTEND_URL);
+    }
+
+    const isAllowed = allowedOrigins.some(pattern => {
+      if (typeof pattern === 'string') {
+        return origin === pattern;
+      }
+      return pattern.test(origin);
+    });
+
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      logger.warn(`CORS: Blocked request from origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  optionsSuccessStatus: 200, // Support legacy browsers
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: [
+    'Origin',
+    'X-Requested-With',
+    'Content-Type',
+    'Accept',
+    'Authorization',
+    'Cache-Control',
+    'Pragma'
+  ],
+  exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar']
+}));
 app.use(express.json());
 // Use 'common' instead of 'combined' for less verbose HTTP logging
 // Only log HTTP requests at info level or higher (not debug)
