@@ -35,16 +35,20 @@ app.use(cors({
     if (!origin) return callback(null, true);
 
     // Allow all Vercel domains and localhost for development
-    const allowedOrigins = [
+    const allowedOrigins: (RegExp | string)[] = [
       /^https:\/\/.*\.vercel\.app$/,
       /^https:\/\/vercel\.app$/,
       /^http:\/\/localhost:\d+$/,
       /^https:\/\/localhost:\d+$/,
     ];
 
-    // Add your specific Vercel domain if you have a custom one
+    // Add your custom domains from environment variables
     if (process.env.FRONTEND_URL) {
-      allowedOrigins.push(process.env.FRONTEND_URL);
+      // Support comma-separated list of domains
+      const customDomains = process.env.FRONTEND_URL.split(',').map(url => url.trim());
+      customDomains.forEach(domain => {
+        if (domain) allowedOrigins.push(domain);
+      });
     }
 
     const isAllowed = allowedOrigins.some(pattern => {
