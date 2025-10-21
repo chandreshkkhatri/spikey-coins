@@ -16,6 +16,8 @@ import BinanceClient from "./src/core/BinanceClient.js";
 import CandlestickStorage from "./src/services/CandlestickStorage.js";
 import DatabaseConnection from "./src/services/DatabaseConnection.js";
 import MarketOverviewService from "./src/services/MarketOverviewService.js";
+import ResearchCronService from "./src/services/ResearchCronService.js";
+import PriceHistoryService from "./src/services/PriceHistoryService.js";
 import * as routes from "./src/routes/routes.js";
 import * as authRoutes from "./src/routes/auth.js";
 import * as adminRoutes from "./src/routes/admin.js";
@@ -23,7 +25,7 @@ import chatRouter from "./src/routes/chat.js";
 import { authenticateToken, requireAdminAuth } from "./src/middleware/auth.js";
 import { validate } from "./src/middleware/validate.js";
 import { loginSchema, createInitialAdminSchema, createUserSchema } from "./src/validations/auth.validation.js";
-import { runBinanceCoinGeckoMatcherSchema, summarizeArticleSchema, updateSummaryPublicationSchema } from "./src/validations/admin.validation.js";
+import { runBinanceCoinGeckoMatcherSchema, summarizeArticleSchema, updateSummaryPublicationSchema, triggerResearchJobSchema, adminResetPasswordSchema } from "./src/validations/admin.validation.js";
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -128,6 +130,7 @@ app.get('/api/market/overview', routes.getMarketOverview);
 app.post('/api/market/overview/refresh', routes.forceRefreshMarketOverview);
 app.get('/api/summaries', routes.getSummaries);
 app.get('/api/watchlists', routes.getUserWatchlists);
+app.get('/api/ticker/7d', routes.get7dTopMovers);
 
 // Chat route
 app.use('/api/chat', chatRouter);
@@ -146,6 +149,9 @@ app.get('/api/admin/binance-coingecko/matches', requireAdminAuth, adminRoutes.ge
 app.post('/api/admin/summarize-article', requireAdminAuth, validate(summarizeArticleSchema), adminRoutes.summarizeArticle);
 app.put('/api/admin/summaries/publication', requireAdminAuth, validate(updateSummaryPublicationSchema), adminRoutes.updateSummaryPublication);
 app.get('/api/admin/summaries', requireAdminAuth, adminRoutes.getAllSummaries);
+app.post('/api/admin/research/trigger', requireAdminAuth, validate(triggerResearchJobSchema), adminRoutes.triggerResearchJob);
+app.get('/api/admin/research/status', requireAdminAuth, adminRoutes.getResearchJobStatus);
+app.post('/api/admin/users/reset-password', requireAdminAuth, validate(adminResetPasswordSchema), adminRoutes.resetUserPassword);
 
 // Global error handler
 app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -198,6 +204,8 @@ process.on('SIGTERM', () => {
   binanceClient.cleanup();
   CandlestickStorage.cleanup();
   MarketOverviewService.getInstance().cleanup();
+  ResearchCronService.getInstance().stop();
+  PriceHistoryService.getInstance().stop();
   DatabaseConnection.cleanup();
   process.exit(0);
 });
@@ -207,6 +215,8 @@ process.on('SIGINT', () => {
   binanceClient.cleanup();
   CandlestickStorage.cleanup();
   MarketOverviewService.getInstance().cleanup();
+  ResearchCronService.getInstance().stop();
+  PriceHistoryService.getInstance().stop();
   DatabaseConnection.cleanup();
   process.exit(0);
 });
@@ -225,7 +235,15 @@ async function startServer() {
     // Initialize Market Overview Service
     MarketOverviewService.getInstance();
     logger.info('✅ Market Overview Service initialized');
-    
+
+    // Initialize and start Research Cron Service
+    ResearchCronService.getInstance().start();
+    logger.info('✅ Research Cron Service started (runs every 2 hours)');
+
+    // Initialize and start Price History Service
+    PriceHistoryService.getInstance().start();
+    logger.info('✅ Price History Service started (snapshots every hour)');
+
     // Start Binance WebSocket connections
     await binanceClient.start();
     
@@ -250,6 +268,8 @@ process.on('uncaughtException', (error) => {
   binanceClient.cleanup();
   CandlestickStorage.cleanup();
   MarketOverviewService.getInstance().cleanup();
+  ResearchCronService.getInstance().stop();
+  PriceHistoryService.getInstance().stop();
   DatabaseConnection.cleanup();
   process.exit(1);
 });
@@ -259,6 +279,8 @@ process.on('unhandledRejection', (reason, promise) => {
   binanceClient.cleanup();
   CandlestickStorage.cleanup();
   MarketOverviewService.getInstance().cleanup();
+  ResearchCronService.getInstance().stop();
+  PriceHistoryService.getInstance().stop();
   DatabaseConnection.cleanup();
   process.exit(1);
 });

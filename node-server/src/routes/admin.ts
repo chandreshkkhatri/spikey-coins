@@ -9,6 +9,8 @@ import DatabaseConnection from "../services/DatabaseConnection.js";
 import { UserModel } from "../models/User.js";
 import BinanceCoinGeckoMatcher from "../services/BinanceCoinGeckoMatcher.js";
 import SummarizationService from "../services/SummarizationService.js";
+import ResearchCronService from "../services/ResearchCronService.js";
+import { hashPassword } from "../utils/auth.js";
 import logger from "../utils/logger.js";
 
 /**
@@ -584,6 +586,162 @@ export async function getAllSummaries(
     res.status(500).json({
       success: false,
       error: "Failed to retrieve summaries",
+      details: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+/**
+ * Manually trigger research job (admin only)
+ */
+export async function triggerResearchJob(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    const { timeframe } = req.body;
+
+    // Validate timeframe
+    if (timeframe && timeframe !== '24h' && timeframe !== '7d') {
+      res.status(400).json({
+        success: false,
+        error: "Invalid timeframe",
+        message: "Timeframe must be '24h' or '7d'",
+      });
+      return;
+    }
+
+    const selectedTimeframe = (timeframe as '24h' | '7d') || '24h';
+
+    // Check if OPENAI_API_KEY is configured
+    if (!process.env.OPENAI_API_KEY) {
+      res.status(503).json({
+        success: false,
+        error: "OpenAI API key not configured",
+        message: "Please set OPENAI_API_KEY environment variable",
+      });
+      return;
+    }
+
+    logger.info(
+      `Admin: Research job manually triggered by ${req.user?.username} for timeframe: ${selectedTimeframe}`
+    );
+
+    // Trigger the research job
+    const researchCronService = ResearchCronService.getInstance();
+
+    // Run asynchronously to avoid timeout
+    researchCronService.triggerManually(selectedTimeframe).catch((error) => {
+      logger.error("Admin: Manual research job failed:", error);
+    });
+
+    res.json({
+      success: true,
+      message: `Research job started for ${selectedTimeframe} timeframe`,
+      data: {
+        timeframe: selectedTimeframe,
+        status: "running",
+        note: "The research job is running in the background. Check logs for progress.",
+      },
+      performedBy: req.user?.username,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error("Admin: Trigger research job error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to trigger research job",
+      details: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+/**
+ * Get research job status (admin only)
+ */
+export async function getResearchJobStatus(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    const researchCronService = ResearchCronService.getInstance();
+    const status = researchCronService.getStatus();
+
+    res.json({
+      success: true,
+      status,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error("Admin: Get research job status error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to get research job status",
+    });
+  }
+}
+
+/**
+ * Reset user password (admin only)
+ * Allows admins to reset any user's password
+ */
+export async function resetUserPassword(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    const { username, newPassword } = req.body;
+
+    if (!DatabaseConnection.isConnectionReady()) {
+      await DatabaseConnection.initialize();
+    }
+
+    // Find the user
+    const user = await UserModel.findOne({
+      username: username.toLowerCase(),
+    });
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        error: "User not found",
+        message: `No user found with username: ${username}`,
+      });
+      return;
+    }
+
+    // Hash the new password
+    const hashedPassword = await hashPassword(newPassword);
+
+    // Update the user's password
+    await UserModel.findByIdAndUpdate(user._id, {
+      $set: {
+        password: hashedPassword,
+        updatedAt: new Date(),
+      },
+    });
+
+    logger.info(
+      `Admin: Password reset for user ${username} by admin ${req.user?.username}`
+    );
+
+    res.json({
+      success: true,
+      message: `Password reset successfully for user: ${username}`,
+      data: {
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        resetAt: new Date().toISOString(),
+      },
+      performedBy: req.user?.username,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error("Admin: Reset password error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to reset password",
       details: error instanceof Error ? error.message : String(error),
     });
   }

@@ -165,3 +165,40 @@ export const updateSummaryPublicationSchema = Joi.object({
       'any.required': 'Publication status is required'
     })
 });
+
+/**
+ * Schema for manually triggering research job
+ */
+export const triggerResearchJobSchema = Joi.object({
+  timeframe: Joi.string()
+    .valid('24h', '7d')
+    .default('24h')
+    .messages({
+      'string.base': 'Timeframe must be a string',
+      'any.only': 'Timeframe must be either "24h" or "7d"'
+    })
+});
+
+/**
+ * Schema for admin password reset
+ */
+export const adminResetPasswordSchema = Joi.object({
+  username: Joi.string()
+    .min(3)
+    .max(50)
+    .required()
+    .messages({
+      'string.base': 'Username must be a string',
+      'string.min': 'Username must be at least 3 characters long',
+      'string.max': 'Username must not exceed 50 characters',
+      'any.required': 'Username is required'
+    }),
+  newPassword: Joi.string()
+    .min(6)
+    .required()
+    .messages({
+      'string.base': 'New password must be a string',
+      'string.min': 'New password must be at least 6 characters long',
+      'any.required': 'New password is required'
+    })
+});

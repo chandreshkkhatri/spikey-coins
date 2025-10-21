@@ -76,4 +76,14 @@ export const api = {
       throw error;
     }
   },
+
+  async get7dTopMovers() {
+    try {
+      const response = await apiClient.get("/api/ticker/7d");
+      return response;
+    } catch (error) {
+      console.error("Error fetching 7d top movers:", error);
+      throw error;
+    }
+  },
 };

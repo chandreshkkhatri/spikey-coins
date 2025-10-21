@@ -28,6 +28,7 @@ interface TickerData {
 
 export default function GainersLosers() {
   const [activeTab, setActiveTab] = useState<"gainers" | "losers">("gainers");
+  const [timeframe, setTimeframe] = useState<"24h" | "7d">("24h");
   const [gainers, setGainers] = useState<CryptoItem[]>([]);
   const [losers, setLosers] = useState<CryptoItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,33 +59,53 @@ export default function GainersLosers() {
       try {
         setLoading(true);
         setError(null);
-        
-        const response = await api.get24hrTicker();
-        const tickerData = response.data?.data || response.data || [];
-        
-        if (tickerData.length === 0) {
-          setError("No ticker data available");
-          return;
+
+        let tickerData: any[] = [];
+
+        if (timeframe === '24h') {
+          const response = await api.get24hrTicker();
+          tickerData = response.data?.data || response.data || [];
+
+          if (tickerData.length === 0) {
+            setError("No ticker data available");
+            return;
+          }
+
+          const formattedData = tickerData
+            .map((item: TickerData) => ({
+              id: item._id || item.s || Math.random().toString(36).substring(2, 11),
+              symbol: item.s?.replace('USDT', '') || 'Unknown',
+              name: item.s?.replace('USDT', ''),
+              price: formatPrice(parseFloat(item.price || item.c || '0')),
+              change: parseFloat(item.change_24h || item.P || '0'),
+              volume: formatVolume(parseFloat(item.volume_usd || item.q || '0')),
+            }))
+            .filter((item: CryptoItem) => !isNaN(item.change) && item.change !== 0);
+
+          const sortedByChange = [...formattedData].sort((a, b) => b.change - a.change);
+
+          const topGainers = sortedByChange.slice(0, 5);
+          const topLosers = sortedByChange.slice(-5).reverse();
+
+          setGainers(topGainers);
+          setLosers(topLosers);
+        } else {
+          // Fetch 7d data
+          const response = await api.get7dTopMovers();
+          const data = response.data?.data || {};
+
+          const formatData = (items: any[]) => items.map((item: any) => ({
+            id: item.symbol || Math.random().toString(36).substring(2, 11),
+            symbol: item.symbol || 'Unknown',
+            name: item.name || item.symbol,
+            price: formatPrice(parseFloat(item.price || '0')),
+            change: item.change_7d || 0,
+            volume: formatVolume(parseFloat(item.volume || '0')),
+          }));
+
+          setGainers(formatData(data.gainers || []));
+          setLosers(formatData(data.losers || []));
         }
-
-        const formattedData = tickerData
-          .map((item: TickerData) => ({
-            id: item._id || item.s || Math.random().toString(36).substring(2, 11),
-            symbol: item.s?.replace('USDT', '') || 'Unknown',
-            name: item.s?.replace('USDT', ''),
-            price: formatPrice(parseFloat(item.price || item.c || '0')),
-            change: parseFloat(item.change_24h || item.P || '0'),
-            volume: formatVolume(parseFloat(item.volume_usd || item.q || '0')),
-          }))
-          .filter((item: CryptoItem) => !isNaN(item.change) && item.change !== 0);
-
-        const sortedByChange = [...formattedData].sort((a, b) => b.change - a.change);
-        
-        const topGainers = sortedByChange.slice(0, 5);
-        const topLosers = sortedByChange.slice(-5).reverse();
-        
-        setGainers(topGainers);
-        setLosers(topLosers);
       } catch (err) {
         console.error("Error fetching ticker data for gainers/losers:", err);
         setError("Failed to load gainers and losers data");
@@ -94,7 +115,7 @@ export default function GainersLosers() {
     };
 
     fetchTickerData();
-  }, []);
+  }, [timeframe]);
 
   const items = activeTab === "gainers" ? gainers : losers;
 
@@ -199,7 +220,28 @@ export default function GainersLosers() {
             Top Losers
           </button>
         </div>
-        <span className="text-xs text-gray-500">Change</span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setTimeframe("24h")}
+            className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+              timeframe === "24h"
+                ? "bg-blue-100 text-blue-700"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            24h
+          </button>
+          <button
+            onClick={() => setTimeframe("7d")}
+            className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+              timeframe === "7d"
+                ? "bg-blue-100 text-blue-700"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            7d
+          </button>
+        </div>
       </div>
 
       <div className="space-y-2">
@@ -226,7 +268,7 @@ export default function GainersLosers() {
             <div className="flex items-center gap-6">
               <div className="text-center">
                 <span className="text-xs text-gray-500 block">Timeframe</span>
-                <span className="text-sm font-medium text-gray-700">24h</span>
+                <span className="text-sm font-medium text-gray-700">{timeframe}</span>
               </div>
 
               <div className="flex flex-col items-end">

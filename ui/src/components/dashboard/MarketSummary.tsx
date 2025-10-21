@@ -16,6 +16,9 @@ interface TrendingStory {
   impact: "high" | "medium" | "low";
   category: string;
   url?: string;
+  coinSymbol?: string;
+  priceChange?: number;
+  timeframe?: string;
 }
 
 interface SummaryData {
@@ -30,6 +33,9 @@ interface SummaryData {
   impact?: string;
   category?: string;
   url?: string;
+  coinSymbol?: string;
+  priceChange?: number;
+  timeframe?: string;
 }
 
 export default function MarketSummary() {
@@ -65,19 +71,22 @@ export default function MarketSummary() {
         
         const response = await api.getSummaries();
         const summariesData = response.data?.data || response.data || [];
-        
-        const formattedStories = summariesData.slice(0, 5).map((story: SummaryData): TrendingStory => ({
+
+        const formattedStories = summariesData.slice(0, 10).map((story: SummaryData): TrendingStory => ({
           _id: story._id,
           id: story._id || story.id || Math.random().toString(36).substring(2, 11),
           title: story.title || 'Untitled',
           summary: story.summary || 'No summary available',
-          source: story.source || 'Unknown',
+          source: story.source || 'Research',
           time: story.time || (story.timestamp || story.createdAt ? formatTimeAgo(story.timestamp || story.createdAt || '') : 'Recently'),
           timestamp: story.timestamp,
           createdAt: story.createdAt,
           impact: (story.impact as "high" | "medium" | "low") || 'medium',
           category: story.category || 'General',
           url: story.url,
+          coinSymbol: story.coinSymbol,
+          priceChange: story.priceChange,
+          timeframe: story.timeframe,
         }));
         
         setStories(formattedStories);
@@ -104,7 +113,7 @@ export default function MarketSummary() {
         </div>
         
         <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
+          {Array.from({ length: 10 }).map((_, i) => (
             <div key={i} className="p-3 bg-gray-50 rounded-lg animate-pulse">
               <div className="flex items-center gap-2 mb-2">
                 <div className="h-4 bg-gray-200 rounded w-16"></div>
@@ -174,7 +183,19 @@ export default function MarketSummary() {
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  {story.coinSymbol && (
+                    <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+                      {story.coinSymbol}
+                    </span>
+                  )}
+                  {story.priceChange !== undefined && (
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
+                      story.priceChange > 0 ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'
+                    }`}>
+                      {story.priceChange > 0 ? '+' : ''}{story.priceChange.toFixed(2)}%
+                    </span>
+                  )}
                   <span className={`text-xs px-2 py-0.5 rounded-full border ${getImpactColor(story.impact)}`}>
                     {story.impact.toUpperCase()}
                   </span>
@@ -193,7 +214,9 @@ export default function MarketSummary() {
                     <Clock className="h-3 w-3" />
                     {story.time}
                   </span>
-                  <span className="font-medium">{story.source}</span>
+                  {story.timeframe && (
+                    <span className="font-medium">{story.timeframe} change</span>
+                  )}
                 </div>
               </div>
               {story.url && (

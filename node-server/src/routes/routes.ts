@@ -11,6 +11,8 @@ import BinanceClient from "../core/BinanceClient.js";
 import CandlestickStorage from "../services/CandlestickStorage.js";
 import DatabaseConnection from "../services/DatabaseConnection.js";
 import MarketOverviewService from "../services/MarketOverviewService.js";
+import PriceHistoryService from "../services/PriceHistoryService.js";
+import ResearchService from "../services/ResearchService.js";
 
 // Global client instance
 let binanceClient: BinanceClient | null = null;
@@ -426,26 +428,12 @@ export async function forceRefreshMarketOverview(req: Request, res: Response): P
 
 /**
  * Get market summaries from database
- * Fetches latest market news and analysis from summaries collection
+ * Fetches latest market news and analysis from summaries collection with populated research data
  */
 export async function getSummaries(req: Request, res: Response): Promise<void> {
   try {
-    if (!DatabaseConnection.isConnectionReady()) {
-      await DatabaseConnection.initialize();
-    }
-
-    const db = DatabaseConnection.getDatabase();
-    if (!db) {
-      throw new Error('Database connection not available');
-    }
-    const summariesCollection = db.collection('summaries');
-
-    // Get the latest 10 published summaries, sorted by creation date
-    const summaries = await summariesCollection
-      .find({ isPublished: true })
-      .sort({ createdAt: -1, _id: -1 })
-      .limit(10)
-      .toArray();
+    const researchService = ResearchService.getInstance();
+    const summaries = await researchService.getLatestSummaries(10);
 
     res.json({
       success: true,
@@ -506,6 +494,37 @@ export async function getUserWatchlists(req: Request, res: Response): Promise<vo
     res.status(500).json({
       success: false,
       error: "Failed to retrieve user watchlists",
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
+
+/**
+ * Get 7-day top movers (gainers and losers)
+ * Returns top 5 gainers and losers based on 7-day price changes
+ */
+export async function get7dTopMovers(req: Request, res: Response): Promise<void> {
+  try {
+    const priceHistoryService = PriceHistoryService.getInstance();
+    const topMovers = await priceHistoryService.get7dTopMovers(5);
+
+    res.json({
+      success: true,
+      data: {
+        gainers: topMovers.gainers,
+        losers: topMovers.losers,
+      },
+      count: {
+        gainers: topMovers.gainers.length,
+        losers: topMovers.losers.length,
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error("Routes: Error getting 7d top movers:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to retrieve 7-day top movers",
       details: error instanceof Error ? error.message : String(error)
     });
   }

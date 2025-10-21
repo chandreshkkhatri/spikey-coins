@@ -19,7 +19,8 @@
     "docs:examples": "tsx validate-api.ts --examples",
     "docs:verify": "curl -s http://localhost:8000/api/ticker/24hr | python3 -c \"import sys,json; t=json.load(sys.stdin)['data'][0]; print(f'✅ Backend calculations verified: {t[\\\"s\\\"]} = ${t[\\\"price\\\"]} (USD: ${t[\\\"volume_usd\\\"]:,.0f})')\" || echo '❌ Server not running'",
     "validate:final": "tsx final-validation.ts",
-    "debug:routes": "tsx debug-routes.ts"
+    "debug:routes": "tsx debug-routes.ts",
+    "reset-password": "tsx reset-password.ts"
   },
   "keywords": [
     "crypto",
