@@ -116,53 +116,116 @@ class PriceHistoryService {
   }
 
   /**
+   * Fetch 7-day kline data from Binance API for a symbol
+   */
+  private async fetch7dPriceFromBinance(symbol: string): Promise<number | null> {
+    try {
+      const axios = (await import('axios')).default;
+      const sevenDaysAgoMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
+
+      const response = await axios.get('https://api.binance.com/api/v3/klines', {
+        params: {
+          symbol: symbol,
+          interval: '1d',
+          startTime: sevenDaysAgoMs,
+          limit: 1,
+        },
+        timeout: 5000,
+      });
+
+      if (response.data && response.data.length > 0) {
+        // Kline format: [openTime, open, high, low, close, ...]
+        return parseFloat(response.data[0][1]); // Open price 7 days ago
+      }
+
+      return null;
+    } catch (error) {
+      // Silently fail for individual symbols
+      return null;
+    }
+  }
+
+  /**
    * Calculate 7-day price changes for all cryptocurrencies
+   * Falls back to Binance API if no historical data exists in database
    */
   async calculate7dChanges(): Promise<CryptoWith7dChange[]> {
     try {
-      if (!DatabaseConnection.isConnectionReady()) {
-        await DatabaseConnection.initialize();
-      }
-
-      const db = DatabaseConnection.getDatabase();
-      if (!db) {
-        throw new Error('Database connection not available');
-      }
-
-      const priceHistoryCollection = db.collection('price_history');
-
       // Get current prices
       const currentTickers = DataManager.getAllTickers();
 
-      // Get prices from 7 days ago
-      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      if (currentTickers.length === 0) {
+        logger.warn('PriceHistoryService: No current ticker data available');
+        return [];
+      }
 
-      // Get the oldest snapshot for each symbol within the 7-day window
-      const oldPrices = await priceHistoryCollection
-        .aggregate([
-          {
-            $match: {
-              timestamp: { $gte: sevenDaysAgo },
-            },
-          },
-          {
-            $sort: { timestamp: 1 }, // Oldest first
-          },
-          {
-            $group: {
-              _id: '$symbol',
-              oldPrice: { $first: '$price' },
-              oldTimestamp: { $first: '$timestamp' },
-            },
-          },
-        ])
-        .toArray();
+      // Try to use database snapshots first
+      let oldPriceMap = new Map<string, number>();
+      let useDatabase = false;
 
-      // Create a map for quick lookup
-      const oldPriceMap = new Map<string, number>();
-      oldPrices.forEach((item: any) => {
-        oldPriceMap.set(item._id, item.oldPrice);
-      });
+      if (DatabaseConnection.isConnectionReady()) {
+        const db = DatabaseConnection.getDatabase();
+        if (db) {
+          const priceHistoryCollection = db.collection('price_history');
+          const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+          const oldPrices = await priceHistoryCollection
+            .aggregate([
+              {
+                $match: {
+                  timestamp: { $gte: sevenDaysAgo },
+                },
+              },
+              {
+                $sort: { timestamp: 1 },
+              },
+              {
+                $group: {
+                  _id: '$symbol',
+                  oldPrice: { $first: '$price' },
+                },
+              },
+            ])
+            .toArray();
+
+          if (oldPrices.length > 100) {
+            // We have enough historical data
+            useDatabase = true;
+            oldPrices.forEach((item: any) => {
+              oldPriceMap.set(item._id, item.oldPrice);
+            });
+            logger.info(`PriceHistoryService: Using database snapshots for 7d changes (${oldPrices.length} symbols)`);
+          }
+        }
+      }
+
+      // If not enough database data, fetch from Binance API
+      if (!useDatabase) {
+        logger.info('PriceHistoryService: Fetching 7d data from Binance API (database history not yet available)');
+
+        // Fetch in batches to avoid rate limits
+        const batchSize = 10;
+        const symbols = currentTickers.map((t: any) => t.s).filter((s: string) => s);
+
+        for (let i = 0; i < Math.min(symbols.length, 200); i += batchSize) {
+          const batch = symbols.slice(i, i + batchSize);
+          const promises = batch.map(async (symbol: string) => {
+            const oldPrice = await this.fetch7dPriceFromBinance(symbol);
+            if (oldPrice) {
+              oldPriceMap.set(symbol, oldPrice);
+            }
+          });
+
+          await Promise.all(promises);
+
+          // Small delay between batches to respect rate limits
+          if (i + batchSize < symbols.length) {
+            await new Promise(resolve => setTimeout(resolve, 200));
+          }
+        }
+
+        logger.info(`PriceHistoryService: Fetched 7d prices for ${oldPriceMap.size} symbols from Binance`);
+      }
 
       // Calculate 7d changes
       const result: CryptoWith7dChange[] = currentTickers
