@@ -13,11 +13,12 @@
     "resolveJsonModule": true,
     "allowJs": true,
     "moduleResolution": "node",
-    "declaration": true,
-    "sourceMap": true,
+    "declaration": false,
+    "sourceMap": false,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "types": ["node", "jest"]
+    "types": ["node", "jest"],
+    "incremental": true
   },
   "include": ["./**/*.ts"],
   "exclude": [
