@@ -13,6 +13,7 @@ import YAML from "yamljs";
 import { join } from "path";
 import logger from "./src/utils/logger.js";
 import BinanceClient from "./src/core/BinanceClient.js";
+import DataManager from "./src/core/DataManager.js";
 import CandlestickStorage from "./src/services/CandlestickStorage.js";
 import DatabaseConnection from "./src/services/DatabaseConnection.js";
 import MarketOverviewService from "./src/services/MarketOverviewService.js";
@@ -232,20 +233,31 @@ async function startServer() {
       logger.warn('⚠️  Database connection failed - some features may not work:', dbError);
     }
     
-    // Initialize Market Overview Service
+    // Start Binance WebSocket connections first (ticker data dependency)
+    await binanceClient.start();
+    logger.info('✅ Binance WebSocket connections established');
+
+    // Wait for initial ticker data to be received
+    logger.info('⏳ Waiting for initial ticker data...');
+    try {
+      await DataManager.waitForData(30000, 10); // Wait up to 30s for at least 10 symbols
+      logger.info('✅ Initial ticker data received');
+    } catch (error) {
+      logger.error('⚠️  Timeout waiting for ticker data - services may have limited functionality:', error);
+      // Continue anyway - services will handle missing data gracefully
+    }
+
+    // Initialize Market Overview Service (depends on ticker data)
     MarketOverviewService.getInstance();
     logger.info('✅ Market Overview Service initialized');
 
-    // Initialize and start Research Cron Service
+    // Initialize and start Research Cron Service (depends on ticker data)
     ResearchCronService.getInstance().start();
     logger.info('✅ Research Cron Service started (runs every 2 hours)');
 
-    // Initialize and start Price History Service
+    // Initialize and start Price History Service (depends on ticker data)
     PriceHistoryService.getInstance().start();
     logger.info('✅ Price History Service started (snapshots every hour)');
-
-    // Start Binance WebSocket connections
-    await binanceClient.start();
     
     // Start Express server
     app.listen(PORT, () => {

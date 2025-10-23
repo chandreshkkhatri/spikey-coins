@@ -294,6 +294,53 @@ class DataManager {
   }
 
   /**
+   * Check if ticker data is available (has received initial data)
+   */
+  static hasData(): boolean {
+    return this.tickers.size > 0;
+  }
+
+  /**
+   * Wait for initial ticker data to be available
+   * @param timeoutMs Maximum time to wait in milliseconds (default 30 seconds)
+   * @param minSymbols Minimum number of symbols to consider ready (default 10)
+   * @returns Promise that resolves when data is ready or rejects on timeout
+   */
+  static async waitForData(timeoutMs: number = 30000, minSymbols: number = 10): Promise<void> {
+    const startTime = Date.now();
+    const checkInterval = 500; // Check every 500ms
+
+    return new Promise((resolve, reject) => {
+      const checkData = () => {
+        const symbolCount = this.tickers.size;
+
+        if (symbolCount >= minSymbols) {
+          logger.info(`DataManager: Data ready with ${symbolCount} symbols`);
+          resolve();
+          return;
+        }
+
+        const elapsed = Date.now() - startTime;
+        if (elapsed >= timeoutMs) {
+          const errorMsg = `DataManager: Timeout waiting for ticker data after ${elapsed}ms (got ${symbolCount} symbols, need ${minSymbols})`;
+          logger.error(errorMsg);
+          reject(new Error(errorMsg));
+          return;
+        }
+
+        // Log progress periodically
+        if (elapsed % 2000 < checkInterval) {
+          logger.info(`DataManager: Waiting for ticker data... (${symbolCount} symbols received, need ${minSymbols})`);
+        }
+
+        setTimeout(checkData, checkInterval);
+      };
+
+      checkData();
+    });
+  }
+
+  /**
    * Get discovery statistics (like SymbolDiscoveryService)
    */
   static getDiscoveryStats() {
