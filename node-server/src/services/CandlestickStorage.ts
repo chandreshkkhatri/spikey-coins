@@ -187,23 +187,23 @@ class CandlestickStorage {
    */
   static async getPriceCandlesAgo(symbol: string, candlesAgo: number): Promise<number | null> {
     const candles = await this.getCandlesticks(symbol);
-    
+
     if (candles.length === 0) return null;
 
     // Get the candle from N positions back
-    const targetIndex = candles.length - candlesAgo - 1;
-    
+    const targetIndex = candles.length - candlesAgo;
+
     if (targetIndex < 0 || targetIndex >= candles.length) {
       return null;
     }
 
     const targetCandle = candles[targetIndex];
-    
+
     // Verify the candle is approximately the right age (within 10 minutes tolerance)
     const expectedAge = candlesAgo * 5 * 60 * 1000; // candlesAgo * 5 minutes in ms
     const actualAge = Date.now() - targetCandle.openTime;
     const tolerance = 10 * 60 * 1000; // 10 minutes tolerance
-    
+
     if (Math.abs(actualAge - expectedAge) > tolerance) {
       // Candle is too old or too new, data might have gaps
       return null;

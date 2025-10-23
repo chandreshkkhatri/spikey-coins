@@ -249,12 +249,19 @@ class BinanceClient {
       logger.error("BinanceClient: Max reconnection attempts reached");
       return;
     }
-    
+
+    // Clean up old connection to prevent memory leaks
+    if (this.tickerWs) {
+      this.tickerWs.removeAllListeners();
+      this.tickerWs.terminate();
+      this.tickerWs = null;
+    }
+
     this.reconnectAttempts++;
     const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
-    
+
     logger.info(`BinanceClient: Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`);
-    
+
     setTimeout(() => {
       this.connectTickerStream();
     }, delay);

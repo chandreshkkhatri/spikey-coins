@@ -312,10 +312,10 @@ export function getMarketCapData(req: Request, res: Response): void {
 /**
  * Get candlestick storage statistics
  */
-export function getCandlestickStorageStats(req: Request, res: Response): void {
+export async function getCandlestickStorageStats(req: Request, res: Response): Promise<void> {
   try {
-    const stats = CandlestickStorage.getStats();
-    
+    const stats = await CandlestickStorage.getStats();
+
     res.json({
       success: true,
       candlestickStorage: stats,
