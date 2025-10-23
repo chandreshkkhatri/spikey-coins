@@ -6,7 +6,7 @@
 echo "🚀 Starting Spikey Coins Frontend with PM2..."
 
 # Check if we're in the right directory
-if [ ! -d "../react-ui-nextjs" ]; then
+if [ ! -d "../ui" ]; then
     echo "❌ Error: Please run this script from the bash-scripts directory"
     exit 1
 fi
@@ -35,7 +35,7 @@ if ! command_exists pm2; then
 fi
 
 echo "📦 Installing frontend dependencies..."
-cd ../react-ui-nextjs
+cd ../ui
 
 # Install dependencies if needed
 if [ ! -d "node_modules" ]; then
