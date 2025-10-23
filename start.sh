@@ -6,7 +6,7 @@
 echo "🚀 Starting Spikey Coins Application with PM2..."
 
 # Check if we're in the right directory
-if [ ! -d "node-server" ] || [ ! -d "react-ui-nextjs" ] || [ ! -d "bash-scripts" ]; then
+if [ ! -d "node-server" ] || [ ! -d "ui" ] || [ ! -d "bash-scripts" ]; then
     echo "❌ Error: Please run this script from the spikey-coins root directory"
     exit 1
 fi
@@ -43,9 +43,9 @@ if [ ! -d "node-server/node_modules" ]; then
 fi
 
 # Check frontend dependencies
-if [ ! -d "react-ui-nextjs/node_modules" ]; then
+if [ ! -d "ui/node_modules" ]; then
     echo "   - Installing frontend dependencies..."
-    cd react-ui-nextjs && npm install && cd ..
+    cd ui && npm install && cd ..
 fi
 
 echo "🚀 Deploying with PM2..."
