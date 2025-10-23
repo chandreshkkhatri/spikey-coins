@@ -167,34 +167,64 @@ class PriceHistoryService {
         const db = DatabaseConnection.getDatabase();
         if (db) {
           const priceHistoryCollection = db.collection('price_history');
-          const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-
-          const oldPrices = await priceHistoryCollection
-            .aggregate([
-              {
-                $match: {
-                  timestamp: { $gte: sevenDaysAgo },
-                },
-              },
-              {
-                $sort: { timestamp: 1 },
-              },
-              {
-                $group: {
-                  _id: '$symbol',
-                  oldPrice: { $first: '$price' },
-                },
-              },
-            ])
+          
+          // Find the oldest snapshot we have
+          const oldestSnapshot = await priceHistoryCollection
+            .find({})
+            .sort({ timestamp: 1 })
+            .limit(1)
             .toArray();
 
-          if (oldPrices.length > 100) {
-            // We have enough historical data
-            useDatabase = true;
-            oldPrices.forEach((item: any) => {
-              oldPriceMap.set(item._id, item.oldPrice);
-            });
-            logger.info(`PriceHistoryService: Using database snapshots for 7d changes (${oldPrices.length} symbols)`);
+          if (oldestSnapshot.length === 0) {
+            logger.info('PriceHistoryService: No historical data in database yet');
+          } else {
+            const oldestTimestamp = oldestSnapshot[0].timestamp;
+            const ageInDays = (Date.now() - new Date(oldestTimestamp).getTime()) / (24 * 60 * 60 * 1000);
+            
+            logger.info(`PriceHistoryService: Oldest snapshot is ${ageInDays.toFixed(1)} days old`);
+
+            // Only use database if we have at least 6 days of data
+            if (ageInDays >= 6) {
+              // Find prices from approximately 7 days ago (within a 2-hour window)
+              const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+              const sixDaysAgo = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000);
+
+              const oldPrices = await priceHistoryCollection
+                .aggregate([
+                  {
+                    $match: {
+                      timestamp: { 
+                        $gte: sevenDaysAgo,
+                        $lte: sixDaysAgo  // Look for prices between 6-7 days ago
+                      },
+                    },
+                  },
+                  {
+                    $sort: { timestamp: 1 },
+                  },
+                  {
+                    $group: {
+                      _id: '$symbol',
+                      oldPrice: { $first: '$price' },  // Get the oldest price in this range
+                      timestamp: { $first: '$timestamp' },
+                    },
+                  },
+                ])
+                .toArray();
+
+              if (oldPrices.length > 100) {
+                // We have enough historical data
+                useDatabase = true;
+                oldPrices.forEach((item: any) => {
+                  oldPriceMap.set(item._id, item.oldPrice);
+                });
+                logger.info(`PriceHistoryService: Using database snapshots for 7d changes (${oldPrices.length} symbols, ~${ageInDays.toFixed(1)} days old)`);
+              } else {
+                logger.info(`PriceHistoryService: Not enough symbols in 7d range (found ${oldPrices.length}), falling back to Binance API`);
+              }
+            } else {
+              logger.info(`PriceHistoryService: Historical data too recent (${ageInDays.toFixed(1)} days), need at least 6 days. Falling back to Binance API`);
+            }
           }
         }
       }

@@ -19,6 +19,7 @@ import DatabaseConnection from "./src/services/DatabaseConnection.js";
 import MarketOverviewService from "./src/services/MarketOverviewService.js";
 import ResearchCronService from "./src/services/ResearchCronService.js";
 import PriceHistoryService from "./src/services/PriceHistoryService.js";
+import DailyCandlestickService from "./src/services/DailyCandlestickService.js";
 import * as routes from "./src/routes/routes.js";
 import * as authRoutes from "./src/routes/auth.js";
 import * as adminRoutes from "./src/routes/admin.js";
@@ -258,6 +259,10 @@ async function startServer() {
     // Initialize and start Price History Service (depends on ticker data)
     PriceHistoryService.getInstance().start();
     logger.info('✅ Price History Service started (snapshots every hour)');
+
+    // Initialize and start Daily Candlestick Service (efficient 7d calculations)
+    await DailyCandlestickService.getInstance().start();
+    logger.info('✅ Daily Candlestick Service started (backfill & 7d data)');
     
     // Start Express server
     app.listen(PORT, () => {

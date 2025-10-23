@@ -12,6 +12,7 @@ import CandlestickStorage from "../services/CandlestickStorage.js";
 import DatabaseConnection from "../services/DatabaseConnection.js";
 import MarketOverviewService from "../services/MarketOverviewService.js";
 import PriceHistoryService from "../services/PriceHistoryService.js";
+import DailyCandlestickService from "../services/DailyCandlestickService.js";
 import ResearchService from "../services/ResearchService.js";
 
 // Global client instance
@@ -505,8 +506,8 @@ export async function getUserWatchlists(req: Request, res: Response): Promise<vo
  */
 export async function get7dTopMovers(req: Request, res: Response): Promise<void> {
   try {
-    const priceHistoryService = PriceHistoryService.getInstance();
-    const topMovers = await priceHistoryService.get7dTopMovers(5);
+    const dailyCandlestickService = DailyCandlestickService.getInstance();
+    const topMovers = await dailyCandlestickService.get7dTopMovers(5);
 
     res.json({
       success: true,
