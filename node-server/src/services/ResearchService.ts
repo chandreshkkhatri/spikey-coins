@@ -350,6 +350,7 @@ Respond with JSON:
       let updatedCount = 0;
       let skippedCount = 0;
       let newCount = 0;
+      let errorCount = 0;
 
       for (const mover of topMovers) {
         try {
@@ -456,14 +457,27 @@ Respond with JSON:
           // Add a small delay between requests to respect rate limits
           await new Promise(resolve => setTimeout(resolve, 2000));
         } catch (error) {
-          logger.error(`ResearchService: Failed to research ${mover.symbol}, continuing with next coin:`, error);
+          errorCount++;
+          logger.error(`ResearchService: Failed to research ${mover.symbol} (Error ${errorCount}/${topMovers.length}):`, error);
+
+          // If too many failures, abort early to prevent wasting resources
+          if (errorCount >= Math.ceil(topMovers.length / 2)) {
+            logger.error(`ResearchService: Too many failures (${errorCount}/${topMovers.length}), aborting research`);
+            throw new Error(`Research failed for ${errorCount}/${topMovers.length} coins - possible API issue`);
+          }
+
           continue;
         }
       }
 
       logger.info(
-        `ResearchService: Completed research - New: ${newCount}, Updated: ${updatedCount}, Skipped: ${skippedCount}, Publishable: ${publishableCount}/${topMovers.length}`
+        `ResearchService: Completed research - New: ${newCount}, Updated: ${updatedCount}, Skipped: ${skippedCount}, Errors: ${errorCount}, Publishable: ${publishableCount}/${topMovers.length}`
       );
+
+      // Log warning if there were any errors
+      if (errorCount > 0) {
+        logger.warn(`ResearchService: ${errorCount} research failures occurred during this run`);
+      }
     } catch (error) {
       logger.error('ResearchService: Error in automated research:', error);
       throw error;

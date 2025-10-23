@@ -263,26 +263,50 @@ async function startServer() {
 }
 
 // Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
+process.on('uncaughtException', async (error) => {
   logger.error('Uncaught exception:', error);
-  binanceClient.cleanup();
-  CandlestickStorage.cleanup();
-  MarketOverviewService.getInstance().cleanup();
-  ResearchCronService.getInstance().stop();
-  PriceHistoryService.getInstance().stop();
-  DatabaseConnection.cleanup();
-  process.exit(1);
+  try {
+    // Clean up async resources
+    await Promise.all([
+      binanceClient.cleanup(),
+      CandlestickStorage.cleanup(),
+      DatabaseConnection.cleanup()
+    ]);
+
+    // Clean up sync resources
+    MarketOverviewService.getInstance().cleanup();
+    ResearchCronService.getInstance().stop();
+    PriceHistoryService.getInstance().stop();
+
+    logger.info('Cleanup completed after uncaught exception');
+  } catch (cleanupError) {
+    logger.error('Error during cleanup:', cleanupError);
+  } finally {
+    process.exit(1);
+  }
 });
 
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', async (reason, promise) => {
   logger.error('Unhandled rejection at:', promise, 'reason:', reason);
-  binanceClient.cleanup();
-  CandlestickStorage.cleanup();
-  MarketOverviewService.getInstance().cleanup();
-  ResearchCronService.getInstance().stop();
-  PriceHistoryService.getInstance().stop();
-  DatabaseConnection.cleanup();
-  process.exit(1);
+  try {
+    // Clean up async resources
+    await Promise.all([
+      binanceClient.cleanup(),
+      CandlestickStorage.cleanup(),
+      DatabaseConnection.cleanup()
+    ]);
+
+    // Clean up sync resources
+    MarketOverviewService.getInstance().cleanup();
+    ResearchCronService.getInstance().stop();
+    PriceHistoryService.getInstance().stop();
+
+    logger.info('Cleanup completed after unhandled rejection');
+  } catch (cleanupError) {
+    logger.error('Error during cleanup:', cleanupError);
+  } finally {
+    process.exit(1);
+  }
 });
 
 startServer();

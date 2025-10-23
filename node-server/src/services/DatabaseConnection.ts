@@ -8,6 +8,8 @@ import logger from '../utils/logger.js';
 
 class DatabaseConnection {
   private static isConnected = false;
+  private static isConnecting = false;
+  private static connectionPromise: Promise<void> | null = null;
 
   // MongoDB connection configuration
   private static readonly CONNECTION_STRING = process.env.MONGODB_URI || 'mongodb://localhost:27017';
@@ -28,6 +30,27 @@ class DatabaseConnection {
       return;
     }
 
+    // Return existing connection promise if initialization in progress
+    if (this.isConnecting && this.connectionPromise) {
+      logger.info('DatabaseConnection: Connection already in progress, waiting...');
+      return this.connectionPromise;
+    }
+
+    this.isConnecting = true;
+    this.connectionPromise = this._doInitialize();
+
+    try {
+      await this.connectionPromise;
+    } finally {
+      this.isConnecting = false;
+      this.connectionPromise = null;
+    }
+  }
+
+  /**
+   * Internal method to perform the actual connection
+   */
+  private static async _doInitialize(): Promise<void> {
     try {
       logger.info(`DatabaseConnection: Connecting to MongoDB at ${this.CONNECTION_STRING}`);
 
