@@ -144,17 +144,17 @@ class ResearchService {
    */
   private async hasSignificantEvent(mover: TopMover): Promise<{ hasEvent: boolean; reason: string }> {
     try {
-      const prompt = `You are a cryptocurrency analyst. Quickly check if there's a SIGNIFICANT EVENT that might explain this price movement:
+      const prompt = `You are a cryptocurrency analyst. Quickly check if there's a COIN-SPECIFIC SIGNIFICANT EVENT that might explain this price movement:
 
 Coin: ${mover.symbol}
 Price Change: ${mover.priceChange > 0 ? '+' : ''}${mover.priceChange.toFixed(2)}% (${mover.timeframe})
 Current Price: $${mover.price}
 
-Use web search to quickly check for:
-1. Major news (partnerships, listings, regulations)
-2. Technical developments (mainnet launches, upgrades)
-3. Market events (hacks, exploits, major announcements)
-4. Significant social media buzz with credible sources
+Use web search to quickly check for COIN-SPECIFIC events:
+1. Major news specifically about THIS coin (partnerships, listings, regulations)
+2. Technical developments specifically for THIS coin (mainnet launches, upgrades)
+3. Events specifically affecting THIS coin (hacks, exploits, major announcements)
+4. Significant social media buzz with credible sources specifically about THIS coin
 
 Respond with JSON:
 {
@@ -162,10 +162,16 @@ Respond with JSON:
   "reason": "Brief explanation (1 sentence)"
 }
 
-Mark hasEvent as TRUE only if you find CREDIBLE evidence of a significant event. Mark FALSE for:
+Mark hasEvent as TRUE only if you find CREDIBLE evidence of a COIN-SPECIFIC significant event that could explain THIS SPECIFIC price movement.
+
+Mark FALSE for:
 - Normal market volatility
+- Broader market trends affecting all cryptocurrencies
+- Bitcoin or macro factors affecting the entire market
+- General crypto market weakness/strength
+- Old news that doesn't align with the current timeframe
 - Pump and dump schemes
-- No clear cause found
+- No clear coin-specific cause found
 - Speculation without evidence`;
 
       const response = await this.openai.responses.create({
@@ -206,24 +212,25 @@ Mark hasEvent as TRUE only if you find CREDIBLE evidence of a significant event.
     try {
       logger.info(`ResearchService: Researching ${mover.symbol} (${mover.priceChange > 0 ? '+' : ''}${mover.priceChange.toFixed(2)}%)`);
 
-      const prompt = `You are a cryptocurrency research analyst. Your task is to research why a specific cryptocurrency has had significant price movement.
+      const prompt = `You are a cryptocurrency research analyst. Your task is to research why a specific cryptocurrency has had significant price movement and determine if there's a COIN-SPECIFIC cause.
 
 Coin: ${mover.name} (${mover.symbol})
 Price Change: ${mover.priceChange > 0 ? '+' : ''}${mover.priceChange.toFixed(2)}% (${mover.timeframe})
 Current Price: $${mover.price.toFixed(mover.price >= 1 ? 2 : 6)}
 Volume: $${mover.volume.toLocaleString()}
 
-Research the following sources to identify the cause of this price movement:
-1. Recent news articles about ${mover.name}
+Research the following sources to identify if there's a COIN-SPECIFIC cause for this price movement:
+1. Recent news articles specifically about ${mover.name}
 2. Reddit discussions (r/cryptocurrency, r/CryptoMarkets, coin-specific subreddits)
 3. Crypto forums and social media
-4. Any major announcements or partnerships
+4. Any major announcements, partnerships, or developments specifically for ${mover.name}
 
-Analyze whether the research indicates a REASONABLE CAUSE for the price movement. Consider:
-- Is there a clear catalyst (partnership, listing, upgrade, regulatory news)?
+Analyze whether the research indicates a COIN-SPECIFIC CAUSE for the price movement. Consider:
+- Is there a clear coin-specific catalyst (partnership, listing, upgrade, regulatory news for THIS coin)?
 - Is the news credible and from reliable sources?
 - Does the timing align with the price movement?
 - Is there substantial discussion/evidence to support causation?
+- Is this movement unique to this coin, or is it part of broader market trends?
 
 Respond with a JSON object:
 {
@@ -237,12 +244,27 @@ Respond with a JSON object:
     }
   ],
   "isPublishable": true/false,
-  "publishableReason": "Why this is/isn't publishable (1-2 sentences explaining if there's a reasonable cause)",
+  "publishableReason": "Why this is/isn't publishable (1-2 sentences explaining if there's a coin-specific reasonable cause)",
   "category": "Technology|Partnership|Regulatory|Market|DeFi|NFT|General",
   "impact": "high|medium|low"
 }
 
-IMPORTANT: Only mark isPublishable as true if you find CREDIBLE evidence that reasonably explains the price movement. Speculation, pump & dump, or unclear causes should be marked false.`;
+IMPORTANT: Only mark isPublishable as true if you find CREDIBLE evidence of a COIN-SPECIFIC event that reasonably explains the price movement.
+
+Mark FALSE if:
+- The movement is due to broader market trends (e.g., "crypto market weakness", "Bitcoin decline affecting altcoins")
+- The movement is due to general crypto market conditions or macro factors
+- The movement is due to ETF flows, liquidity issues, or market-wide dynamics
+- The cause affects multiple cryptocurrencies, not specifically this coin
+- Speculation, pump & dump, or unclear causes
+- No coin-specific catalyst found
+
+Mark TRUE only if:
+- There's a specific partnership, listing, or announcement for THIS coin
+- There's a technical development (upgrade, mainnet launch) for THIS coin
+- There's regulatory news specifically about THIS coin or its ecosystem
+- There's a hack, exploit, or major event specifically affecting THIS coin
+- There's credible, coin-specific news that aligns with the price movement timing`;
 
       const response = await this.openai.responses.create({
         model: process.env.OPENAI_MODEL || "gpt-4o",
