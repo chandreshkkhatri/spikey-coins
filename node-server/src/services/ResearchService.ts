@@ -8,6 +8,7 @@ import { ResearchModel } from "../models/Research.js";
 import { SummaryModel } from "../models/Summary.js";
 import DatabaseConnection from "./DatabaseConnection.js";
 import DataManager from "../core/DataManager.js";
+import DailyCandlestickService from "./DailyCandlestickService.js";
 import logger from "../utils/logger.js";
 
 interface TopMover {
@@ -66,39 +67,135 @@ class ResearchService {
 
   /**
    * Get top 5 gainers and losers from current ticker data
+   * For 24h: uses Binance ticker data
+   * For 7d: uses DailyCandlestickService
    */
-  private getTopMovers(timeframe: '24h' | '7d' = '24h'): TopMover[] {
+  private async getTopMovers(timeframe: '24h' | '7d' = '24h'): Promise<TopMover[]> {
     try {
-      const tickers = DataManager.getAllTickers();
+      if (timeframe === '24h') {
+        // Use 24h data from Binance tickers
+        const tickers = DataManager.getAllTickers();
 
-      if (tickers.length === 0) {
-        logger.warn('ResearchService: No ticker data available');
-        return [];
+        if (tickers.length === 0) {
+          logger.warn('ResearchService: No ticker data available');
+          return [];
+        }
+
+        // Filter and format ticker data
+        const formattedData = tickers
+          .map((ticker: any) => ({
+            symbol: ticker.s?.replace('USDT', '') || 'Unknown',
+            name: ticker.s?.replace('USDT', '') || 'Unknown',
+            priceChange: parseFloat(ticker.P || '0'),
+            price: parseFloat(ticker.c || '0'),
+            volume: parseFloat(ticker.q || '0'),
+            timeframe,
+          }))
+          .filter((item: any) => !isNaN(item.priceChange) && item.priceChange !== 0);
+
+        // Sort by price change
+        const sortedByChange = [...formattedData].sort((a, b) => b.priceChange - a.priceChange);
+
+        // Get top 5 gainers and losers
+        const topGainers = sortedByChange.slice(0, 5);
+        const topLosers = sortedByChange.slice(-5).reverse();
+
+        return [...topGainers, ...topLosers];
+      } else {
+        // Use 7d data from DailyCandlestickService
+        const dailyCandlestickService = DailyCandlestickService.getInstance();
+        const topMovers7d = await dailyCandlestickService.get7dTopMovers(5);
+        
+        if (!topMovers7d.gainers || !topMovers7d.losers) {
+          logger.warn('ResearchService: No 7d data available');
+          return [];
+        }
+
+        // Format to TopMover interface
+        const formattedGainers: TopMover[] = topMovers7d.gainers.map((item: any) => ({
+          symbol: item.symbol,
+          name: item.name || item.symbol,
+          priceChange: item.change_7d,
+          price: parseFloat(item.price),
+          volume: parseFloat(item.volume),
+          timeframe: '7d',
+        }));
+
+        const formattedLosers: TopMover[] = topMovers7d.losers.map((item: any) => ({
+          symbol: item.symbol,
+          name: item.name || item.symbol,
+          priceChange: item.change_7d,
+          price: parseFloat(item.price),
+          volume: parseFloat(item.volume),
+          timeframe: '7d',
+        }));
+
+        return [...formattedGainers, ...formattedLosers];
       }
-
-      // Filter and format ticker data
-      const formattedData = tickers
-        .map((ticker: any) => ({
-          symbol: ticker.s?.replace('USDT', '') || 'Unknown',
-          name: ticker.s?.replace('USDT', '') || 'Unknown',
-          priceChange: parseFloat(ticker.P || '0'),
-          price: parseFloat(ticker.c || '0'),
-          volume: parseFloat(ticker.q || '0'),
-          timeframe,
-        }))
-        .filter((item: any) => !isNaN(item.priceChange) && item.priceChange !== 0);
-
-      // Sort by price change
-      const sortedByChange = [...formattedData].sort((a, b) => b.priceChange - a.priceChange);
-
-      // Get top 5 gainers and losers
-      const topGainers = sortedByChange.slice(0, 5);
-      const topLosers = sortedByChange.slice(-5).reverse();
-
-      return [...topGainers, ...topLosers];
     } catch (error) {
       logger.error('ResearchService: Error getting top movers:', error);
       return [];
+    }
+  }
+
+  /**
+   * Quick pre-screening to check if there's a significant event worth researching
+   * Returns true if there's a credible event, false if it's just market noise
+   */
+  private async hasSignificantEvent(mover: TopMover): Promise<{ hasEvent: boolean; reason: string }> {
+    try {
+      const prompt = `You are a cryptocurrency analyst. Quickly check if there's a SIGNIFICANT EVENT that might explain this price movement:
+
+Coin: ${mover.symbol}
+Price Change: ${mover.priceChange > 0 ? '+' : ''}${mover.priceChange.toFixed(2)}% (${mover.timeframe})
+Current Price: $${mover.price}
+
+Use web search to quickly check for:
+1. Major news (partnerships, listings, regulations)
+2. Technical developments (mainnet launches, upgrades)
+3. Market events (hacks, exploits, major announcements)
+4. Significant social media buzz with credible sources
+
+Respond with JSON:
+{
+  "hasEvent": true/false,
+  "reason": "Brief explanation (1 sentence)"
+}
+
+Mark hasEvent as TRUE only if you find CREDIBLE evidence of a significant event. Mark FALSE for:
+- Normal market volatility
+- Pump and dump schemes
+- No clear cause found
+- Speculation without evidence`;
+
+      const response = await this.openai.responses.create({
+        model: process.env.OPENAI_MODEL || "gpt-4o",
+        tools: [
+          {
+            type: "web_search",
+          },
+        ],
+        input: prompt,
+      });
+
+      const responseContent = response.output_text;
+      if (!responseContent) {
+        return { hasEvent: false, reason: "No response from AI" };
+      }
+
+      // Parse JSON response
+      const jsonMatch = responseContent.match(/\{[\s\S]*\}/);
+      const jsonString = jsonMatch ? jsonMatch[0] : responseContent;
+      const parsed = JSON.parse(jsonString);
+
+      return {
+        hasEvent: parsed.hasEvent || false,
+        reason: parsed.reason || "Unknown",
+      };
+    } catch (error) {
+      logger.error(`ResearchService: Error in pre-screening for ${mover.symbol}:`, error);
+      // On error, assume there might be an event (fail open)
+      return { hasEvent: true, reason: "Pre-screening failed, proceeding with research" };
     }
   }
 
@@ -336,19 +433,72 @@ Respond with JSON:
   /**
    * Run automated research on top movers with smart duplicate handling
    * This is called by the cron job every 2 hours
+   * Now researches both 24h and 7d top movers with event pre-screening
    */
   async runAutomatedResearch(timeframe: '24h' | '7d' = '24h'): Promise<void> {
     try {
-      logger.info(`ResearchService: Starting automated research for ${timeframe} top movers`);
+      logger.info(`ResearchService: Starting automated research for both 24h and 7d top movers`);
 
-      const topMovers = this.getTopMovers(timeframe);
+      // Get top movers from both timeframes
+      const topMovers24h = await this.getTopMovers('24h');
+      const topMovers7d = await this.getTopMovers('7d');
+      
+      // Combine and deduplicate (a coin might be in both lists)
+      const allMoversMap = new Map<string, TopMover>();
+      
+      [...topMovers24h, ...topMovers7d].forEach(mover => {
+        // If coin exists, keep the one with larger absolute change
+        const existing = allMoversMap.get(mover.symbol);
+        if (!existing || Math.abs(mover.priceChange) > Math.abs(existing.priceChange)) {
+          allMoversMap.set(mover.symbol, mover);
+        }
+      });
+      
+      const allMovers = Array.from(allMoversMap.values());
 
-      if (topMovers.length === 0) {
+      if (allMovers.length === 0) {
         logger.warn('ResearchService: No top movers found, skipping research');
         return;
       }
 
-      logger.info(`ResearchService: Found ${topMovers.length} top movers to research`);
+      logger.info(`ResearchService: Found ${allMovers.length} unique top movers (${topMovers24h.length} from 24h, ${topMovers7d.length} from 7d)`);
+
+      // Phase 1: Pre-screen all coins to find those with significant events
+      logger.info(`ResearchService: Phase 1 - Pre-screening ${allMovers.length} coins for significant events...`);
+      
+      const coinsWithEvents: TopMover[] = [];
+      const coinsWithoutEvents: { symbol: string; reason: string }[] = [];
+      
+      for (const mover of allMovers) {
+        try {
+          const eventCheck = await this.hasSignificantEvent(mover);
+          
+          if (eventCheck.hasEvent) {
+            logger.info(`ResearchService: ✅ ${mover.symbol} (${mover.priceChange > 0 ? '+' : ''}${mover.priceChange.toFixed(2)}% ${mover.timeframe}) - ${eventCheck.reason}`);
+            coinsWithEvents.push(mover);
+          } else {
+            logger.info(`ResearchService: ❌ ${mover.symbol} (${mover.priceChange > 0 ? '+' : ''}${mover.priceChange.toFixed(2)}% ${mover.timeframe}) - ${eventCheck.reason}`);
+            coinsWithoutEvents.push({ symbol: mover.symbol, reason: eventCheck.reason });
+          }
+          
+          // Small delay between pre-screening calls
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        } catch (error) {
+          logger.error(`ResearchService: Error pre-screening ${mover.symbol}:`, error);
+          // On error, include the coin (fail open)
+          coinsWithEvents.push(mover);
+        }
+      }
+      
+      logger.info(`ResearchService: Pre-screening complete - ${coinsWithEvents.length} coins with events, ${coinsWithoutEvents.length} without`);
+      
+      if (coinsWithEvents.length === 0) {
+        logger.info('ResearchService: No coins with significant events found, skipping full research');
+        return;
+      }
+
+      // Phase 2: Full research only for coins with significant events
+      logger.info(`ResearchService: Phase 2 - Full research for ${coinsWithEvents.length} coins with events...`);
 
       // Research each coin sequentially to avoid rate limits
       let publishableCount = 0;
@@ -357,12 +507,12 @@ Respond with JSON:
       let newCount = 0;
       let errorCount = 0;
 
-      for (const mover of topMovers) {
+      for (const mover of coinsWithEvents) {
         try {
           // Check if this coin was recently researched
           const recentResearch = await this.findRecentResearch(
             mover.symbol,
-            timeframe,
+            mover.timeframe,
             this.DEDUPLICATION_HOURS
           );
 
@@ -463,12 +613,12 @@ Respond with JSON:
           await new Promise(resolve => setTimeout(resolve, 2000));
         } catch (error) {
           errorCount++;
-          logger.error(`ResearchService: Failed to research ${mover.symbol} (Error ${errorCount}/${topMovers.length}):`, error);
+          logger.error(`ResearchService: Failed to research ${mover.symbol} (Error ${errorCount}/${coinsWithEvents.length}):`, error);
 
           // If too many failures, abort early to prevent wasting resources
-          if (errorCount >= Math.ceil(topMovers.length / 2)) {
-            logger.error(`ResearchService: Too many failures (${errorCount}/${topMovers.length}), aborting research`);
-            throw new Error(`Research failed for ${errorCount}/${topMovers.length} coins - possible API issue`);
+          if (errorCount >= Math.ceil(coinsWithEvents.length / 2)) {
+            logger.error(`ResearchService: Too many failures (${errorCount}/${coinsWithEvents.length}), aborting research`);
+            throw new Error(`Research failed for ${errorCount}/${coinsWithEvents.length} coins - possible API issue`);
           }
 
           continue;
@@ -476,7 +626,10 @@ Respond with JSON:
       }
 
       logger.info(
-        `ResearchService: Completed research - New: ${newCount}, Updated: ${updatedCount}, Skipped: ${skippedCount}, Errors: ${errorCount}, Publishable: ${publishableCount}/${topMovers.length}`
+        `ResearchService: Completed research - New: ${newCount}, Updated: ${updatedCount}, Skipped: ${skippedCount}, Errors: ${errorCount}, Publishable: ${publishableCount}/${coinsWithEvents.length}`
+      );
+      logger.info(
+        `ResearchService: Summary - Screened: ${allMovers.length}, With Events: ${coinsWithEvents.length}, Without Events: ${coinsWithoutEvents.length}, Researched: ${newCount + updatedCount}, Published: ${publishableCount}`
       );
 
       // Log warning if there were any errors
