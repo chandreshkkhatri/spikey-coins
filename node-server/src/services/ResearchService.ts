@@ -433,9 +433,10 @@ Respond with JSON:
   /**
    * Run automated research on top movers with smart duplicate handling
    * This is called by the cron job every 2 hours
-   * Now researches both 24h and 7d top movers with event pre-screening
+   * Researches both 24h and 7d top movers with event pre-screening
+   * @deprecated timeframe parameter - now always researches both 24h and 7d
    */
-  async runAutomatedResearch(timeframe: '24h' | '7d' = '24h'): Promise<void> {
+  async runAutomatedResearch(timeframe?: '24h' | '7d'): Promise<void> {
     try {
       logger.info(`ResearchService: Starting automated research for both 24h and 7d top movers`);
 

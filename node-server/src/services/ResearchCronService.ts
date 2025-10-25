@@ -71,8 +71,8 @@ class ResearchCronService {
 
       const researchService = ResearchService.getInstance();
 
-      // Run research for 24h timeframe
-      await researchService.runAutomatedResearch('24h');
+      // Run research for both 24h and 7d timeframes
+      await researchService.runAutomatedResearch();
 
       const duration = ((Date.now() - startTime) / 1000).toFixed(2);
       logger.info(`ResearchCronService: Research job completed in ${duration}s`);
