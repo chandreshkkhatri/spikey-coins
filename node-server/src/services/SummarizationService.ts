@@ -31,6 +31,11 @@ class SummarizationService {
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
+
+    // Validate model is configured
+    if (!process.env.OPENAI_MODEL) {
+      logger.warn("OPENAI_MODEL not set, defaulting to gpt-4o");
+    }
   }
 
   static getInstance(): SummarizationService {
@@ -49,9 +54,9 @@ class SummarizationService {
         `SummarizationService: Starting summarization for URL: ${url}`
       );
 
-      // Use OpenAI GPT-4o with web browsing to read and summarize the article
+      // Use OpenAI with web browsing to read and summarize the article
       const response = await this.openai.responses.create({
-        model: "gpt-5",
+        model: process.env.OPENAI_MODEL || "gpt-4o",
         tools: [
           {
             type: "web_search",

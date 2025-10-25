@@ -50,6 +50,11 @@ class ResearchService {
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
+
+    // Validate model is configured
+    if (!process.env.OPENAI_MODEL) {
+      logger.warn("OPENAI_MODEL not set, defaulting to gpt-4o");
+    }
   }
 
   static getInstance(): ResearchService {
@@ -143,7 +148,7 @@ Respond with a JSON object:
 IMPORTANT: Only mark isPublishable as true if you find CREDIBLE evidence that reasonably explains the price movement. Speculation, pump & dump, or unclear causes should be marked false.`;
 
       const response = await this.openai.responses.create({
-        model: "gpt-5",
+        model: process.env.OPENAI_MODEL || "gpt-4o",
         tools: [
           {
             type: "web_search",
@@ -259,7 +264,7 @@ Respond with JSON:
 }`;
 
       const response = await this.openai.responses.create({
-        model: "gpt-5",
+        model: process.env.OPENAI_MODEL || "gpt-4o",
         input: prompt,
       });
 
