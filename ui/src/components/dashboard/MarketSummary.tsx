@@ -42,6 +42,8 @@ export default function MarketSummary() {
   const [stories, setStories] = useState<TrendingStory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedStory, setSelectedStory] = useState<TrendingStory | null>(null);
+  const [showModal, setShowModal] = useState(false);
 
   const formatTimeAgo = (timestamp: string): string => {
     const date = new Date(timestamp);
@@ -178,8 +180,7 @@ export default function MarketSummary() {
         {stories.map((story) => (
           <div
             key={story.id || story._id}
-            className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer group"
-            onClick={() => story.url && window.open(story.url, '_blank')}
+            className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1">
@@ -203,25 +204,44 @@ export default function MarketSummary() {
                     {story.category}
                   </span>
                 </div>
-                <h3 className="font-medium text-gray-900 mb-1 group-hover:text-blue-600 transition-colors">
+                <h3 className="font-medium text-gray-900 mb-1">
                   {story.title}
                 </h3>
                 <p className="text-sm text-gray-600 mb-2 line-clamp-2">
                   {story.summary}
                 </p>
-                <div className="flex items-center gap-3 text-xs text-gray-500">
-                  <span className="flex items-center gap-1">
+                <div className="flex items-center gap-3 text-xs">
+                  <span className="flex items-center gap-1 text-gray-500">
                     <Clock className="h-3 w-3" />
                     {story.time}
                   </span>
                   {story.timeframe && (
-                    <span className="font-medium">{story.timeframe} change</span>
+                    <span className="font-medium text-gray-500">{story.timeframe} change</span>
+                  )}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedStory(story);
+                      setShowModal(true);
+                    }}
+                    className="ml-auto text-blue-600 hover:text-blue-700 font-medium hover:underline"
+                  >
+                    See more →
+                  </button>
+                  {story.url && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(story.url, '_blank');
+                      }}
+                      className="text-gray-400 hover:text-blue-600 transition-colors"
+                      title="Open source"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </button>
                   )}
                 </div>
               </div>
-              {story.url && (
-                <ExternalLink className="h-4 w-4 text-gray-400 group-hover:text-blue-600 transition-colors flex-shrink-0 mt-1" />
-              )}
             </div>
           </div>
         ))}
@@ -230,6 +250,85 @@ export default function MarketSummary() {
       <button className="w-full mt-3 py-2 text-sm text-blue-600 hover:text-blue-700 font-medium hover:bg-blue-50 rounded-lg transition-colors">
         View All Stories →
       </button>
+
+      {/* Modal for full summary */}
+      {showModal && selectedStory && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowModal(false)}
+        >
+          <div 
+            className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-start justify-between">
+              <div className="flex-1 pr-4">
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  {selectedStory.coinSymbol && (
+                    <span className="text-sm font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded">
+                      {selectedStory.coinSymbol}
+                    </span>
+                  )}
+                  {selectedStory.priceChange !== undefined && (
+                    <span className={`text-sm font-semibold px-3 py-1 rounded ${
+                      selectedStory.priceChange > 0 ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'
+                    }`}>
+                      {selectedStory.priceChange > 0 ? '+' : ''}{selectedStory.priceChange.toFixed(2)}%
+                    </span>
+                  )}
+                  <span className={`text-xs px-2 py-1 rounded-full border ${getImpactColor(selectedStory.impact)}`}>
+                    {selectedStory.impact.toUpperCase()}
+                  </span>
+                  <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded-full">
+                    {selectedStory.category}
+                  </span>
+                </div>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  {selectedStory.title}
+                </h2>
+              </div>
+              <button
+                onClick={() => setShowModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="px-6 py-4">
+              <div className="prose prose-sm max-w-none">
+                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                  {selectedStory.summary}
+                </p>
+              </div>
+              
+              <div className="mt-6 pt-4 border-t border-gray-200 flex items-center justify-between">
+                <div className="flex items-center gap-4 text-sm text-gray-500">
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-4 w-4" />
+                    {selectedStory.time}
+                  </span>
+                  {selectedStory.timeframe && (
+                    <span className="font-medium">{selectedStory.timeframe} change</span>
+                  )}
+                  <span>Source: {selectedStory.source}</span>
+                </div>
+                {selectedStory.url && (
+                  <button
+                    onClick={() => window.open(selectedStory.url, '_blank')}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                  >
+                    <span>View Source</span>
+                    <ExternalLink className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
