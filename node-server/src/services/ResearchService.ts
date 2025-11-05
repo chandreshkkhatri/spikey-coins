@@ -3,7 +3,7 @@
  * Automated research on top movers to identify market movement causes
  */
 
-import OpenAI from "openai";
+import AIClient from "../utils/aiClient.js";
 import { ResearchModel } from "../models/Research.js";
 import { SummaryModel } from "../models/Summary.js";
 import DatabaseConnection from "./DatabaseConnection.js";
@@ -40,22 +40,11 @@ interface ResearchResult {
 
 class ResearchService {
   private static instance: ResearchService;
-  private openai: OpenAI;
+  private aiClient: AIClient;
   private readonly DEDUPLICATION_HOURS = 4; // Don't re-research same coin within 4 hours
 
   private constructor() {
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY environment variable is required");
-    }
-
-    this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
-
-    // Validate model is configured
-    if (!process.env.OPENAI_MODEL) {
-      logger.warn("OPENAI_MODEL not set, defaulting to gpt-4o");
-    }
+    this.aiClient = new AIClient();
   }
 
   static getInstance(): ResearchService {
@@ -174,20 +163,9 @@ Mark FALSE for:
 - No clear coin-specific cause found
 - Speculation without evidence`;
 
-      const response = await this.openai.responses.create({
-        model: process.env.OPENAI_MODEL || "gpt-4o",
-        tools: [
-          {
-            type: "web_search",
-          },
-        ],
-        input: prompt,
+      const responseContent = await this.aiClient.generateCompletion(prompt, {
+        useWebSearch: true
       });
-
-      const responseContent = response.output_text;
-      if (!responseContent) {
-        return { hasEvent: false, reason: "No response from AI" };
-      }
 
       // Parse JSON response
       const jsonMatch = responseContent.match(/\{[\s\S]*\}/);
@@ -266,22 +244,15 @@ Mark TRUE only if:
 - There's a hack, exploit, or major event specifically affecting THIS coin
 - There's credible, coin-specific news that aligns with the price movement timing`;
 
-      const response = await this.openai.responses.create({
-        model: process.env.OPENAI_MODEL || "gpt-4o",
-        tools: [
-          {
-            type: "web_search",
-          },
-        ],
-        input: prompt,
+      const responseContent = await this.aiClient.generateCompletion(prompt, {
+        useWebSearch: true
       });
 
-      const responseContent = response.output_text;
       if (!responseContent) {
-        throw new Error("No response from OpenAI");
+        throw new Error("No response from AI");
       }
 
-      logger.info(`ResearchService: Received response from OpenAI for ${mover.symbol}`);
+      logger.info(`ResearchService: Received response from AI for ${mover.symbol}`);
 
       // Parse the JSON response
       let parsedResponse;
@@ -382,12 +353,8 @@ Respond with JSON:
   "reason": "Brief explanation (1-2 sentences)"
 }`;
 
-      const response = await this.openai.responses.create({
-        model: process.env.OPENAI_MODEL || "gpt-4o",
-        input: prompt,
-      });
+      const responseContent = await this.aiClient.generateCompletion(prompt);
 
-      const responseContent = response.output_text;
       if (!responseContent) {
         return { hasNewInfo: true, reason: "Could not determine, assuming new info" };
       }

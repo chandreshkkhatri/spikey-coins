@@ -1,9 +1,9 @@
 /**
  * Summarization Service
- * Fetches articles from URLs and summarizes them using OpenAI GPT-5
+ * Fetches articles from URLs and summarizes them using AI models
  */
 
-import OpenAI from "openai";
+import AIClient from "../utils/aiClient.js";
 import DatabaseConnection from "./DatabaseConnection.js";
 import logger from "../utils/logger.js";
 
@@ -21,21 +21,10 @@ interface ArticleSummary {
 
 class SummarizationService {
   private static instance: SummarizationService;
-  private openai: OpenAI;
+  private aiClient: AIClient;
 
   private constructor() {
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY environment variable is required");
-    }
-
-    this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
-
-    // Validate model is configured
-    if (!process.env.OPENAI_MODEL) {
-      logger.warn("OPENAI_MODEL not set, defaulting to gpt-4o");
-    }
+    this.aiClient = new AIClient();
   }
 
   static getInstance(): SummarizationService {
@@ -54,18 +43,11 @@ class SummarizationService {
         `SummarizationService: Starting summarization for URL: ${url}`
       );
 
-      // Use OpenAI with web browsing to read and summarize the article
-      const response = await this.openai.responses.create({
-        model: process.env.OPENAI_MODEL || "gpt-4o",
-        tools: [
-          {
-            type: "web_search",
-          },
-        ],
-        input: `You are a cryptocurrency and financial news analyst with web browsing capabilities. Your task is to read articles from URLs and create concise, informative summaries for crypto traders and investors.
+      // Use AI to read and summarize the article
+      const prompt = `You are a cryptocurrency and financial news analyst. Your task is to read articles from URLs and create concise, informative summaries for crypto traders and investors.
 
 When given a URL, you should:
-1. Browse and read the full article content from the provided URL
+1. Read the article content from the provided URL: ${url}
 2. Create a 1-2 sentence summary that captures the key information
 3. Determine the article's impact level on crypto markets (high, medium, low)
 4. Categorize the article (e.g., "Market Analysis", "Regulatory", "Technology", "DeFi", "NFT", "General")
@@ -82,14 +64,17 @@ Respond with a JSON object containing:
 
 Focus on information that would be valuable to cryptocurrency traders and investors.
 
-Please browse and read this article, then provide a summary: ${url}`,
+Please read this article and provide a summary: ${url}`;
+
+      const responseContent = await this.aiClient.generateCompletion(prompt, {
+        useWebSearch: true
       });
-      const responseContent = response.output_text;
+      
       if (!responseContent) {
-        throw new Error("No response from OpenAI");
+        throw new Error("No response from AI");
       }
 
-      logger.info(`SummarizationService: Received response from OpenAI`);
+      logger.info(`SummarizationService: Received response from AI`);
 
       // Parse the JSON response
       let parsedResponse;
@@ -100,7 +85,7 @@ Please browse and read this article, then provide a summary: ${url}`,
         parsedResponse = JSON.parse(jsonString);
       } catch (parseError) {
         logger.error(
-          "SummarizationService: Failed to parse OpenAI response as JSON:",
+          "SummarizationService: Failed to parse AI response as JSON:",
           parseError
         );
         // Fallback: create a summary from the raw response
