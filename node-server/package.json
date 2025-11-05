@@ -33,6 +33,7 @@
   "license": "ISC",
   "dependencies": {
     "@binance/connector": "^3.5.0",
+    "@google/generative-ai": "^0.24.1",
     "@types/joi": "^17.2.2",
     "@types/mongoose": "^5.11.96",
     "axios": "^0.18.0",
