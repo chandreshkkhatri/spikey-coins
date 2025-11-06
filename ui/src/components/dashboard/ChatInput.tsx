@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Send, Sparkles, Paperclip, Mic, Loader2 } from "lucide-react";
 import axios from "axios";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
@@ -66,6 +68,21 @@ export default function ChatInput({ onResponse }: ChatInputProps = {}) {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-t from-white via-white to-transparent pointer-events-none">
       <div className="max-w-4xl mx-auto pointer-events-auto">
+        {/* Response Display - Moved ABOVE input */}
+        {(response || error) && (
+          <div className="mb-4 p-4 bg-white rounded-xl border shadow-sm max-h-96 overflow-y-auto">
+            {error ? (
+              <div className="text-red-600">{error}</div>
+            ) : (
+              <div className="text-gray-800 prose prose-sm max-w-none">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {response || ""}
+                </ReactMarkdown>
+              </div>
+            )}
+          </div>
+        )}
+
         <form
           onSubmit={handleSubmit}
           className={`bg-white rounded-2xl border transition-all duration-200 ${
@@ -158,17 +175,6 @@ export default function ChatInput({ onResponse }: ChatInputProps = {}) {
             </div>
           )}
         </form>
-
-        {/* Response Display */}
-        {(response || error) && (
-          <div className="mt-4 p-4 bg-white rounded-xl border shadow-sm max-h-60 overflow-y-auto">
-            {error ? (
-              <div className="text-red-600">{error}</div>
-            ) : (
-              <div className="text-gray-800 whitespace-pre-wrap">{response}</div>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );
