@@ -21,12 +21,12 @@ export default function ChatInput({ onResponse }: ChatInputProps = {}) {
   const [message, setMessage] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [response, setResponse] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [conversationHistory, setConversationHistory] = useState<ChatMessage[]>([]);
   const [showResponse, setShowResponse] = useState(false);
   const responseBoxRef = useRef<HTMLDivElement>(null);
   const chatContentRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Handle click outside to collapse chat history
   useEffect(() => {
@@ -83,7 +83,6 @@ export default function ChatInput({ onResponse }: ChatInputProps = {}) {
 
         if (result.data.success && result.data.data) {
           const responseMessage = result.data.data.message;
-          setResponse(responseMessage);
 
           // Add AI response to conversation history
           const assistantMessage: ChatMessage = { role: "assistant", content: responseMessage };
@@ -109,6 +108,17 @@ export default function ChatInput({ onResponse }: ChatInputProps = {}) {
 
   const toggleResponse = () => {
     setShowResponse(!showResponse);
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    if (inputRef.current) {
+      // Use execCommand to properly add to undo history
+      inputRef.current.focus();
+      inputRef.current.select();
+      document.execCommand('insertText', false, suggestion);
+      // Move cursor to end
+      inputRef.current.setSelectionRange(suggestion.length, suggestion.length);
+    }
   };
 
   return (
@@ -261,6 +271,7 @@ export default function ChatInput({ onResponse }: ChatInputProps = {}) {
             </button>
             
             <input
+              ref={inputRef}
               type="text"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
@@ -311,24 +322,44 @@ export default function ChatInput({ onResponse }: ChatInputProps = {}) {
               <div className="flex gap-2 text-xs">
                 <button
                   type="button"
+                  onMouseDown={(e) => {
+                    // Prevent input blur
+                    e.preventDefault();
+                  }}
+                  onClick={() => handleSuggestionClick("Provide a detailed price analysis for Bitcoin")}
                   className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition-colors"
                 >
                   Price Analysis
                 </button>
                 <button
                   type="button"
+                  onMouseDown={(e) => {
+                    // Prevent input blur
+                    e.preventDefault();
+                  }}
+                  onClick={() => handleSuggestionClick("What are the current market trends in cryptocurrency?")}
                   className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition-colors"
                 >
                   Market Trends
                 </button>
                 <button
                   type="button"
+                  onMouseDown={(e) => {
+                    // Prevent input blur
+                    e.preventDefault();
+                  }}
+                  onClick={() => handleSuggestionClick("Tell me about Ethereum's latest updates")}
                   className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition-colors"
                 >
                   Token Info
                 </button>
                 <button
                   type="button"
+                  onMouseDown={(e) => {
+                    // Prevent input blur
+                    e.preventDefault();
+                  }}
+                  onClick={() => handleSuggestionClick("Help me understand portfolio diversification strategies")}
                   className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition-colors"
                 >
                   Portfolio Help
