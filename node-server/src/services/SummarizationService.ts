@@ -35,7 +35,7 @@ class SummarizationService {
   }
 
   /**
-   * Summarize an article from a URL using OpenAI with web search
+   * Summarize an article from a URL using Gemini with web search
    */
   async summarizeArticleFromUrl(url: string): Promise<ArticleSummary> {
     try {

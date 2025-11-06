@@ -261,7 +261,7 @@ Mark TRUE only if:
         const jsonString = jsonMatch ? jsonMatch[0] : responseContent;
         parsedResponse = JSON.parse(jsonString);
       } catch (parseError) {
-        logger.error("ResearchService: Failed to parse OpenAI response as JSON:", parseError);
+        logger.error("ResearchService: Failed to parse AI response as JSON:", parseError);
         // Fallback
         parsedResponse = {
           researchContent: responseContent.substring(0, 300),

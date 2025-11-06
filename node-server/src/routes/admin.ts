@@ -364,7 +364,7 @@ export async function getLatestMatches(
 }
 
 /**
- * Summarize article from URL using OpenAI (admin only)
+ * Summarize article from URL using AI (admin only)
  */
 export async function summarizeArticle(
   req: Request,
@@ -394,12 +394,12 @@ export async function summarizeArticle(
       return;
     }
 
-    // Check if OPENAI_API_KEY is configured
-    if (!process.env.OPENAI_API_KEY) {
+    // Check if GEMINI_API_KEY is configured
+    if (!process.env.GEMINI_API_KEY) {
       res.status(503).json({
         success: false,
-        error: "OpenAI API key not configured",
-        message: "Please set OPENAI_API_KEY environment variable",
+        error: "Gemini API key not configured",
+        message: "Please set GEMINI_API_KEY environment variable",
       });
       return;
     }
@@ -613,12 +613,12 @@ export async function triggerResearchJob(
 
     const selectedTimeframe = (timeframe as '24h' | '7d') || '24h';
 
-    // Check if OPENAI_API_KEY is configured
-    if (!process.env.OPENAI_API_KEY) {
+    // Check if GEMINI_API_KEY is configured
+    if (!process.env.GEMINI_API_KEY) {
       res.status(503).json({
         success: false,
-        error: "OpenAI API key not configured",
-        message: "Please set OPENAI_API_KEY environment variable",
+        error: "Gemini API key not configured",
+        message: "Please set GEMINI_API_KEY environment variable",
       });
       return;
     }

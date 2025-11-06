@@ -86,7 +86,7 @@ else
   echo -e "${RED}❌ Failed to trigger research job${NC}"
   echo ""
   echo -e "${YELLOW}Possible issues:${NC}"
-  echo "1. OpenAI API key not configured"
+  echo "1. Gemini API key not configured"
   echo "2. Server error - check logs: pm2 logs spikey-coins-backend"
   echo "3. Database connection issue"
 fi
