@@ -603,10 +603,12 @@ export default function AdminDashboard() {
                         {summary.isPublished ? 'Unpublish' : 'Publish'}
                       </Button>
                     </div>
-                    <p className="text-sm text-gray-400 mb-2">{summary.summary.substring(0, 200)}...</p>
+                    <p className="text-sm text-gray-400 mb-2">
+                      {summary.summary ? summary.summary.substring(0, 200) : 'No summary available'}...
+                    </p>
                     <div className="flex gap-4 text-xs text-gray-500">
-                      <span>Source: {summary.source}</span>
-                      <span>Category: {summary.category}</span>
+                      <span>Source: {summary.source || 'Unknown'}</span>
+                      <span>Category: {summary.category || 'Uncategorized'}</span>
                       <span>Status: <span className={summary.isPublished ? 'text-green-400' : 'text-gray-400'}>
                         {summary.isPublished ? 'Published' : 'Draft'}
                       </span></span>
