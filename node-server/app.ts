@@ -8,6 +8,7 @@ dotenv.config();
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
+import rateLimit from "express-rate-limit";
 import swaggerUi from "swagger-ui-express";
 import YAML from "yamljs";
 import { join } from "path";
@@ -32,6 +33,22 @@ import { runBinanceCoinGeckoMatcherSchema, summarizeArticleSchema, updateSummary
 
 const app = express();
 const PORT = process.env.PORT || 8000;
+
+// Rate limiting to prevent abuse
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 login attempts per 15 minutes
+  message: 'Too many login attempts, please try again later.',
+  skipSuccessfulRequests: true,
+});
 
 // Middleware
 app.use(cors({
@@ -138,8 +155,11 @@ app.get('/api/ticker/7d', routes.get7dTopMovers);
 // Chat route
 app.use('/api/chat', chatRouter);
 
-// Authentication routes
-app.post('/api/auth/login', validate(loginSchema), authRoutes.login);
+// Apply rate limiter to all API routes
+app.use('/api/', apiLimiter);
+
+// Authentication routes (with stricter rate limiting)
+app.post('/api/auth/login', authLimiter, validate(loginSchema), authRoutes.login);
 app.post('/api/auth/setup/initial-admin', validate(createInitialAdminSchema), authRoutes.createInitialAdmin);
 app.post('/api/auth/users/create', requireAdminAuth, validate(createUserSchema), authRoutes.createUser);
 app.get('/api/auth/verify', authenticateToken, authRoutes.verifyToken);

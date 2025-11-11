@@ -41,10 +41,14 @@ interface ResearchResult {
 class ResearchService {
   private static instance: ResearchService;
   private aiClient: AIClient;
-  private readonly DEDUPLICATION_HOURS = 4; // Don't re-research same coin within 4 hours
+  // Configurable deduplication window (default 6 hours, can be overridden via env var)
+  private readonly DEDUPLICATION_HOURS = parseInt(process.env.RESEARCH_DEDUP_HOURS || '6', 10);
+  // Re-research if price change differs by more than this threshold (default 10%)
+  private readonly PRICE_CHANGE_THRESHOLD = parseFloat(process.env.RESEARCH_PRICE_CHANGE_THRESHOLD || '10.0');
 
   private constructor() {
     this.aiClient = new AIClient();
+    logger.info(`ResearchService: Deduplication window: ${this.DEDUPLICATION_HOURS}h, Price change threshold: ${this.PRICE_CHANGE_THRESHOLD}%`);
   }
 
   static getInstance(): ResearchService {
@@ -507,8 +511,37 @@ Respond with JSON:
           );
 
           if (recentResearch) {
+            const hoursSinceResearch = (Date.now() - new Date(recentResearch.researchedAt).getTime()) / (1000 * 60 * 60);
+            const priceChangeDelta = Math.abs(mover.priceChange - recentResearch.priceChange);
+            
             logger.info(
-              `ResearchService: Found recent research for ${mover.symbol} (${new Date(recentResearch.researchedAt).toLocaleTimeString()})`
+              `ResearchService: Found recent research for ${mover.symbol} (${hoursSinceResearch.toFixed(1)}h ago, price change: ${recentResearch.priceChange.toFixed(2)}% → ${mover.priceChange.toFixed(2)}%, delta: ${priceChangeDelta.toFixed(2)}%)`
+            );
+
+            // Skip LLM call if price change hasn't changed significantly
+            // This saves expensive API calls when the coin movement is similar
+            if (priceChangeDelta < this.PRICE_CHANGE_THRESHOLD) {
+              logger.info(
+                `ResearchService: Skipping ${mover.symbol} - price change similar (delta: ${priceChangeDelta.toFixed(2)}% < ${this.PRICE_CHANGE_THRESHOLD}%), no significant new movement`
+              );
+              
+              // Just update timestamp to show we checked
+              await ResearchModel.findByIdAndUpdate(recentResearch._id, {
+                $set: {
+                  updatedAt: new Date(),
+                },
+              });
+
+              skippedCount++;
+              if (recentResearch.isPublishable) {
+                publishableCount++;
+              }
+              continue; // Skip to next coin, no LLM calls!
+            }
+
+            // Price change is significantly different, perform new research
+            logger.info(
+              `ResearchService: Price change significant (delta: ${priceChangeDelta.toFixed(2)}%), researching ${mover.symbol}...`
             );
 
             // Perform new research to check for updates

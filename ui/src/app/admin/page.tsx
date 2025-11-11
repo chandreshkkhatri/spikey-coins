@@ -383,7 +383,20 @@ export default function AdminDashboard() {
                   <p><span className="text-gray-400">Uptime:</span> {formatUptime(dashboardData.system.uptime)}</p>
                   <p><span className="text-gray-400">Node:</span> {dashboardData.system.nodeVersion}</p>
                   <p><span className="text-gray-400">Platform:</span> {dashboardData.system.platform}</p>
-                  <p><span className="text-gray-400">Memory:</span> {formatBytes(dashboardData.system.memoryUsage.heapUsed)} / {formatBytes(dashboardData.system.memoryUsage.heapTotal)}</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-400">Memory:</span>
+                    <div className="relative group">
+                      <span className="cursor-help text-blue-400">ℹ️</span>
+                      <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block bg-gray-700 text-white text-xs rounded py-2 px-3 whitespace-nowrap z-10 shadow-lg">
+                        <div className="space-y-1">
+                          <div>Heap Used: {formatBytes(dashboardData.system.memoryUsage.heapUsed)}</div>
+                          <div>Heap Total: {formatBytes(dashboardData.system.memoryUsage.heapTotal)}</div>
+                          <div>Usage: {((dashboardData.system.memoryUsage.heapUsed / dashboardData.system.memoryUsage.heapTotal) * 100).toFixed(1)}%</div>
+                        </div>
+                        <div className="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-700"></div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 

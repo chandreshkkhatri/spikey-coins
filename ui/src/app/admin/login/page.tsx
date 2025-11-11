@@ -25,19 +25,29 @@ export default function LoginPage() {
       }
 
       try {
-        const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-        if (response.ok) {
-          const data = await response.json();
-          if (data.user && data.user.role === 'admin') {
-            // Already logged in as admin, redirect to dashboard
-            window.location.href = '/admin';
-            return;
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            },
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.user && data.user.role === 'admin') {
+              // Already logged in as admin, redirect to dashboard
+              window.location.href = '/admin';
+              return;
+            }
           }
+        } catch (fetchError) {
+          clearTimeout(timeoutId);
+          // Silent fail - user will see login form
         }
       } catch {
         // Silent fail - user will see login form
@@ -55,13 +65,19 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ username, password }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       const data = await response.json();
 
