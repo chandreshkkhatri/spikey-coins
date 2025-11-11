@@ -35,9 +35,16 @@ const app = express();
 const PORT = process.env.PORT || 8000;
 
 // Rate limiting to prevent abuse
+// Set to 1000 requests per 15 minutes to accommodate:
+// - Multiple concurrent users (~22 users capacity)
+// - Frontend polling (MarketOverview polls every 30 seconds = 30 requests/15min per user)
+// - Multiple tabs per user
+// - Manual refreshes and navigation
+// - Future growth
+// This is still protective against abuse while allowing legitimate usage
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  max: 1000, // Limit each IP to 1000 requests per windowMs (allows ~67 requests/minute)
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,

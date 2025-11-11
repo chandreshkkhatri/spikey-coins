@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -70,6 +70,11 @@ export default function AdminDashboard() {
   const [summaries, setSummaries] = useState<Summary[]>([]);
   const [coinSyncStatus, setCoinSyncStatus] = useState<CoinSyncStatus | null>(null);
   const [loading, setLoading] = useState(false);
+  // Separate loading states for different operations to prevent button oscillation
+  const [loadingDashboard, setLoadingDashboard] = useState(false);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [loadingSummaries, setLoadingSummaries] = useState(false);
+  const [loadingCoinSync, setLoadingCoinSync] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const router = useRouter();
 
@@ -81,7 +86,8 @@ export default function AdminDashboard() {
 
   const getAuthToken = () => localStorage.getItem('authToken');
 
-  const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
+  // Memoize fetchWithAuth to prevent unnecessary re-creations
+  const fetchWithAuth = useCallback(async (url: string, options: RequestInit = {}) => {
     const token = getAuthToken();
     return fetch(url, {
       ...options,
@@ -91,21 +97,22 @@ export default function AdminDashboard() {
         'Content-Type': 'application/json',
       },
     });
-  };
+  }, []);
 
-  const showMessage = (type: 'success' | 'error', text: string) => {
+  // Memoize showMessage to prevent unnecessary re-creations
+  const showMessage = useCallback((type: 'success' | 'error', text: string) => {
     setMessage({ type, text });
     setTimeout(() => setMessage(null), 5000);
-  };
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('authToken');
     router.push('/admin/login');
   };
 
-  // Load dashboard data
-  const loadDashboard = async () => {
-    setLoading(true);
+  // Load dashboard data - memoized with useCallback to prevent infinite loops
+  const loadDashboard = useCallback(async () => {
+    setLoadingDashboard(true);
     try {
       const response = await fetchWithAuth(`${API_BASE_URL}/api/admin/dashboard`);
       const data = await response.json();
@@ -115,13 +122,13 @@ export default function AdminDashboard() {
     } catch {
       showMessage('error', 'Failed to load dashboard data');
     } finally {
-      setLoading(false);
+      setLoadingDashboard(false);
     }
-  };
+  }, [fetchWithAuth, showMessage]);
 
-  // Load users
-  const loadUsers = async () => {
-    setLoading(true);
+  // Load users - memoized with useCallback to prevent infinite loops
+  const loadUsers = useCallback(async () => {
+    setLoadingUsers(true);
     try {
       const response = await fetchWithAuth(`${API_BASE_URL}/api/admin/users`);
       const data = await response.json();
@@ -131,13 +138,13 @@ export default function AdminDashboard() {
     } catch {
       showMessage('error', 'Failed to load users');
     } finally {
-      setLoading(false);
+      setLoadingUsers(false);
     }
-  };
+  }, [fetchWithAuth, showMessage]);
 
-  // Load summaries
-  const loadSummaries = async () => {
-    setLoading(true);
+  // Load summaries - memoized with useCallback to prevent infinite loops
+  const loadSummaries = useCallback(async () => {
+    setLoadingSummaries(true);
     try {
       const response = await fetchWithAuth(`${API_BASE_URL}/api/admin/summaries`);
       const data = await response.json();
@@ -147,13 +154,13 @@ export default function AdminDashboard() {
     } catch {
       showMessage('error', 'Failed to load summaries');
     } finally {
-      setLoading(false);
+      setLoadingSummaries(false);
     }
-  };
+  }, [fetchWithAuth, showMessage]);
 
-  // Load coin sync status
-  const loadCoinSyncStatus = async () => {
-    setLoading(true);
+  // Load coin sync status - memoized with useCallback to prevent infinite loops
+  const loadCoinSyncStatus = useCallback(async () => {
+    setLoadingCoinSync(true);
     try {
       const response = await fetchWithAuth(`${API_BASE_URL}/api/admin/coins/status`);
       const data = await response.json();
@@ -163,9 +170,9 @@ export default function AdminDashboard() {
     } catch {
       showMessage('error', 'Failed to load coin sync status');
     } finally {
-      setLoading(false);
+      setLoadingCoinSync(false);
     }
-  };
+  }, [fetchWithAuth, showMessage]);
 
   // Trigger coin sync
   const handleCoinSync = async () => {
@@ -305,6 +312,7 @@ export default function AdminDashboard() {
     }
   };
 
+  // Load data when tab changes - only depends on activeTab to prevent infinite loops
   useEffect(() => {
     if (activeTab === 'dashboard') {
       loadDashboard();
@@ -315,7 +323,8 @@ export default function AdminDashboard() {
     } else if (activeTab === 'coins') {
       loadCoinSyncStatus();
     }
-  }, [activeTab, loadDashboard, loadUsers, loadSummaries, loadCoinSyncStatus]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]); // Only activeTab in dependencies - load functions are memoized with useCallback
 
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -455,7 +464,7 @@ export default function AdminDashboard() {
               <Button
                 onClick={handleResetPassword}
                 disabled={loading}
-                className="mt-4 bg-blue-600 hover:bg-blue-700"
+                className="mt-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? 'Resetting...' : 'Reset Password'}
               </Button>
@@ -550,9 +559,9 @@ export default function AdminDashboard() {
                 <Button
                   onClick={handleCoinSync}
                   disabled={loading || (coinSyncStatus?.running || false)}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? 'Syncing...' : 'Trigger Coin Sync Now'}
+                  {loading || coinSyncStatus?.running ? 'Syncing...' : 'Trigger Coin Sync Now'}
                 </Button>
               </div>
             </div>
@@ -570,7 +579,7 @@ export default function AdminDashboard() {
               <Button
                 onClick={handleMatcherRun}
                 disabled={loading}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? 'Running Matcher...' : 'Run Matcher Now'}
               </Button>
@@ -594,7 +603,7 @@ export default function AdminDashboard() {
                 <Button
                   onClick={handleSummarizeArticle}
                   disabled={loading}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? 'Summarizing...' : 'Summarize Article'}
                 </Button>
@@ -611,9 +620,9 @@ export default function AdminDashboard() {
                       <Button
                         onClick={() => handleTogglePublish(summary._id, summary.isPublished)}
                         disabled={loading}
-                        className={`text-xs ${summary.isPublished ? 'bg-orange-600 hover:bg-orange-700' : 'bg-green-600 hover:bg-green-700'}`}
+                        className={`text-xs disabled:opacity-50 disabled:cursor-not-allowed ${summary.isPublished ? 'bg-orange-600 hover:bg-orange-700' : 'bg-green-600 hover:bg-green-700'}`}
                       >
-                        {summary.isPublished ? 'Unpublish' : 'Publish'}
+                        {loading ? 'Updating...' : (summary.isPublished ? 'Unpublish' : 'Publish')}
                       </Button>
                     </div>
                     <p className="text-sm text-gray-400 mb-2">
@@ -657,7 +666,7 @@ export default function AdminDashboard() {
                 <Button
                   onClick={handleResearchJob}
                   disabled={loading}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? 'Triggering...' : 'Trigger Research Job'}
                 </Button>

@@ -45,10 +45,15 @@ class ResearchService {
   private readonly DEDUPLICATION_HOURS = parseInt(process.env.RESEARCH_DEDUP_HOURS || '6', 10);
   // Re-research if price change differs by more than this threshold (default 10%)
   private readonly PRICE_CHANGE_THRESHOLD = parseFloat(process.env.RESEARCH_PRICE_CHANGE_THRESHOLD || '10.0');
+  // Very recent research skip window (skip pre-screening if researched < 2 hours ago)
+  private readonly VERY_RECENT_HOURS = 2;
+  private quotaExceeded: boolean = false;
+  private quotaErrorCount: number = 0;
+  private readonly MAX_QUOTA_ERRORS = 3; // Stop pre-screening after 3 quota errors
 
   private constructor() {
     this.aiClient = new AIClient();
-    logger.info(`ResearchService: Deduplication window: ${this.DEDUPLICATION_HOURS}h, Price change threshold: ${this.PRICE_CHANGE_THRESHOLD}%`);
+    logger.info(`ResearchService: Deduplication window: ${this.DEDUPLICATION_HOURS}h, Price change threshold: ${this.PRICE_CHANGE_THRESHOLD}%, Very recent skip: ${this.VERY_RECENT_HOURS}h`);
   }
 
   static getInstance(): ResearchService {
@@ -89,9 +94,9 @@ class ResearchService {
         // Sort by price change
         const sortedByChange = [...formattedData].sort((a, b) => b.priceChange - a.priceChange);
 
-        // Get top 5 gainers and losers
-        const topGainers = sortedByChange.slice(0, 5);
-        const topLosers = sortedByChange.slice(-5).reverse();
+        // Get top 3 gainers and losers (reduced from 5 to optimize quota usage)
+        const topGainers = sortedByChange.slice(0, 3);
+        const topLosers = sortedByChange.slice(-3).reverse();
 
         return [...topGainers, ...topLosers];
       } else {
@@ -132,12 +137,87 @@ class ResearchService {
   }
 
   /**
+   * Extract JSON from response text, handling markdown code blocks and other formats
+   */
+  private extractJSON(text: string): string | null {
+    if (!text || text.trim().length === 0) {
+      return null;
+    }
+
+    const trimmed = text.trim();
+
+    // Try to find JSON in markdown code blocks first (handles ```json ... ``` or ``` ... ```)
+    const codeBlockPattern = /```(?:json)?\s*([\s\S]*?)\s*```/;
+    const codeBlockMatch = trimmed.match(codeBlockPattern);
+    if (codeBlockMatch) {
+      const codeContent = codeBlockMatch[1].trim();
+      if (codeContent.startsWith('{') && codeContent.endsWith('}')) {
+        return codeContent;
+      }
+    }
+
+    // Try to find the first complete JSON object by counting braces
+    let braceCount = 0;
+    let startIndex = -1;
+    
+    for (let i = 0; i < trimmed.length; i++) {
+      if (trimmed[i] === '{') {
+        if (braceCount === 0) {
+          startIndex = i;
+        }
+        braceCount++;
+      } else if (trimmed[i] === '}') {
+        braceCount--;
+        if (braceCount === 0 && startIndex !== -1) {
+          // Found a complete JSON object
+          const jsonCandidate = trimmed.substring(startIndex, i + 1);
+          // Quick validation: try to parse it
+          try {
+            JSON.parse(jsonCandidate);
+            return jsonCandidate;
+          } catch {
+            // Not valid JSON, continue searching
+            startIndex = -1;
+          }
+        }
+      }
+    }
+
+    // If the entire response looks like JSON, return it
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      return trimmed;
+    }
+
+    return null;
+  }
+
+  /**
+   * Parse JSON with multiple attempts and better error handling
+   */
+  private parseJSONResponse<T>(text: string, fallback: T): T {
+    try {
+      const jsonString = this.extractJSON(text);
+      if (!jsonString) {
+        logger.warn(`ResearchService: No JSON found in response, using fallback`);
+        return fallback;
+      }
+
+      const parsed = JSON.parse(jsonString);
+      return parsed as T;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(`ResearchService: JSON parsing failed - ${errorMessage}. Response preview: ${text.substring(0, 200)}`);
+      return fallback;
+    }
+  }
+
+  /**
    * Quick pre-screening to check if there's a significant event worth researching
    * Returns true if there's a credible event, false if it's just market noise
    */
   private async hasSignificantEvent(mover: TopMover): Promise<{ hasEvent: boolean; reason: string }> {
     try {
-      const prompt = `You are a cryptocurrency analyst. Quickly check if there's a COIN-SPECIFIC SIGNIFICANT EVENT that might explain this price movement:
+      const prompt = `You are a cryptocurrency analyst. Quickly check if there's a COIN-SPECIFIC SIGNIFICANT EVENT that might explain this price movement.
 
 Coin: ${mover.symbol}
 Price Change: ${mover.priceChange > 0 ? '+' : ''}${mover.priceChange.toFixed(2)}% (${mover.timeframe})
@@ -149,9 +229,10 @@ Use web search to quickly check for COIN-SPECIFIC events:
 3. Events specifically affecting THIS coin (hacks, exploits, major announcements)
 4. Significant social media buzz with credible sources specifically about THIS coin
 
-Respond with JSON:
+CRITICAL: You MUST respond with ONLY valid JSON, no additional text or explanation. Use this exact format:
+
 {
-  "hasEvent": true/false,
+  "hasEvent": false,
   "reason": "Brief explanation (1 sentence)"
 }
 
@@ -165,23 +246,29 @@ Mark FALSE for:
 - Old news that doesn't align with the current timeframe
 - Pump and dump schemes
 - No clear coin-specific cause found
-- Speculation without evidence`;
+- Speculation without evidence
+
+Remember: Respond with ONLY the JSON object, nothing else.`;
 
       const responseContent = await this.aiClient.generateCompletion(prompt, {
         useWebSearch: true
       });
 
-      // Parse JSON response
-      const jsonMatch = responseContent.match(/\{[\s\S]*\}/);
-      const jsonString = jsonMatch ? jsonMatch[0] : responseContent;
-      const parsed = JSON.parse(jsonString);
+      if (!responseContent || responseContent.trim().length === 0) {
+        logger.warn(`ResearchService: Empty response from AI for pre-screening ${mover.symbol}, assuming event exists`);
+        return { hasEvent: true, reason: "Empty response from AI, proceeding with research" };
+      }
+
+      // Parse JSON response with fallback
+      const parsed = this.parseJSONResponse(responseContent, { hasEvent: false, reason: "Failed to parse response" });
 
       return {
-        hasEvent: parsed.hasEvent || false,
+        hasEvent: parsed.hasEvent === true,
         reason: parsed.reason || "Unknown",
       };
     } catch (error) {
-      logger.error(`ResearchService: Error in pre-screening for ${mover.symbol}:`, error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(`ResearchService: Error in pre-screening for ${mover.symbol}: ${errorMessage}`);
       // On error, assume there might be an event (fail open)
       return { hasEvent: true, reason: "Pre-screening failed, proceeding with research" };
     }
@@ -214,21 +301,22 @@ Analyze whether the research indicates a COIN-SPECIFIC CAUSE for the price movem
 - Is there substantial discussion/evidence to support causation?
 - Is this movement unique to this coin, or is it part of broader market trends?
 
-Respond with a JSON object:
+CRITICAL: You MUST respond with ONLY valid JSON, no additional text or explanation. Use this exact format:
+
 {
   "researchContent": "Detailed summary of findings (2-3 sentences)",
   "sources": [
     {
-      "type": "reddit|news|forum|twitter|other",
-      "url": "source URL",
-      "title": "source title",
-      "summary": "brief summary of what this source says"
+      "type": "reddit",
+      "url": "https://example.com",
+      "title": "Source title",
+      "summary": "Brief summary"
     }
   ],
-  "isPublishable": true/false,
-  "publishableReason": "Why this is/isn't publishable (1-2 sentences explaining if there's a coin-specific reasonable cause)",
-  "category": "Technology|Partnership|Regulatory|Market|DeFi|NFT|General",
-  "impact": "high|medium|low"
+  "isPublishable": false,
+  "publishableReason": "Why this is/isn't publishable (1-2 sentences)",
+  "category": "General",
+  "impact": "medium"
 }
 
 IMPORTANT: Only mark isPublishable as true if you find CREDIBLE evidence of a COIN-SPECIFIC event that reasonably explains the price movement.
@@ -246,36 +334,32 @@ Mark TRUE only if:
 - There's a technical development (upgrade, mainnet launch) for THIS coin
 - There's regulatory news specifically about THIS coin or its ecosystem
 - There's a hack, exploit, or major event specifically affecting THIS coin
-- There's credible, coin-specific news that aligns with the price movement timing`;
+- There's credible, coin-specific news that aligns with the price movement timing
+
+Remember: Respond with ONLY the JSON object, nothing else.`;
 
       const responseContent = await this.aiClient.generateCompletion(prompt, {
         useWebSearch: true
       });
 
-      if (!responseContent) {
-        throw new Error("No response from AI");
+      if (!responseContent || responseContent.trim().length === 0) {
+        logger.error(`ResearchService: Empty response from AI for ${mover.symbol}`);
+        throw new Error("No response from Gemini");
       }
 
-      logger.info(`ResearchService: Received response from AI for ${mover.symbol}`);
+      logger.info(`ResearchService: Received response from AI for ${mover.symbol} (length: ${responseContent.length})`);
 
-      // Parse the JSON response
-      let parsedResponse;
-      try {
-        const jsonMatch = responseContent.match(/\{[\s\S]*\}/);
-        const jsonString = jsonMatch ? jsonMatch[0] : responseContent;
-        parsedResponse = JSON.parse(jsonString);
-      } catch (parseError) {
-        logger.error("ResearchService: Failed to parse AI response as JSON:", parseError);
-        // Fallback
-        parsedResponse = {
-          researchContent: responseContent.substring(0, 300),
-          sources: [],
-          isPublishable: false,
-          publishableReason: "Failed to parse research response",
-          category: "General",
-          impact: "medium",
-        };
-      }
+      // Parse the JSON response with improved error handling
+      const fallbackResponse = {
+        researchContent: responseContent.substring(0, 500) || "No research content available",
+        sources: [],
+        isPublishable: false,
+        publishableReason: "Failed to parse research response - using raw content",
+        category: "General",
+        impact: "medium" as const,
+      };
+
+      const parsedResponse = this.parseJSONResponse(responseContent, fallbackResponse);
 
       return {
         coinSymbol: mover.symbol,
@@ -458,12 +542,66 @@ Respond with JSON:
       logger.info(`ResearchService: Found ${allMovers.length} unique top movers (${topMovers24h.length} from 24h, ${topMovers7d.length} from 7d)`);
 
       // Phase 1: Pre-screen all coins to find those with significant events
+      // First, check for recent research to skip coins that don't need pre-screening
       logger.info(`ResearchService: Phase 1 - Pre-screening ${allMovers.length} coins for significant events...`);
       
       const coinsWithEvents: TopMover[] = [];
       const coinsWithoutEvents: { symbol: string; reason: string }[] = [];
+      const coinsToPreScreen: TopMover[] = [];
       
+      // Pre-filter: Check for recent research before making LLM calls
       for (const mover of allMovers) {
+        // Check for very recent research (< 2 hours ago) - skip pre-screening entirely
+        const veryRecentResearch = await this.findRecentResearch(
+          mover.symbol,
+          mover.timeframe,
+          this.VERY_RECENT_HOURS
+        );
+
+        if (veryRecentResearch) {
+          const hoursSinceResearch = (Date.now() - new Date(veryRecentResearch.researchedAt).getTime()) / (1000 * 60 * 60);
+          logger.info(`ResearchService: ⏭️  Skipping ${mover.symbol} - very recent research exists (${hoursSinceResearch.toFixed(1)}h ago), skipping pre-screening entirely`);
+          // Skip this coin completely - it was researched very recently
+          continue;
+        }
+
+        // Check for recent research (within deduplication window)
+        const recentResearch = await this.findRecentResearch(
+          mover.symbol,
+          mover.timeframe,
+          this.DEDUPLICATION_HOURS
+        );
+
+        if (recentResearch) {
+          const priceChangeDelta = Math.abs(mover.priceChange - recentResearch.priceChange);
+          
+          // If recent research exists and price change is similar, skip pre-screening
+          if (priceChangeDelta < this.PRICE_CHANGE_THRESHOLD) {
+            logger.info(`ResearchService: ⏭️  Skipping pre-screening for ${mover.symbol} - recent research exists (delta: ${priceChangeDelta.toFixed(2)}%)`);
+            // Don't add to coinsWithEvents - will be handled in Phase 2
+            continue;
+          }
+        }
+        
+        // Coin needs pre-screening (no recent research or significant price change)
+        coinsToPreScreen.push(mover);
+      }
+
+      logger.info(`ResearchService: Pre-filtered to ${coinsToPreScreen.length} coins needing pre-screening (${allMovers.length - coinsToPreScreen.length} skipped due to recent research)`);
+
+      // Reset quota error count for this run
+      this.quotaErrorCount = 0;
+      
+      // Pre-screen only coins that need it
+      for (const mover of coinsToPreScreen) {
+        // Stop pre-screening if we hit quota errors
+        if (this.quotaExceeded || this.quotaErrorCount >= this.MAX_QUOTA_ERRORS) {
+          logger.warn(`ResearchService: Quota exceeded or too many quota errors (${this.quotaErrorCount}), skipping remaining pre-screening. Including remaining coins for research.`);
+          // Include remaining coins (fail open when quota is exceeded)
+          coinsWithEvents.push(...coinsToPreScreen.slice(coinsToPreScreen.indexOf(mover)));
+          break;
+        }
+
         try {
           const eventCheck = await this.hasSignificantEvent(mover);
           
@@ -478,13 +616,31 @@ Respond with JSON:
           // Small delay between pre-screening calls
           await new Promise(resolve => setTimeout(resolve, 1000));
         } catch (error) {
-          logger.error(`ResearchService: Error pre-screening ${mover.symbol}:`, error);
-          // On error, include the coin (fail open)
-          coinsWithEvents.push(mover);
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          
+          // Check if it's a quota error
+          if (errorMessage.includes('quota') || errorMessage.includes('429') || errorMessage.includes('Quota exceeded')) {
+            this.quotaExceeded = true;
+            this.quotaErrorCount++;
+            logger.error(`ResearchService: Quota exceeded during pre-screening (${this.quotaErrorCount}/${this.MAX_QUOTA_ERRORS}). Stopping pre-screening.`);
+            // Include remaining coins (fail open when quota is exceeded)
+            coinsWithEvents.push(...coinsToPreScreen.slice(coinsToPreScreen.indexOf(mover)));
+            break;
+          } else {
+            logger.error(`ResearchService: Error pre-screening ${mover.symbol}:`, error);
+            // On other errors, include the coin (fail open)
+            coinsWithEvents.push(mover);
+          }
         }
       }
       
       logger.info(`ResearchService: Pre-screening complete - ${coinsWithEvents.length} coins with events, ${coinsWithoutEvents.length} without`);
+      
+      // Add coins that were skipped in pre-filtering but have significant price changes
+      // These have recent research but price change differs significantly, so they need Phase 2 research
+      // (They were added to coinsToPreScreen but we need to make sure they're in coinsWithEvents)
+      // Actually, if they have significant price change, they should already be in coinsToPreScreen
+      // and would have been pre-screened. So we just need to ensure all coinsToPreScreen with events are included.
       
       if (coinsWithEvents.length === 0) {
         logger.info('ResearchService: No coins with significant events found, skipping full research');
