@@ -112,7 +112,7 @@ export default function AdminDashboard() {
       if (data.success) {
         setDashboardData(data.data);
       }
-    } catch (error) {
+    } catch {
       showMessage('error', 'Failed to load dashboard data');
     } finally {
       setLoading(false);
@@ -128,7 +128,7 @@ export default function AdminDashboard() {
       if (data.success) {
         setUsers(data.data);
       }
-    } catch (error) {
+    } catch {
       showMessage('error', 'Failed to load users');
     } finally {
       setLoading(false);
@@ -144,7 +144,7 @@ export default function AdminDashboard() {
       if (data.success) {
         setSummaries(data.data);
       }
-    } catch (error) {
+    } catch {
       showMessage('error', 'Failed to load summaries');
     } finally {
       setLoading(false);
@@ -160,7 +160,7 @@ export default function AdminDashboard() {
       if (data.success) {
         setCoinSyncStatus(data.status);
       }
-    } catch (error) {
+    } catch {
       showMessage('error', 'Failed to load coin sync status');
     } finally {
       setLoading(false);
@@ -181,7 +181,7 @@ export default function AdminDashboard() {
       } else {
         showMessage('error', data.error || 'Coin sync failed');
       }
-    } catch (error) {
+    } catch {
       showMessage('error', 'Failed to trigger coin sync');
     } finally {
       setLoading(false);
@@ -202,7 +202,7 @@ export default function AdminDashboard() {
       } else {
         showMessage('error', data.error || 'Failed to trigger research job');
       }
-    } catch (error) {
+    } catch {
       showMessage('error', 'Failed to trigger research job');
     } finally {
       setLoading(false);
@@ -222,7 +222,7 @@ export default function AdminDashboard() {
       } else {
         showMessage('error', data.error || 'Matcher failed');
       }
-    } catch (error) {
+    } catch {
       showMessage('error', 'Failed to run matcher');
     } finally {
       setLoading(false);
@@ -249,7 +249,7 @@ export default function AdminDashboard() {
       } else {
         showMessage('error', data.error || 'Failed to summarize article');
       }
-    } catch (error) {
+    } catch {
       showMessage('error', 'Failed to summarize article');
     } finally {
       setLoading(false);
@@ -271,7 +271,7 @@ export default function AdminDashboard() {
       } else {
         showMessage('error', data.error || 'Failed to update summary');
       }
-    } catch (error) {
+    } catch {
       showMessage('error', 'Failed to update summary');
     } finally {
       setLoading(false);
@@ -298,7 +298,7 @@ export default function AdminDashboard() {
       } else {
         showMessage('error', data.error || 'Failed to reset password');
       }
-    } catch (error) {
+    } catch {
       showMessage('error', 'Failed to reset password');
     } finally {
       setLoading(false);
@@ -315,7 +315,7 @@ export default function AdminDashboard() {
     } else if (activeTab === 'coins') {
       loadCoinSyncStatus();
     }
-  }, [activeTab]);
+  }, [activeTab, loadDashboard, loadUsers, loadSummaries, loadCoinSyncStatus]);
 
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';

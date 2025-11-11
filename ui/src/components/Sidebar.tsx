@@ -48,8 +48,8 @@ export default function Sidebar({
             setIsAdmin(true);
           }
         }
-      } catch (error) {
-        console.error('Failed to check admin status:', error);
+      } catch {
+        // Silent fail - admin link won't show
       }
     };
 

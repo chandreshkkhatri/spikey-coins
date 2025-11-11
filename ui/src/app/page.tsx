@@ -18,8 +18,8 @@ export default function HomePage() {
       await api.get24hrTicker();
       // Data will be automatically refreshed by child components' periodic polling
       // No need for full page reload which would lose state and be jarring
-    } catch (error) {
-      console.error("Error refreshing ticker data:", error);
+    } catch {
+      // Silent fail - data will refresh on next interval
     } finally {
       setLoading(false);
     }

@@ -68,7 +68,6 @@ export default function MarketOverview() {
         setError(null);
 
         const response = await api.getMarketOverview();
-        console.log('Market overview API response:', response.data);
         const responseData = response.data?.data;
         
         if (!responseData) {
@@ -78,26 +77,14 @@ export default function MarketOverview() {
         // Check if response is in new format or old format
         let marketOverviewData;
         
-        console.log('API responseData type:', typeof responseData);
-        console.log('API responseData isArray:', Array.isArray(responseData));
-        console.log('API responseData keys:', Object.keys(responseData || {}));
-        
         if (responseData.cryptocurrencies && responseData.bitcoin_dominance) {
           // New format
-          console.log('Using new API format');
-          console.log('cryptocurrencies data:', responseData.cryptocurrencies);
-          console.log('bitcoin_dominance data:', responseData.bitcoin_dominance);
-          
           marketOverviewData = {
             cryptocurrencies: responseData.cryptocurrencies || [],
             bitcoin_dominance: responseData.bitcoin_dominance
           };
         } else if (Array.isArray(responseData)) {
           // Old format - convert to new format
-          console.warn('Using old API format, consider updating server');
-          console.log('Old format data length:', responseData.length);
-          console.log('First item in old format:', responseData[0]);
-          
           marketOverviewData = {
             cryptocurrencies: responseData.slice(0, 8).map((item: LegacyTickerData) => ({
               symbol: item.s?.replace('USDT', '') || item.symbol?.replace('USDT', '') || 'Unknown',
@@ -113,15 +100,11 @@ export default function MarketOverview() {
             }
           };
         } else {
-          console.error('Unexpected API response format:', responseData);
           throw new Error('Unexpected API response format');
         }
-        
-        console.log('Final marketOverviewData:', marketOverviewData);
 
         setMarketData(marketOverviewData);
-      } catch (err) {
-        console.error("Error fetching market overview:", err);
+      } catch {
         setError("Failed to load market data");
       } finally {
         setLoading(false);
@@ -167,12 +150,6 @@ export default function MarketOverview() {
   }
 
   const { cryptocurrencies = [], bitcoin_dominance } = marketData;
-
-  // Debug logging
-  console.log('MarketOverview render - marketData:', marketData);
-  console.log('MarketOverview render - cryptocurrencies length:', cryptocurrencies.length);
-  console.log('MarketOverview render - cryptocurrencies:', cryptocurrencies);
-  console.log('MarketOverview render - bitcoin_dominance:', bitcoin_dominance);
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">

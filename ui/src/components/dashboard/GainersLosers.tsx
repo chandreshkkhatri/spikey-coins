@@ -106,8 +106,7 @@ export default function GainersLosers() {
           setGainers(formatData(data.gainers || []));
           setLosers(formatData(data.losers || []));
         }
-      } catch (err) {
-        console.error("Error fetching ticker data for gainers/losers:", err);
+      } catch {
         setError("Failed to load gainers and losers data");
       } finally {
         setLoading(false);

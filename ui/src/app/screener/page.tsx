@@ -48,7 +48,6 @@ export default function ScreenerPage() {
       setError(null);
       const response = await api.get24hrTicker();
       const rawData = response.data.data || response.data || [];
-      console.log("Raw API data sample:", rawData[0]); // Debug log
       const transformedData: TickerData[] = rawData.map(
         (item: {
           s: string;                    // Backend sends 's' for symbol
@@ -82,15 +81,12 @@ export default function ScreenerPage() {
           normalized_volume_score: item.normalized_volume_score || 0,
         })
       );
-      console.log("Transformed data sample:", transformedData[0]); // Debug log
       const usdtPairs = transformedData.filter(
         (item: TickerData) =>
           item.s && typeof item.s === "string" && item.s.endsWith("USDT")
       );
-      console.log("Final ticker array length:", usdtPairs.length); // Debug log
       setTickerArray(usdtPairs);
-    } catch (err) {
-      console.error("Error fetching ticker data:", err);
+    } catch {
       setError("Failed to fetch ticker data. Please try again.");
     } finally {
       setLoading(false);
@@ -103,8 +99,7 @@ export default function ScreenerPage() {
       setError(null);
       await api.refreshMarketcapData();
       await getSpikes();
-    } catch (err) {
-      console.error("Error refreshing market cap data:", err);
+    } catch {
       setError("Failed to refresh market cap data. Please try again.");
     } finally {
       setLoading(false);

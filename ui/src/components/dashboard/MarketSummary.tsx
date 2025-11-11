@@ -92,8 +92,7 @@ export default function MarketSummary() {
         }));
         
         setStories(formattedStories);
-      } catch (err) {
-        console.error("Error fetching summaries:", err);
+      } catch {
         setError("Failed to load market summaries");
       } finally {
         setLoading(false);

@@ -91,8 +91,7 @@ export default function Watchlist() {
           
           setWatchlists(formattedWatchlists);
         }
-      } catch (err) {
-        console.error("Error fetching watchlists:", err);
+      } catch {
         setWatchlists(defaultWatchlists);
         setError("Failed to load watchlists");
       } finally {

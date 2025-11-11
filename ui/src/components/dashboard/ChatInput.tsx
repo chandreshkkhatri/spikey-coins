@@ -92,8 +92,7 @@ export default function ChatInput({ onResponse }: ChatInputProps = {}) {
             onResponse(responseMessage);
           }
         }
-      } catch (err) {
-        console.error("Error sending message:", err);
+      } catch {
         setError("Failed to get response. Please try again.");
         setShowResponse(true);
       } finally {

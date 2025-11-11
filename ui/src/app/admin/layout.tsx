@@ -18,7 +18,6 @@ export default function AdminLayout({
       const token = localStorage.getItem('authToken');
       
       if (!token) {
-        console.log('No auth token found, redirecting to admin login');
         router.push('/admin/login');
         return;
       }
@@ -32,25 +31,21 @@ export default function AdminLayout({
 
         if (response.ok) {
           const data = await response.json();
-          console.log('Auth verification response:', data);
           if (data.user && data.user.role === 'admin') {
             setIsAuthenticated(true);
             setIsAdmin(true);
             setLoading(false);
           } else {
             // Not an admin
-            console.log('User is not an admin, role:', data.user?.role);
             localStorage.removeItem('authToken');
             router.push('/admin/login');
           }
         } else {
           // Invalid token
-          console.log('Invalid token, status:', response.status);
           localStorage.removeItem('authToken');
           router.push('/admin/login');
         }
-      } catch (error) {
-        console.error('Auth check failed:', error);
+      } catch {
         router.push('/admin/login');
       }
     };

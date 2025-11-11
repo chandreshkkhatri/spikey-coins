@@ -1,14 +1,13 @@
 'use client';
 
 import { useState, FormEvent, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 const API_BASE_URL = 'http://localhost:8000';
 
 export default function LoginPage() {
-  const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -36,13 +35,12 @@ export default function LoginPage() {
           const data = await response.json();
           if (data.user && data.user.role === 'admin') {
             // Already logged in as admin, redirect to dashboard
-            console.log('Already authenticated, redirecting to /admin');
             window.location.href = '/admin';
             return;
           }
         }
-      } catch (error) {
-        console.error('Auth check failed:', error);
+      } catch {
+        // Silent fail - user will see login form
       }
       
       setCheckingAuth(false);
@@ -66,40 +64,25 @@ export default function LoginPage() {
       });
 
       const data = await response.json();
-      console.log('=== LOGIN DEBUG ===');
-      console.log('Full response:', data);
-      console.log('Response OK:', response.ok);
-      console.log('Data success:', data.success);
-      console.log('User object:', data.user);
-      console.log('User role:', data.user?.role);
-      console.log('User role type:', typeof data.user?.role);
-      console.log('Is admin?:', data.user?.role === 'admin');
-      console.log('==================');
 
       if (response.ok && data.success) {
         // Store the token in localStorage
         localStorage.setItem('authToken', data.token);
-        console.log('Token stored successfully');
         
         // Redirect based on role - check for admin role
         const userRole = data.user?.role;
         if (userRole === 'admin') {
-          console.log('User is admin, redirecting to /admin');
-          // Immediate redirect - no need for setTimeout
           window.location.href = '/admin';
-          return; // Stop execution
+          return;
         } else {
-          console.log('User is not admin (role:', userRole, '), redirecting to /');
           window.location.href = '/';
-          return; // Stop execution
+          return;
         }
       } else {
-        console.error('Login failed:', data);
         setError(data.error || 'Login failed');
         setLoading(false);
       }
-    } catch (err) {
-      console.error('Login error:', err);
+    } catch {
       setError('Failed to connect to server');
       setLoading(false);
     }
@@ -186,15 +169,15 @@ export default function LoginPage() {
           </Button>
 
           <div className="text-center mt-4">
-            <a href="/" className="text-sm text-blue-400 hover:text-blue-300">
+            <Link href="/" className="text-sm text-blue-400 hover:text-blue-300">
               ← Back to Home
-            </a>
+            </Link>
             <p className="text-xs text-gray-500 mt-2">Admin login only</p>
           </div>
         </form>
 
         <div className="text-center text-sm text-gray-500">
-          <p>Don't have an account? Contact your administrator.</p>
+          <p>Don&apos;t have an account? Contact your administrator.</p>
         </div>
       </div>
     </div>
