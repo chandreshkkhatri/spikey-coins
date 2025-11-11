@@ -20,6 +20,7 @@ import MarketOverviewService from "./src/services/MarketOverviewService.js";
 import ResearchCronService from "./src/services/ResearchCronService.js";
 import PriceHistoryService from "./src/services/PriceHistoryService.js";
 import DailyCandlestickService from "./src/services/DailyCandlestickService.js";
+import CoinSyncService from "./src/services/CoinSyncService.js";
 import * as routes from "./src/routes/routes.js";
 import * as authRoutes from "./src/routes/auth.js";
 import * as adminRoutes from "./src/routes/admin.js";
@@ -154,6 +155,11 @@ app.get('/api/admin/summaries', requireAdminAuth, adminRoutes.getAllSummaries);
 app.post('/api/admin/research/trigger', requireAdminAuth, validate(triggerResearchJobSchema), adminRoutes.triggerResearchJob);
 app.get('/api/admin/research/status', requireAdminAuth, adminRoutes.getResearchJobStatus);
 app.post('/api/admin/users/reset-password', requireAdminAuth, validate(adminResetPasswordSchema), adminRoutes.resetUserPassword);
+app.get('/api/admin/dashboard', requireAdminAuth, adminRoutes.getAdminDashboard);
+app.get('/api/admin/users', requireAdminAuth, adminRoutes.getAllUsers);
+app.post('/api/admin/data/clear', requireAdminAuth, adminRoutes.clearOldData);
+app.post('/api/admin/coins/sync', requireAdminAuth, adminRoutes.triggerCoinSync);
+app.get('/api/admin/coins/status', requireAdminAuth, adminRoutes.getCoinSyncStatus);
 
 // Global error handler
 app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -208,6 +214,7 @@ process.on('SIGTERM', () => {
   MarketOverviewService.getInstance().cleanup();
   ResearchCronService.getInstance().stop();
   PriceHistoryService.getInstance().stop();
+  CoinSyncService.getInstance().stop();
   DatabaseConnection.cleanup();
   process.exit(0);
 });
@@ -219,6 +226,7 @@ process.on('SIGINT', () => {
   MarketOverviewService.getInstance().cleanup();
   ResearchCronService.getInstance().stop();
   PriceHistoryService.getInstance().stop();
+  CoinSyncService.getInstance().stop();
   DatabaseConnection.cleanup();
   process.exit(0);
 });
@@ -263,6 +271,10 @@ async function startServer() {
     // Initialize and start Daily Candlestick Service (efficient 7d calculations)
     await DailyCandlestickService.getInstance().start();
     logger.info('✅ Daily Candlestick Service started (backfill & 7d data)');
+
+    // Initialize and start Coin Sync Service (syncs every 24 hours)
+    CoinSyncService.getInstance().start();
+    logger.info('✅ Coin Sync Service started (syncs every 24 hours)');
     
     // Start Express server
     app.listen(PORT, () => {
@@ -294,6 +306,7 @@ process.on('uncaughtException', async (error) => {
     MarketOverviewService.getInstance().cleanup();
     ResearchCronService.getInstance().stop();
     PriceHistoryService.getInstance().stop();
+    CoinSyncService.getInstance().stop();
 
     logger.info('Cleanup completed after uncaught exception');
   } catch (cleanupError) {
@@ -317,6 +330,7 @@ process.on('unhandledRejection', async (reason, promise) => {
     MarketOverviewService.getInstance().cleanup();
     ResearchCronService.getInstance().stop();
     PriceHistoryService.getInstance().stop();
+    CoinSyncService.getInstance().stop();
 
     logger.info('Cleanup completed after unhandled rejection');
   } catch (cleanupError) {

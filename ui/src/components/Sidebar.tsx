@@ -1,6 +1,7 @@
 "use client";
 
 import type React from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -11,6 +12,7 @@ import {
   Activity,
   Settings,
   HelpCircle,
+  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -26,6 +28,33 @@ export default function Sidebar({
   tickerCount = 0,
 }: SidebarProps) {
   const pathname = usePathname();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      try {
+        const response = await fetch('http://localhost:8000/api/auth/verify', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.user && data.user.role === 'admin') {
+            setIsAdmin(true);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to check admin status:', error);
+      }
+    };
+
+    checkAdminStatus();
+  }, []);
   
   return (
     <div className="w-16 h-full border-r border-gray-200 bg-gray-50 flex flex-col items-center py-4">
@@ -70,6 +99,14 @@ export default function Sidebar({
             active={false}
             disabled={true}
           />
+          {isAdmin && (
+            <NavItem
+              href="/admin"
+              icon={<Shield className="h-5 w-5" />}
+              label="Admin"
+              active={pathname === "/admin"}
+            />
+          )}
         </div>
 
         <div className="mt-auto flex flex-col items-center gap-4">

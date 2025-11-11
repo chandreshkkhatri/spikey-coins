@@ -46,10 +46,12 @@ export function verifyToken(token: string): JWTPayload {
  * Convert User to UserResponse (remove password)
  */
 export function sanitizeUser(user: any): UserResponse {
-  const { password, ...sanitizedUser } = user;
+  // Convert Mongoose document to plain object if needed
+  const plainUser = user.toObject ? user.toObject() : user;
+  const { password, ...sanitizedUser } = plainUser;
   return {
     ...sanitizedUser,
-    _id: user._id ? user._id.toString() : '',
+    _id: plainUser._id ? plainUser._id.toString() : '',
   } as UserResponse;
 }
 

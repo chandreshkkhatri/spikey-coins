@@ -10,6 +10,7 @@ import { UserModel } from "../models/User.js";
 import BinanceCoinGeckoMatcher from "../services/BinanceCoinGeckoMatcher.js";
 import SummarizationService from "../services/SummarizationService.js";
 import ResearchCronService from "../services/ResearchCronService.js";
+import CoinSyncService from "../services/CoinSyncService.js";
 import { hashPassword } from "../utils/auth.js";
 import logger from "../utils/logger.js";
 
@@ -108,41 +109,6 @@ export async function getAllUsers(req: Request, res: Response): Promise<void> {
 }
 
 /**
- * Get system logs (placeholder for future implementation)
- */
-export async function getSystemLogs(
-  req: Request,
-  res: Response
-): Promise<void> {
-  try {
-    const limit = parseInt(req.query.limit as string) || 100;
-    const level = (req.query.level as string) || "info";
-
-    // This is a placeholder - in a real implementation you would
-    // read from your logging system or log files
-    const logs = {
-      message: "Log retrieval not implemented yet",
-      note: "This endpoint would return recent system logs",
-      requestedLimit: limit,
-      requestedLevel: level,
-    };
-
-    logger.info(`Admin: System logs accessed by ${req.user?.username}`);
-    res.json({
-      success: true,
-      data: logs,
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    logger.error("Admin: Get system logs error:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to retrieve system logs",
-    });
-  }
-}
-
-/**
  * Clear old data (admin maintenance task)
  */
 export async function clearOldData(req: Request, res: Response): Promise<void> {
@@ -202,46 +168,6 @@ export async function clearOldData(req: Request, res: Response): Promise<void> {
     res.status(500).json({
       success: false,
       error: "Failed to clear old data",
-    });
-  }
-}
-
-/**
- * Refresh system caches (admin maintenance task)
- */
-export async function refreshSystemCaches(
-  req: Request,
-  res: Response
-): Promise<void> {
-  try {
-    // This would trigger cache refresh operations
-    // For now, it's a placeholder that simulates the operation
-
-    const cacheTypes = req.body.cacheTypes || ["market-data", "ticker-data"];
-    const results = [];
-
-    for (const cacheType of cacheTypes) {
-      results.push({
-        type: cacheType,
-        status: "refreshed",
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    logger.info(
-      `Admin: Cache refresh performed by ${req.user?.username} - ${cacheTypes.length} caches refreshed`
-    );
-    res.json({
-      success: true,
-      message: "System caches refreshed successfully",
-      results,
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    logger.error("Admin: Refresh system caches error:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to refresh system caches",
     });
   }
 }
@@ -742,6 +668,91 @@ export async function resetUserPassword(
     res.status(500).json({
       success: false,
       error: "Failed to reset password",
+      details: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+/**
+ * Trigger coin sync manually (admin only)
+ */
+export async function triggerCoinSync(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    const coinSyncService = CoinSyncService.getInstance();
+    const status = coinSyncService.getStatus();
+
+    // Check if already running
+    if (status.running) {
+      res.status(409).json({
+        success: false,
+        error: "Coin sync is already running",
+        status,
+      });
+      return;
+    }
+
+    logger.info(
+      `Admin: Coin sync manually triggered by ${req.user?.username}`
+    );
+
+    // Trigger the sync
+    const result = await coinSyncService.triggerManually();
+
+    if (result.success) {
+      logger.info(
+        `Admin: Coin sync completed - Total: ${result.result?.totalCoins}, New: ${result.result?.newCoins}, Active: ${result.result?.activeCoins}, Delisted: ${result.result?.delistedCoins}`
+      );
+
+      res.json({
+        success: true,
+        message: "Coin sync completed successfully",
+        result: result.result,
+        performedBy: req.user?.username,
+        timestamp: new Date().toISOString(),
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: "Coin sync failed",
+        details: result.error,
+      });
+    }
+  } catch (error) {
+    logger.error("Admin: Trigger coin sync error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to trigger coin sync",
+      details: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+/**
+ * Get coin sync status (admin only)
+ */
+export async function getCoinSyncStatus(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    const coinSyncService = CoinSyncService.getInstance();
+    const status = coinSyncService.getStatus();
+    const stats = await coinSyncService.getCoinStats();
+
+    res.json({
+      success: true,
+      status,
+      stats,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error("Admin: Get coin sync status error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to get coin sync status",
       details: error instanceof Error ? error.message : String(error),
     });
   }

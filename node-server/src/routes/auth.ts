@@ -65,9 +65,13 @@ export async function login(req: Request, res: Response): Promise<void> {
       role: user.role
     });
 
+    // Update user with new lastLogin and convert to plain object
+    const updatedUser = user.toObject();
+    updatedUser.lastLogin = new Date();
+
     const authResponse: AuthResponse = {
       success: true,
-      user: sanitizeUser({ ...user, lastLogin: new Date() }),
+      user: sanitizeUser(updatedUser),
       token,
       expiresIn: '24h'
     };
