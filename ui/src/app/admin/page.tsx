@@ -109,7 +109,7 @@ export default function AdminDashboard() {
 
   // Load dashboard data - memoized with useCallback to prevent infinite loops
   const loadDashboard = useCallback(async () => {
-    setLoadingDashboard(true);
+    setLoading(true);
     try {
       const response = await fetchWithAuth(`${API_BASE_URL}/api/admin/dashboard`);
       const data = await response.json();
@@ -119,13 +119,13 @@ export default function AdminDashboard() {
     } catch {
       showMessage('error', 'Failed to load dashboard data');
     } finally {
-      setLoadingDashboard(false);
+      setLoading(false);
     }
   }, [fetchWithAuth, showMessage]);
 
   // Load users - memoized with useCallback to prevent infinite loops
   const loadUsers = useCallback(async () => {
-    setLoadingUsers(true);
+    setLoading(true);
     try {
       const response = await fetchWithAuth(`${API_BASE_URL}/api/admin/users`);
       const data = await response.json();
@@ -135,13 +135,13 @@ export default function AdminDashboard() {
     } catch {
       showMessage('error', 'Failed to load users');
     } finally {
-      setLoadingUsers(false);
+      setLoading(false);
     }
   }, [fetchWithAuth, showMessage]);
 
   // Load summaries - memoized with useCallback to prevent infinite loops
   const loadSummaries = useCallback(async () => {
-    setLoadingSummaries(true);
+    setLoading(true);
     try {
       const response = await fetchWithAuth(`${API_BASE_URL}/api/admin/summaries`);
       const data = await response.json();
@@ -151,13 +151,13 @@ export default function AdminDashboard() {
     } catch {
       showMessage('error', 'Failed to load summaries');
     } finally {
-      setLoadingSummaries(false);
+      setLoading(false);
     }
   }, [fetchWithAuth, showMessage]);
 
   // Load coin sync status - memoized with useCallback to prevent infinite loops
   const loadCoinSyncStatus = useCallback(async () => {
-    setLoadingCoinSync(true);
+    setLoading(true);
     try {
       const response = await fetchWithAuth(`${API_BASE_URL}/api/admin/coins/status`);
       const data = await response.json();
@@ -167,7 +167,7 @@ export default function AdminDashboard() {
     } catch {
       showMessage('error', 'Failed to load coin sync status');
     } finally {
-      setLoadingCoinSync(false);
+      setLoading(false);
     }
   }, [fetchWithAuth, showMessage]);
 
