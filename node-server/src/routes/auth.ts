@@ -6,8 +6,9 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import DatabaseConnection from '../services/DatabaseConnection.js';
-import { User, UserRole, UserCreateRequest, UserLoginRequest, AuthResponse, UserModel } from '../models/User.js';
+import { User, UserRole, AuthProvider, UserCreateRequest, UserLoginRequest, AuthResponse, UserModel } from '../models/User.js';
 import { hashPassword, comparePassword, generateToken, sanitizeUser } from '../utils/auth.js';
+import { handleGoogleLogin } from '../services/GoogleAuthService.js';
 import logger from '../utils/logger.js';
 
 /**
@@ -32,6 +33,16 @@ export async function login(req: Request, res: Response): Promise<void> {
       res.status(401).json({
         success: false,
         error: 'Invalid credentials'
+      });
+      return;
+    }
+
+    // Users without a password (OAuth users) cannot use username/password login
+    if (!user.password) {
+      logger.warn(`Auth: Login attempt for OAuth-only user: ${username}`);
+      res.status(401).json({
+        success: false,
+        error: 'Please use Google Sign-In for this account'
       });
       return;
     }
@@ -142,6 +153,7 @@ export async function createInitialAdmin(req: Request, res: Response): Promise<v
       email: email.toLowerCase(),
       password: hashedPassword,
       role: UserRole.ADMIN,
+      provider: AuthProvider.LOCAL,
       isActive: true,
       createdAt: new Date(),
       updatedAt: new Date()
@@ -232,6 +244,7 @@ export async function createUser(req: Request, res: Response): Promise<void> {
       email: email.toLowerCase(),
       password: hashedPassword,
       role: role,
+      provider: AuthProvider.LOCAL,
       isActive: true,
       createdAt: new Date(),
       updatedAt: new Date()
@@ -316,6 +329,52 @@ export async function getProfile(req: Request, res: Response): Promise<void> {
     res.status(500).json({
       success: false,
       error: 'Failed to get user profile'
+    });
+  }
+}
+
+/**
+ * Google OAuth login endpoint
+ * Receives Google ID token from frontend and returns JWT
+ */
+export async function googleLogin(req: Request, res: Response): Promise<void> {
+  try {
+    const { idToken } = req.body;
+
+    if (!idToken) {
+      res.status(400).json({
+        success: false,
+        error: 'Google ID token is required'
+      });
+      return;
+    }
+
+    const result = await handleGoogleLogin(idToken);
+
+    if (!result.success) {
+      logger.warn(`Auth: Google login failed: ${result.error}`);
+      res.status(401).json({
+        success: false,
+        error: result.error || 'Google authentication failed'
+      });
+      return;
+    }
+
+    logger.info(`Auth: User ${result.user?.username} logged in via Google${result.isNewUser ? ' (new user)' : ''}`);
+    
+    res.json({
+      success: true,
+      user: result.user,
+      token: result.token,
+      expiresIn: result.expiresIn,
+      isNewUser: result.isNewUser
+    });
+
+  } catch (error) {
+    logger.error('Auth: Google login error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Google authentication failed'
     });
   }
 }

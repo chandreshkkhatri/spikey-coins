@@ -234,7 +234,7 @@ class CoinSyncService {
                 marketType,
                 lastSeen: now,
                 updatedAt: now,
-                delistedAt: null // Clear delisted date if it was previously delisted
+                delistedAt: undefined // Clear delisted date if it was previously delisted
               }
             }
           );

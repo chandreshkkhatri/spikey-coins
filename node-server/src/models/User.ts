@@ -5,27 +5,40 @@
 
 import mongoose, { Document, Schema } from 'mongoose';
 
+export enum AuthProvider {
+  LOCAL = 'local',
+  GOOGLE = 'google'
+}
+
 export interface IUser extends Document {
   username: string;
   email: string;
-  password: string;
+  password?: string; // Optional for OAuth users
   role: UserRole;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
   lastLogin?: Date;
+  // OAuth fields
+  googleId?: string;
+  provider: AuthProvider;
+  profilePicture?: string;
 }
 
 export interface User {
   _id?: mongoose.Types.ObjectId;
   username: string;
   email: string;
-  password: string;
+  password?: string; // Optional for OAuth users
   role: UserRole;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
   lastLogin?: Date;
+  // OAuth fields
+  googleId?: string;
+  provider: AuthProvider;
+  profilePicture?: string;
 }
 
 export enum UserRole {
@@ -53,6 +66,8 @@ export interface UserResponse {
   isActive: boolean;
   createdAt: Date;
   lastLogin?: Date;
+  provider?: AuthProvider;
+  profilePicture?: string;
 }
 
 export interface JWTPayload {
@@ -90,7 +105,7 @@ const userSchema = new Schema<IUser>({
   },
   password: {
     type: String,
-    required: true,
+    required: false, // Optional for OAuth users
     minlength: 6,
   },
   role: {
@@ -105,11 +120,27 @@ const userSchema = new Schema<IUser>({
   lastLogin: {
     type: Date,
   },
+  // OAuth fields
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true, // Allows multiple null values
+    index: true,
+  },
+  provider: {
+    type: String,
+    enum: Object.values(AuthProvider),
+    default: AuthProvider.LOCAL,
+  },
+  profilePicture: {
+    type: String,
+  },
 }, {
   timestamps: true,
 });
 
-// Additional index for role queries
+// Additional indexes
 userSchema.index({ role: 1 });
+userSchema.index({ provider: 1 });
 
 export const UserModel = mongoose.model<IUser>('User', userSchema);

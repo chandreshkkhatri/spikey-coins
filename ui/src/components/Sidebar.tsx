@@ -13,8 +13,17 @@ import {
   Settings,
   HelpCircle,
   Shield,
+  LogIn,
+  LogOut,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+interface UserInfo {
+  username: string;
+  role: string;
+  profilePicture?: string;
+}
 
 interface SidebarProps {
   onRefreshTicker?: () => void;
@@ -29,14 +38,21 @@ export default function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [user, setUser] = useState<UserInfo | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    const checkAdminStatus = async () => {
+    const checkAuthStatus = async () => {
       const token = localStorage.getItem('authToken');
-      if (!token) return;
+      if (!token) {
+        setIsLoggedIn(false);
+        setUser(null);
+        setIsAdmin(false);
+        return;
+      }
 
       try {
-        const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
         const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -45,17 +61,38 @@ export default function Sidebar({
 
         if (response.ok) {
           const data = await response.json();
-          if (data.user && data.user.role === 'admin') {
-            setIsAdmin(true);
+          if (data.user) {
+            setIsLoggedIn(true);
+            setUser({
+              username: data.user.username,
+              role: data.user.role,
+              profilePicture: data.user.profilePicture
+            });
+            setIsAdmin(data.user.role === 'admin');
           }
+        } else {
+          // Token invalid, clear it
+          localStorage.removeItem('authToken');
+          setIsLoggedIn(false);
+          setUser(null);
+          setIsAdmin(false);
         }
       } catch {
-        // Silent fail - admin link won't show
+        // Silent fail
+        setIsLoggedIn(false);
       }
     };
 
-    checkAdminStatus();
+    checkAuthStatus();
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    setIsLoggedIn(false);
+    setUser(null);
+    setIsAdmin(false);
+    window.location.href = '/';
+  };
   
   return (
     <div className="w-16 h-full border-r border-gray-200 bg-gray-50 flex flex-col items-center py-4">
@@ -117,6 +154,44 @@ export default function Sidebar({
               {tickerCount}
             </div>
           </div>
+
+          {/* User section */}
+          {isLoggedIn && user ? (
+            <div className="flex flex-col items-center gap-2">
+              {user.profilePicture ? (
+                <img 
+                  src={user.profilePicture} 
+                  alt={user.username}
+                  className="w-8 h-8 rounded-full border-2 border-gray-200"
+                  title={user.username}
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center" title={user.username}>
+                  <User className="h-4 w-4 text-blue-600" />
+                </div>
+              )}
+              <span className="text-xs text-gray-500 truncate max-w-[50px]" title={user.username}>
+                {user.username.slice(0, 6)}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full hover:bg-red-100"
+                onClick={handleLogout}
+                title="Logout"
+              >
+                <LogOut className="h-4 w-4 text-gray-500 hover:text-red-600" />
+              </Button>
+            </div>
+          ) : (
+            <NavItem
+              href="/login"
+              icon={<LogIn className="h-5 w-5" />}
+              label="Login"
+              active={pathname === "/login"}
+            />
+          )}
+
           <NavItem
             href="/settings"
             icon={<Settings className="h-5 w-5" />}

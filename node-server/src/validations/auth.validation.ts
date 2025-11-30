@@ -156,3 +156,15 @@ export const updateUserSchema = Joi.object({
       'any.required': 'Current password is required when changing password'
     })
 }).min(1);
+
+/**
+ * Schema for Google OAuth login
+ */
+export const googleLoginSchema = Joi.object({
+  idToken: Joi.string()
+    .required()
+    .messages({
+      'string.base': 'ID token must be a string',
+      'any.required': 'Google ID token is required'
+    })
+});

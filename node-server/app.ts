@@ -28,7 +28,7 @@ import * as adminRoutes from "./src/routes/admin.js";
 import chatRouter from "./src/routes/chat.js";
 import { authenticateToken, requireAdminAuth } from "./src/middleware/auth.js";
 import { validate } from "./src/middleware/validate.js";
-import { loginSchema, createInitialAdminSchema, createUserSchema } from "./src/validations/auth.validation.js";
+import { loginSchema, createInitialAdminSchema, createUserSchema, googleLoginSchema } from "./src/validations/auth.validation.js";
 import { runBinanceCoinGeckoMatcherSchema, summarizeArticleSchema, updateSummaryPublicationSchema, triggerResearchJobSchema, adminResetPasswordSchema } from "./src/validations/admin.validation.js";
 
 const app = express();
@@ -167,6 +167,7 @@ app.use('/api/', apiLimiter);
 
 // Authentication routes (with stricter rate limiting)
 app.post('/api/auth/login', authLimiter, validate(loginSchema), authRoutes.login);
+app.post('/api/auth/google', authLimiter, validate(googleLoginSchema), authRoutes.googleLogin);
 app.post('/api/auth/setup/initial-admin', validate(createInitialAdminSchema), authRoutes.createInitialAdmin);
 app.post('/api/auth/users/create', requireAdminAuth, validate(createUserSchema), authRoutes.createUser);
 app.get('/api/auth/verify', authenticateToken, authRoutes.verifyToken);
@@ -218,6 +219,7 @@ app.use('*', (req, res) => {
       'GET /api/summaries',
       'GET /api/watchlists',
       'POST /api/auth/login',
+      'POST /api/auth/google',
       'POST /api/auth/setup/initial-admin (first admin only)',
       'POST /api/auth/users/create (requires admin auth)',
       'GET /api/auth/verify (requires auth)',
