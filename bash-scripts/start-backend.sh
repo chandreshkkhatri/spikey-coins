@@ -3,13 +3,16 @@
 # Spikey Coins Backend - PM2 Deployment Script
 # This script deploys the Node.js backend using PM2
 #
+# Auto-detects git branch:
+#   - main branch       → production (port 8000)
+#   - development branch → dev server (port 8099)
+#
 # Usage:
-#   ./start-backend.sh                    # Start production on port 8000
-#   ./start-backend.sh --dev              # Start dev server on port 8001
-#   ./start-backend.sh --env dev          # Same as --dev
+#   ./start-backend.sh                    # Auto-detect from git branch
+#   ./start-backend.sh --dev              # Force dev server (port 8099)
+#   ./start-backend.sh --prod             # Force production (port 8000)
 #   ./start-backend.sh --port 9000        # Start on custom port
 #   ./start-backend.sh --name my-server   # Use custom process name
-#   ./start-backend.sh --dev --port 8002  # Dev server on custom port
 #
 # Environment variables:
 #   BACKEND_PORT=8001 ./start-backend.sh
@@ -25,8 +28,9 @@ DEFAULT_DEV_NAME="spikey-coins-backend-dev"
 # Initialize variables from environment or defaults
 BACKEND_PORT="${BACKEND_PORT:-}"
 BACKEND_NAME="${BACKEND_NAME:-}"
-BACKEND_ENV="${BACKEND_ENV:-production}"
-IS_DEV=false
+BACKEND_ENV="${BACKEND_ENV:-}"
+IS_DEV=""
+AUTO_DETECT=true
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -34,13 +38,23 @@ while [[ $# -gt 0 ]]; do
         --dev)
             IS_DEV=true
             BACKEND_ENV="development"
+            AUTO_DETECT=false
+            shift
+            ;;
+        --prod|--production)
+            IS_DEV=false
+            BACKEND_ENV="production"
+            AUTO_DETECT=false
             shift
             ;;
         --env)
             BACKEND_ENV="$2"
+            AUTO_DETECT=false
             if [[ "$2" == "dev" || "$2" == "development" ]]; then
                 IS_DEV=true
                 BACKEND_ENV="development"
+            else
+                IS_DEV=false
             fi
             shift 2
             ;;
@@ -56,11 +70,16 @@ while [[ $# -gt 0 ]]; do
             echo "Usage: $0 [OPTIONS]"
             echo ""
             echo "Options:"
-            echo "  --dev              Start as dev server (port 8001, name spikey-coins-backend-dev)"
+            echo "  --dev              Force dev server (port 8099, name spikey-coins-backend-dev)"
+            echo "  --prod             Force production server (port 8000)"
             echo "  --env ENV          Set environment (production|development|dev)"
-            echo "  --port PORT        Set custom port (default: 8000, dev: 8001)"
+            echo "  --port PORT        Set custom port (default: 8000, dev: 8099)"
             echo "  --name NAME        Set custom PM2 process name"
             echo "  --help, -h         Show this help message"
+            echo ""
+            echo "Auto-detection (default):"
+            echo "  main branch        → production (port 8000)"
+            echo "  development branch → dev server (port 8099)"
             echo ""
             echo "Environment variables:"
             echo "  BACKEND_PORT       Override default port"
@@ -75,6 +94,29 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# Auto-detect from git branch if not explicitly set
+if [ "$AUTO_DETECT" = true ] && [ -z "$BACKEND_ENV" ]; then
+    CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+    if [ -n "$CURRENT_BRANCH" ]; then
+        echo "🔍 Detected git branch: $CURRENT_BRANCH"
+        if [ "$CURRENT_BRANCH" = "main" ] || [ "$CURRENT_BRANCH" = "master" ]; then
+            IS_DEV=false
+            BACKEND_ENV="production"
+        elif [ "$CURRENT_BRANCH" = "development" ] || [ "$CURRENT_BRANCH" = "develop" ] || [ "$CURRENT_BRANCH" = "dev" ]; then
+            IS_DEV=true
+            BACKEND_ENV="development"
+        else
+            echo "⚠️  Unknown branch '$CURRENT_BRANCH', defaulting to development"
+            IS_DEV=true
+            BACKEND_ENV="development"
+        fi
+    else
+        echo "⚠️  Not a git repository, defaulting to production"
+        IS_DEV=false
+        BACKEND_ENV="production"
+    fi
+fi
 
 # Set defaults based on dev mode if not explicitly provided
 if [ "$IS_DEV" = true ]; then

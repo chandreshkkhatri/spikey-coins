@@ -13,11 +13,18 @@ This directory contains deployment and management scripts for the Spikey Coins a
 
 ### Usage
 
+The scripts **auto-detect the git branch** and deploy accordingly:
+- `main` / `master` → production (port 8000, process: `spikey-coins-backend`)
+- `development` / `develop` / `dev` → dev server (port 8099, process: `spikey-coins-backend-dev`)
+
 ```bash
-# Deploy production backend (port 8000)
+# Auto-detect from git branch (recommended)
 ./bash-scripts/start-backend.sh
 
-# Deploy dev backend (port 8001, separate process)
+# Force production deployment
+./bash-scripts/start-backend.sh --prod
+
+# Force dev deployment
 ./bash-scripts/start-backend.sh --dev
 
 # Deploy with custom port and name
@@ -78,11 +85,16 @@ EC2_HOST=your-server.amazonaws.com ./bash-scripts/deploy-to-ec2.sh --dev
 
 ## EC2 Deployment
 
+The EC2 deployment script also auto-detects the git branch:
+
 ```bash
-# Deploy production to EC2
+# Auto-detect from git branch (recommended)
 EC2_HOST=your-ec2-ip ./bash-scripts/deploy-to-ec2.sh
 
-# Deploy dev server to EC2
+# Force production deployment
+EC2_HOST=your-ec2-ip ./bash-scripts/deploy-to-ec2.sh --prod
+
+# Force dev server deployment
 EC2_HOST=your-ec2-ip ./bash-scripts/deploy-to-ec2.sh --dev
 
 # Deploy with custom settings

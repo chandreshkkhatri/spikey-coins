@@ -3,9 +3,14 @@
 # Deploy Pre-built Backend to EC2
 # This script builds locally and deploys to EC2, avoiding memory issues
 #
+# Auto-detects git branch:
+#   - main branch       → production (port 8000)
+#   - development branch → dev server (port 8099)
+#
 # Usage:
-#   EC2_HOST=your-ip ./deploy-to-ec2.sh                  # Deploy production
-#   EC2_HOST=your-ip ./deploy-to-ec2.sh --dev            # Deploy dev server
+#   EC2_HOST=your-ip ./deploy-to-ec2.sh                  # Auto-detect from git branch
+#   EC2_HOST=your-ip ./deploy-to-ec2.sh --dev            # Force dev server
+#   EC2_HOST=your-ip ./deploy-to-ec2.sh --prod           # Force production
 #   EC2_HOST=your-ip ./deploy-to-ec2.sh --port 9000      # Custom port
 #   EC2_HOST=your-ip ./deploy-to-ec2.sh --name my-app    # Custom process name
 #
@@ -13,7 +18,7 @@
 #   EC2_HOST    - Required: EC2 hostname or IP
 #   EC2_USER    - SSH user (default: ubuntu)
 #   EC2_PATH    - Remote path (default: ~/spikey-coins)
-#   BACKEND_PORT - Server port (default: 8000, dev: 8001)
+#   BACKEND_PORT - Server port (default: 8000, dev: 8099)
 #   BACKEND_NAME - PM2 process name (default: spikey-coins-backend)
 #   BACKEND_ENV  - Environment: production|development
 
@@ -33,8 +38,9 @@ DEFAULT_DEV_NAME="spikey-coins-backend-dev"
 # Initialize variables
 BACKEND_PORT="${BACKEND_PORT:-}"
 BACKEND_NAME="${BACKEND_NAME:-}"
-BACKEND_ENV="${BACKEND_ENV:-production}"
-IS_DEV=false
+BACKEND_ENV="${BACKEND_ENV:-}"
+IS_DEV=""
+AUTO_DETECT=true
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -42,13 +48,23 @@ while [[ $# -gt 0 ]]; do
         --dev)
             IS_DEV=true
             BACKEND_ENV="development"
+            AUTO_DETECT=false
+            shift
+            ;;
+        --prod|--production)
+            IS_DEV=false
+            BACKEND_ENV="production"
+            AUTO_DETECT=false
             shift
             ;;
         --env)
             BACKEND_ENV="$2"
+            AUTO_DETECT=false
             if [[ "$2" == "dev" || "$2" == "development" ]]; then
                 IS_DEV=true
                 BACKEND_ENV="development"
+            else
+                IS_DEV=false
             fi
             shift 2
             ;;
@@ -64,11 +80,16 @@ while [[ $# -gt 0 ]]; do
             echo "Usage: EC2_HOST=<host> $0 [OPTIONS]"
             echo ""
             echo "Options:"
-            echo "  --dev              Deploy as dev server (port 8001)"
+            echo "  --dev              Force dev server (port 8099)"
+            echo "  --prod             Force production server (port 8000)"
             echo "  --env ENV          Set environment (production|development)"
             echo "  --port PORT        Set custom port"
             echo "  --name NAME        Set custom PM2 process name"
             echo "  --help, -h         Show this help message"
+            echo ""
+            echo "Auto-detection (default):"
+            echo "  main branch        → production (port 8000)"
+            echo "  development branch → dev server (port 8099)"
             echo ""
             echo "Environment variables:"
             echo "  EC2_HOST           Required: EC2 hostname or IP"
@@ -84,6 +105,29 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# Auto-detect from git branch if not explicitly set
+if [ "$AUTO_DETECT" = true ] && [ -z "$BACKEND_ENV" ]; then
+    CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+    if [ -n "$CURRENT_BRANCH" ]; then
+        echo "🔍 Detected git branch: $CURRENT_BRANCH"
+        if [ "$CURRENT_BRANCH" = "main" ] || [ "$CURRENT_BRANCH" = "master" ]; then
+            IS_DEV=false
+            BACKEND_ENV="production"
+        elif [ "$CURRENT_BRANCH" = "development" ] || [ "$CURRENT_BRANCH" = "develop" ] || [ "$CURRENT_BRANCH" = "dev" ]; then
+            IS_DEV=true
+            BACKEND_ENV="development"
+        else
+            echo "⚠️  Unknown branch '$CURRENT_BRANCH', defaulting to development"
+            IS_DEV=true
+            BACKEND_ENV="development"
+        fi
+    else
+        echo "⚠️  Not a git repository, defaulting to production"
+        IS_DEV=false
+        BACKEND_ENV="production"
+    fi
+fi
 
 # Set defaults based on dev mode if not explicitly provided
 if [ "$IS_DEV" = true ]; then
