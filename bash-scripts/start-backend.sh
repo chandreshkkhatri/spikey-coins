@@ -2,8 +2,94 @@
 
 # Spikey Coins Backend - PM2 Deployment Script
 # This script deploys the Node.js backend using PM2
+#
+# Usage:
+#   ./start-backend.sh                    # Start production on port 8000
+#   ./start-backend.sh --dev              # Start dev server on port 8001
+#   ./start-backend.sh --env dev          # Same as --dev
+#   ./start-backend.sh --port 9000        # Start on custom port
+#   ./start-backend.sh --name my-server   # Use custom process name
+#   ./start-backend.sh --dev --port 8002  # Dev server on custom port
+#
+# Environment variables:
+#   BACKEND_PORT=8001 ./start-backend.sh
+#   BACKEND_NAME=my-custom-name ./start-backend.sh
+#   BACKEND_ENV=dev ./start-backend.sh
+
+# Default values
+DEFAULT_PORT=8000
+DEFAULT_DEV_PORT=8099
+DEFAULT_NAME="spikey-coins-backend"
+DEFAULT_DEV_NAME="spikey-coins-backend-dev"
+
+# Initialize variables from environment or defaults
+BACKEND_PORT="${BACKEND_PORT:-}"
+BACKEND_NAME="${BACKEND_NAME:-}"
+BACKEND_ENV="${BACKEND_ENV:-production}"
+IS_DEV=false
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --dev)
+            IS_DEV=true
+            BACKEND_ENV="development"
+            shift
+            ;;
+        --env)
+            BACKEND_ENV="$2"
+            if [[ "$2" == "dev" || "$2" == "development" ]]; then
+                IS_DEV=true
+                BACKEND_ENV="development"
+            fi
+            shift 2
+            ;;
+        --port)
+            BACKEND_PORT="$2"
+            shift 2
+            ;;
+        --name)
+            BACKEND_NAME="$2"
+            shift 2
+            ;;
+        --help|-h)
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  --dev              Start as dev server (port 8001, name spikey-coins-backend-dev)"
+            echo "  --env ENV          Set environment (production|development|dev)"
+            echo "  --port PORT        Set custom port (default: 8000, dev: 8001)"
+            echo "  --name NAME        Set custom PM2 process name"
+            echo "  --help, -h         Show this help message"
+            echo ""
+            echo "Environment variables:"
+            echo "  BACKEND_PORT       Override default port"
+            echo "  BACKEND_NAME       Override default process name"
+            echo "  BACKEND_ENV        Set environment (production|development)"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
+
+# Set defaults based on dev mode if not explicitly provided
+if [ "$IS_DEV" = true ]; then
+    BACKEND_PORT="${BACKEND_PORT:-$DEFAULT_DEV_PORT}"
+    BACKEND_NAME="${BACKEND_NAME:-$DEFAULT_DEV_NAME}"
+else
+    BACKEND_PORT="${BACKEND_PORT:-$DEFAULT_PORT}"
+    BACKEND_NAME="${BACKEND_NAME:-$DEFAULT_NAME}"
+fi
 
 echo "🚀 Starting Spikey Coins Backend with PM2..."
+echo "   Environment: $BACKEND_ENV"
+echo "   Port: $BACKEND_PORT"
+echo "   Process Name: $BACKEND_NAME"
+echo ""
 
 # Check if we're in the right directory
 if [ ! -d "../node-server" ]; then
@@ -63,10 +149,10 @@ rm -f ecosystem.config.js ecosystem.config.cjs 2>/dev/null || true
 
 # Create PM2 ecosystem file
 echo "✅ Creating new PM2 ecosystem configuration..."
-    cat > ecosystem.config.cjs << 'EOF'
+    cat > ecosystem.config.cjs << EOF
 module.exports = {
   apps: [{
-    name: 'spikey-coins-backend',
+    name: '${BACKEND_NAME}',
     script: 'dist/app.js',
     interpreter: 'node',
     instances: 1,
@@ -75,11 +161,11 @@ module.exports = {
     max_memory_restart: '1G',
     env: {
       NODE_ENV: 'production',
-      PORT: 8000
+      PORT: ${BACKEND_PORT}
     },
     env_development: {
       NODE_ENV: 'development',
-      PORT: 8000,
+      PORT: ${BACKEND_PORT},
       LOG_LEVEL_CONSOLE: 'info',
       LOG_LEVEL_FILE: 'info'
     },
@@ -104,12 +190,12 @@ timeout 5 node dist/app.js > /dev/null 2>&1 || {
 
 # Stop existing instance if running
 echo "🛑 Stopping existing backend instance..."
-pm2 stop spikey-coins-backend 2>/dev/null || true
-pm2 delete spikey-coins-backend 2>/dev/null || true
+pm2 stop "$BACKEND_NAME" 2>/dev/null || true
+pm2 delete "$BACKEND_NAME" 2>/dev/null || true
 
 # Start with PM2
 echo "🚀 Starting backend with PM2..."
-pm2 start ecosystem.config.cjs --env development
+pm2 start ecosystem.config.cjs --env "$BACKEND_ENV"
 
 # Show status
 echo ""
@@ -119,15 +205,15 @@ echo "📊 PM2 Status:"
 pm2 status
 
 echo ""
-echo "📊 Backend API: http://localhost:8000"
-echo "🔄 Health Check: http://localhost:8000/"
-echo "📈 Ticker Data: http://localhost:8000/api/ticker/24hr"
-echo "📚 API Documentation: http://localhost:8000/docs"
+echo "📊 Backend API: http://localhost:$BACKEND_PORT"
+echo "🔄 Health Check: http://localhost:$BACKEND_PORT/"
+echo "📈 Ticker Data: http://localhost:$BACKEND_PORT/api/ticker/24hr"
+echo "📚 API Documentation: http://localhost:$BACKEND_PORT/docs"
 echo ""
 echo "🔧 Useful PM2 Commands:"
 echo "   pm2 status                    - Show all processes"
-echo "   pm2 logs spikey-coins-backend - Show logs"
-echo "   pm2 restart spikey-coins-backend - Restart backend"
-echo "   pm2 stop spikey-coins-backend    - Stop backend"
+echo "   pm2 logs $BACKEND_NAME - Show logs"
+echo "   pm2 restart $BACKEND_NAME - Restart backend"
+echo "   pm2 stop $BACKEND_NAME    - Stop backend"
 echo "   pm2 monit                        - Monitor processes"
 echo ""
