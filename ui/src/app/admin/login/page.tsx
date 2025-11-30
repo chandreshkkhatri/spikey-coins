@@ -129,7 +129,7 @@ export default function LoginPage() {
               return;
             }
           }
-        } catch (fetchError) {
+        } catch {
           clearTimeout(timeoutId);
           // Silent fail - user will see login form
         }

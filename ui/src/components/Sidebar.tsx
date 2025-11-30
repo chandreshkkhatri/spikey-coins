@@ -3,6 +3,7 @@
 import type React from "react";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   Home,
@@ -159,10 +160,12 @@ export default function Sidebar({
           {isLoggedIn && user ? (
             <div className="flex flex-col items-center gap-2">
               {user.profilePicture ? (
-                <img 
+                <Image 
                   src={user.profilePicture} 
                   alt={user.username}
-                  className="w-8 h-8 rounded-full border-2 border-gray-200"
+                  width={32}
+                  height={32}
+                  className="rounded-full border-2 border-gray-200"
                   title={user.username}
                 />
               ) : (

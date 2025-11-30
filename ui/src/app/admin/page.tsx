@@ -70,11 +70,8 @@ export default function AdminDashboard() {
   const [summaries, setSummaries] = useState<Summary[]>([]);
   const [coinSyncStatus, setCoinSyncStatus] = useState<CoinSyncStatus | null>(null);
   const [loading, setLoading] = useState(false);
-  // Separate loading states for different operations to prevent button oscillation
-  const [loadingDashboard, setLoadingDashboard] = useState(false);
-  const [loadingUsers, setLoadingUsers] = useState(false);
-  const [loadingSummaries, setLoadingSummaries] = useState(false);
-  const [loadingCoinSync, setLoadingCoinSync] = useState(false);
+  // Note: Individual loading states removed as they were unused
+  // The shared 'loading' state is used for all operations
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const router = useRouter();
 

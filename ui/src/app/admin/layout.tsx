@@ -62,7 +62,7 @@ export default function AdminLayout({
             setLoading(false);
             router.push('/admin/login');
           }
-        } catch (fetchError) {
+        } catch {
           clearTimeout(timeoutId);
           setLoading(false);
           router.push('/admin/login');
