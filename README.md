@@ -1,7 +1,19 @@
 # Spikey Coins
 
-A new cryptocurrency project - coming soon.
+A cryptocurrency project - coming soon.
 
-## Status
+## Development
 
-This repository is being repurposed for a new crypto project. Details and implementation will be added soon.
+```bash
+npm install
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) to view the app.
+
+## Tech Stack
+
+- Next.js 16
+- React 19
+- Tailwind CSS 4
+- TypeScript
