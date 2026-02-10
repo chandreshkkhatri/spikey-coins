@@ -1,0 +1,77 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+const sections = [
+  {
+    title: "Getting Started",
+    links: [{ href: "/docs/getting-started", label: "Getting Started" }],
+  },
+  {
+    title: "Concepts",
+    links: [
+      { href: "/docs/what-is-commodities", label: "What is a Commodities Exchange?" },
+      { href: "/docs/futures-contracts", label: "Futures Contracts" },
+      { href: "/docs/crypto-trading", label: "Crypto-Powered Trading" },
+    ],
+  },
+  {
+    title: "Using the Exchange",
+    links: [
+      { href: "/docs/deposits-withdrawals", label: "Deposits & Withdrawals" },
+      { href: "/docs/stablecoin-exchange", label: "Stablecoin Exchange" },
+      { href: "/docs/fees", label: "Fee Structure" },
+      { href: "/docs/transparency", label: "Transparency Dashboard" },
+    ],
+  },
+  {
+    title: "More",
+    links: [
+      { href: "/docs/technical", label: "Technical Documentation" },
+      { href: "/terms", label: "Terms & Conditions" },
+    ],
+  },
+];
+
+export default function DocsSidebar() {
+  const pathname = usePathname();
+
+  return (
+    <aside className="w-64 shrink-0 border-r border-border bg-surface">
+      <div className="sticky top-0 h-screen overflow-y-auto p-6">
+        <Link
+          href="/docs"
+          className="mb-6 block text-lg font-bold text-white"
+        >
+          {"\u25C6"} Docs
+        </Link>
+        <nav className="flex flex-col gap-6">
+          {sections.map((section) => (
+            <div key={section.title}>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                {section.title}
+              </p>
+              <ul className="flex flex-col gap-1">
+                {section.links.map((link) => (
+                  <li key={link.href}>
+                    <Link
+                      href={link.href}
+                      className={`block rounded-lg px-3 py-1.5 text-sm transition-colors ${
+                        pathname === link.href
+                          ? "bg-gold/10 font-medium text-gold"
+                          : "text-zinc-400 hover:text-white"
+                      }`}
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </nav>
+      </div>
+    </aside>
+  );
+}
