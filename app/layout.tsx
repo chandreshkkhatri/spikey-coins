@@ -13,8 +13,24 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Spikey Coins",
-  description: "A cryptocurrency project - coming soon",
+  title: "Spikey Coins | Crypto-Powered Gold & Silver Futures Exchange",
+  description:
+    "Trade gold and silver futures using cryptocurrency. Spikey Coins is a next-generation commodities exchange bridging digital assets and precious metals markets.",
+  keywords: [
+    "cryptocurrency",
+    "gold futures",
+    "silver futures",
+    "commodities exchange",
+    "crypto trading",
+    "precious metals",
+    "digital assets",
+  ],
+  openGraph: {
+    title: "Spikey Coins | Crypto-Powered Gold & Silver Futures Exchange",
+    description:
+      "Trade gold and silver futures using cryptocurrency. A next-generation commodities exchange bridging digital assets and precious metals.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({

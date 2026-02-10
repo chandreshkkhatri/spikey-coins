@@ -1,14 +1,21 @@
+import Navbar from "@/app/components/Navbar";
+import Hero from "@/app/components/Hero";
+import Features from "@/app/components/Features";
+import HowItWorks from "@/app/components/HowItWorks";
+import MarketPreview from "@/app/components/MarketPreview";
+import CallToAction from "@/app/components/CallToAction";
+import Footer from "@/app/components/Footer";
+
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-black">
-      <main className="flex flex-col items-center gap-8 text-center px-6">
-        <h1 className="text-5xl font-bold text-white tracking-tight">
-          Spikey Coins
-        </h1>
-        <p className="text-xl text-zinc-400">
-          Coming Soon
-        </p>
-      </main>
+    <div className="min-h-screen bg-black">
+      <Navbar />
+      <Hero />
+      <Features />
+      <HowItWorks />
+      <MarketPreview />
+      <CallToAction />
+      <Footer />
     </div>
   );
 }
