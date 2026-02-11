@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { wallets, transactions } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 const depositSchema = z.object({
@@ -28,10 +28,12 @@ export async function POST(request: NextRequest) {
     const depositAmount = parseFloat(amount);
 
     const result = await db.transaction(async (tx) => {
+      // Lock wallet rows for this user to prevent concurrent balance updates
       const userWallets = await tx
         .select()
         .from(wallets)
-        .where(eq(wallets.userId, user.id));
+        .where(eq(wallets.userId, user.id))
+        .for("update");
 
       const usdtWallet = userWallets.find((w) => w.currency === "USDT");
       const usdcWallet = userWallets.find((w) => w.currency === "USDC");
@@ -52,22 +54,16 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Credit wallet
-      const newBalance = (
-        parseFloat(targetWallet.balance) + depositAmount
-      ).toFixed(8);
-      const newAvailableBalance = (
-        parseFloat(targetWallet.availableBalance) + depositAmount
-      ).toFixed(8);
-
-      await tx
+      // Atomic balance update using SQL arithmetic on DECIMAL columns
+      const [updated] = await tx
         .update(wallets)
         .set({
-          balance: newBalance,
-          availableBalance: newAvailableBalance,
+          balance: sql`${wallets.balance} + ${depositAmount.toFixed(8)}::decimal`,
+          availableBalance: sql`${wallets.availableBalance} + ${depositAmount.toFixed(8)}::decimal`,
           updatedAt: new Date(),
         })
-        .where(eq(wallets.id, targetWallet.id));
+        .where(eq(wallets.id, targetWallet.id))
+        .returning({ balance: wallets.balance });
 
       // Record transaction
       const [txRecord] = await tx
@@ -78,7 +74,7 @@ export async function POST(request: NextRequest) {
           type: "deposit",
           currency,
           amount: depositAmount.toFixed(8),
-          balanceAfter: newBalance,
+          balanceAfter: updated.balance,
           description: `Deposit ${depositAmount.toFixed(2)} ${currency}`,
         })
         .returning();
@@ -86,8 +82,10 @@ export async function POST(request: NextRequest) {
       return txRecord;
     });
 
-    // Simulated blockchain confirmation delay
-    await new Promise((r) => setTimeout(r, 2000));
+    // Simulated blockchain confirmation delay (dev only)
+    if (process.env.NODE_ENV !== "production") {
+      await new Promise((r) => setTimeout(r, 2000));
+    }
 
     return NextResponse.json({ success: true, transaction: result });
   } catch (error) {

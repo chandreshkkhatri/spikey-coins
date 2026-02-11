@@ -8,8 +8,8 @@ export default function DataModels() {
 
       <p className="lead">
         This document describes the entity schemas that underpin the Spikey Coins
-        exchange. All financial operations use decimal arithmetic to prevent
-        floating-point precision errors.
+        exchange. Financial values are represented using decimal types in the data
+        model to minimize floating-point precision issues.
       </p>
 
       <h2>Entity Relationship Overview</h2>
@@ -27,10 +27,13 @@ Position 1──* Trade`}</code>
       <pre>
         <code>{`User {
   id:           UUID        (primary key)
+  firebaseUid:  string      (unique, indexed — Firebase Auth identifier)
   email:        string      (unique, indexed)
-  passwordHash: string      (bcrypt/argon2)
   createdAt:    timestamp
   updatedAt:    timestamp
+
+  // Authentication is handled by Firebase Auth; no passwords or password
+  // hashes are stored in Postgres.
 }`}</code>
       </pre>
 

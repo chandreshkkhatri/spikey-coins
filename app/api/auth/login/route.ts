@@ -41,12 +41,20 @@ export async function POST(request: NextRequest) {
     let user = existingUser;
 
     if (!user) {
+      // Ensure email is present from Firebase token
+      if (!decoded.email) {
+        return NextResponse.json(
+          { success: false, error: "Google account has no email address" },
+          { status: 400 }
+        );
+      }
+
       // New user — create user record + wallets
       const [newUser] = await db
         .insert(users)
         .values({
           firebaseUid: decoded.uid,
-          email: decoded.email!,
+          email: decoded.email,
         })
         .returning();
 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { wallets, transactions } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 const WITHDRAWAL_FEE = 0.1;
@@ -30,10 +30,12 @@ export async function POST(request: NextRequest) {
     const withdrawAmount = parseFloat(amount);
 
     const result = await db.transaction(async (tx) => {
+      // Lock wallet rows for this user to prevent concurrent balance updates
       const userWallets = await tx
         .select()
         .from(wallets)
-        .where(eq(wallets.userId, user.id));
+        .where(eq(wallets.userId, user.id))
+        .for("update");
 
       const usdtWallet = userWallets.find((w) => w.currency === "USDT");
       const usdcWallet = userWallets.find((w) => w.currency === "USDC");
@@ -64,26 +66,25 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Debit wallet
-      const newBalance = (
-        parseFloat(targetWallet.balance) - totalDebit
-      ).toFixed(8);
-      const newAvailableBalance = (availableBalance - totalDebit).toFixed(8);
-
-      await tx
+      // Atomic balance update using SQL arithmetic on DECIMAL columns
+      const totalDebitStr = totalDebit.toFixed(8);
+      const [updated] = await tx
         .update(wallets)
         .set({
-          balance: newBalance,
-          availableBalance: newAvailableBalance,
+          balance: sql`${wallets.balance} - ${totalDebitStr}::decimal`,
+          availableBalance: sql`${wallets.availableBalance} - ${totalDebitStr}::decimal`,
           updatedAt: new Date(),
         })
-        .where(eq(wallets.id, targetWallet.id));
+        .where(eq(wallets.id, targetWallet.id))
+        .returning({ balance: wallets.balance });
 
-      // Record withdrawal transaction
+      // Compute intermediate balance for the withdrawal ledger entry
+      // (balance after withdrawal amount, before fee)
       const balanceAfterWithdrawal = (
-        parseFloat(targetWallet.balance) - withdrawAmount
+        parseFloat(updated.balance) + WITHDRAWAL_FEE
       ).toFixed(8);
 
+      // Record withdrawal transaction
       const [withdrawalTx] = await tx
         .insert(transactions)
         .values({
@@ -97,14 +98,14 @@ export async function POST(request: NextRequest) {
         })
         .returning();
 
-      // Record fee transaction
+      // Record fee transaction (balanceAfter = final wallet balance)
       await tx.insert(transactions).values({
         userId: user.id,
         walletId: targetWallet.id,
         type: "withdrawal_fee",
         currency,
         amount: (-WITHDRAWAL_FEE).toFixed(8),
-        balanceAfter: newBalance,
+        balanceAfter: updated.balance,
         referenceId: withdrawalTx.id,
         referenceType: "withdrawal",
         description: "Withdrawal fee",
@@ -117,8 +118,10 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    // Simulated blockchain processing delay
-    await new Promise((r) => setTimeout(r, 2000));
+    // Simulated blockchain processing delay (dev only)
+    if (process.env.NODE_ENV !== "production") {
+      await new Promise((r) => setTimeout(r, 2000));
+    }
 
     return NextResponse.json({ success: true, transaction: result });
   } catch (error) {

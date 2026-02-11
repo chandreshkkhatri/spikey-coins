@@ -16,18 +16,21 @@ export default function Security() {
       <h2>Authentication</h2>
       <ul>
         <li>
-          <strong>Password hashing</strong> &mdash; user passwords are hashed
-          using bcrypt (or argon2id) with a minimum cost factor of 12. Plaintext
-          passwords are never stored or logged.
+          <strong>Firebase Authentication</strong> &mdash; user authentication is
+          handled by Firebase Auth, with Google sign-in as the primary identity
+          provider. The application does not manage or store user passwords
+          directly.
         </li>
         <li>
-          <strong>Session tokens</strong> &mdash; JWT tokens with short
-          expiration (24 hours) issued upon successful authentication. Tokens are
-          signed with HS256 using a server-side secret.
+          <strong>Server-side sessions</strong> &mdash; upon successful
+          Firebase authentication, the backend issues secure, HTTP-only, same-site
+          session cookies that represent the authenticated user. Session cookies
+          are validated on each request.
         </li>
         <li>
-          <strong>Token rotation</strong> &mdash; refresh token mechanism for
-          seamless session extension without re-authentication.
+          <strong>Session lifetime</strong> &mdash; session cookies have bounded
+          lifetimes (5 days) and can be revoked server-side by invalidating the
+          user&apos;s Firebase refresh tokens on logout.
         </li>
       </ul>
 

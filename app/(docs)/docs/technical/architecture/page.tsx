@@ -45,21 +45,18 @@ export default function Architecture() {
           </tr>
           <tr>
             <td>Database</td>
-            <td colSpan={2}>
-              <em>Coming Soon</em>
-            </td>
+            <td>PostgreSQL</td>
+            <td>N/A</td>
           </tr>
           <tr>
             <td>ORM</td>
-            <td colSpan={2}>
-              <em>Coming Soon</em>
-            </td>
+            <td>Drizzle ORM</td>
+            <td>N/A</td>
           </tr>
           <tr>
             <td>Authentication</td>
-            <td colSpan={2}>
-              <em>Coming Soon</em>
-            </td>
+            <td>Firebase Auth (Google sign-in)</td>
+            <td>N/A</td>
           </tr>
         </tbody>
       </table>
@@ -138,8 +135,11 @@ export default function Architecture() {
 
       <h2>Authentication &amp; Session Management</h2>
       <p>
-        <em>Coming Soon</em> &mdash; The authentication system will be
-        documented once implemented in Sprint 1.
+        Authentication is handled via Firebase Auth with Google sign-in as the
+        identity provider. Upon successful authentication, the server creates
+        an HTTP-only <code>__session</code> cookie containing a Firebase session
+        token. Server-side routes verify this cookie to identify the current user
+        and look up their PostgreSQL record.
       </p>
 
       <h2>Deployment Architecture</h2>

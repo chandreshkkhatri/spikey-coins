@@ -1,6 +1,18 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { adminAuth } from "@/lib/firebase/admin";
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  // Revoke Firebase session server-side if possible
+  const sessionCookie = request.cookies.get("__session")?.value;
+  if (sessionCookie && adminAuth) {
+    try {
+      const decoded = await adminAuth.verifySessionCookie(sessionCookie);
+      await adminAuth.revokeRefreshTokens(decoded.uid);
+    } catch {
+      // Session already expired or invalid — continue with cookie cleanup
+    }
+  }
+
   const response = NextResponse.json({ success: true });
 
   response.cookies.set("__session", "", {

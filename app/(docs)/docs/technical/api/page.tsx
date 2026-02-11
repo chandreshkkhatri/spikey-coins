@@ -19,15 +19,21 @@ export default function ApiReference() {
 
       <h2>Authentication</h2>
       <p>
-        Authenticated endpoints require a Bearer token in the Authorization
-        header:
+        Authenticated endpoints rely on an HTTP-only <code>__session</code>{" "}
+        cookie that is set by the login endpoint and verified server-side on
+        each request.
       </p>
-      <pre>
-        <code>{`Authorization: Bearer <token>`}</code>
-      </pre>
       <p>
-        Tokens are obtained via the authentication endpoints. Session tokens
-        expire after 24 hours. <em>Implementation details coming in Sprint 1.</em>
+        After a successful Google sign-in, the <code>__session</code> cookie is
+        automatically sent by the browser on subsequent requests to
+        authenticated routes. You do not need to send an{" "}
+        <code>Authorization</code> header with a Bearer token for these
+        endpoints.
+      </p>
+      <p>
+        For non-browser clients, you must preserve and include the{" "}
+        <code>__session</code> cookie returned by the login endpoint in
+        follow-up requests. Session cookies expire after 5 days.
       </p>
 
       <h2>Rate Limiting</h2>
