@@ -12,7 +12,7 @@ import type { PriceData, MarkPriceData } from "@/lib/trading/types";
 
 // In-memory cache (resets on server restart — fine for academic use)
 let priceCache: { data: PriceData; fetchedAt: number } | null = null;
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 export async function getIndexPrices(): Promise<PriceData> {
   // Return cached data if fresh
@@ -33,7 +33,7 @@ export async function getIndexPrices(): Promise<PriceData> {
   try {
     const res = await fetch(
       `https://api.metals.dev/v1/latest?api_key=${apiKey}&currency=USD&unit=toz`,
-      { next: { revalidate: 300 } } // Next.js fetch cache: 5 minutes
+      { next: { revalidate: 1800 } } // Next.js fetch cache: 30 minutes
     );
 
     if (!res.ok) {

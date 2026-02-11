@@ -1,18 +1,18 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import pg from "pg";
+import { drizzle } from "drizzle-orm/neon-serverless";
+import { Pool, neonConfig } from "@neondatabase/serverless";
+import ws from "ws";
 import * as schema from "./schema";
+
+neonConfig.webSocketConstructor = ws;
 
 let _db: ReturnType<typeof drizzle<typeof schema>> | null = null;
 
 function getDb() {
   if (!_db) {
-    const pool = new pg.Pool({
-      connectionString: process.env.DATABASE_URL,
-      max: 10,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 5000,
+    const pool = new Pool({
+      connectionString: process.env.POSTGRES_URL,
     });
-    _db = drizzle(pool, { schema });
+    _db = drizzle({ client: pool, schema });
   }
   return _db;
 }
