@@ -30,10 +30,16 @@ export default function Navbar() {
             Markets
           </a>
           <a
-            href="#early-access"
+            href="/docs"
+            className="text-sm text-zinc-400 transition-colors hover:text-white"
+          >
+            Docs
+          </a>
+          <a
+            href="/exchange/dashboard"
             className="rounded-full bg-gold px-5 py-2 text-sm font-semibold text-black transition-colors hover:bg-gold-light"
           >
-            Get Early Access
+            Launch App
           </a>
         </div>
       </div>

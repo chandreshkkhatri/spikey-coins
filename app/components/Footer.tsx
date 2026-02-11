@@ -11,12 +11,18 @@ export default function Footer() {
               Crypto-powered commodities trading
             </p>
           </div>
-          <div className="flex gap-6 text-sm text-zinc-500">
-            <a href="#" className="transition-colors hover:text-white">
-              Privacy Policy
+          <div className="flex flex-wrap justify-center gap-6 text-sm text-zinc-500">
+            <a href="/docs" className="transition-colors hover:text-white">
+              Documentation
             </a>
-            <a href="#" className="transition-colors hover:text-white">
+            <a href="/terms" className="transition-colors hover:text-white">
               Terms of Service
+            </a>
+            <a
+              href="/exchange/dashboard"
+              className="transition-colors hover:text-white"
+            >
+              Launch App
             </a>
             <a href="#" className="transition-colors hover:text-white">
               Contact
