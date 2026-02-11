@@ -4,7 +4,25 @@ import {
   getTotalBalance,
   getRecentTransactions,
 } from "@/lib/db/queries/wallet";
+import { getUserPositions, getUserOpenOrders } from "@/lib/db/queries/trading";
+import { getIndexPrices } from "@/lib/services/prices";
+import { calculateUnrealizedPnl } from "@/lib/services/margin";
+import { PAIRS } from "@/lib/trading/constants";
+import type { FuturesPair } from "@/lib/trading/constants";
 import Link from "next/link";
+
+const TX_TYPE_LABELS: Record<string, string> = {
+  deposit: "Deposit",
+  withdrawal: "Withdrawal",
+  withdrawal_fee: "Withdrawal Fee",
+  trade_debit: "Trade",
+  trade_credit: "Trade",
+  fee: "Trading Fee",
+  margin_lock: "Margin Lock",
+  margin_release: "Margin Release",
+  liquidation: "Liquidation",
+  funding: "Funding",
+};
 
 export default async function Dashboard() {
   const user = await getSession();
@@ -16,6 +34,26 @@ export default async function Dashboard() {
     usdc?.balance ?? null
   );
   const recentTxns = await getRecentTransactions(user.id, 5);
+  const [openPositions, openOrders, prices] = await Promise.all([
+    getUserPositions(user.id, "open"),
+    getUserOpenOrders(user.id),
+    getIndexPrices(),
+  ]);
+
+  // Calculate total unrealized PnL
+  let totalPnl = 0;
+  for (const pos of openPositions) {
+    const contract = pos.contract as FuturesPair;
+    const pairConfig = PAIRS[contract];
+    const markPrice = contract === "XAU-PERP" ? prices.gold : prices.silver;
+    totalPnl += calculateUnrealizedPnl(
+      pos.side as "long" | "short",
+      pos.entryPrice,
+      markPrice.toString(),
+      pos.quantity,
+      pairConfig.contractSize
+    );
+  }
 
   const canDeposit = totalBalance < 1;
   const canWithdraw = totalBalance >= 10;
@@ -63,6 +101,37 @@ export default async function Dashboard() {
             Available: $
             {parseFloat(usdc?.availableBalance ?? "0").toFixed(2)}
           </p>
+        </div>
+      </div>
+
+      {/* Market Prices + Positions */}
+      <div className="mb-8 grid gap-4 sm:grid-cols-3">
+        <div className="rounded-2xl border border-border bg-surface p-4 text-center">
+          <p className="text-xs text-zinc-500">Gold (XAU)</p>
+          <p className="mt-1 font-mono text-lg font-semibold text-gold">
+            ${prices.gold.toFixed(2)}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-border bg-surface p-4 text-center">
+          <p className="text-xs text-zinc-500">Silver (XAG)</p>
+          <p className="mt-1 font-mono text-lg font-semibold text-silver">
+            ${prices.silver.toFixed(3)}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-border bg-surface p-4 text-center">
+          <p className="text-xs text-zinc-500">Positions / Orders</p>
+          <p className="mt-1 text-lg font-semibold text-white">
+            {openPositions.length} / {openOrders.length}
+          </p>
+          {openPositions.length > 0 && (
+            <p
+              className={`mt-0.5 font-mono text-xs ${
+                totalPnl >= 0 ? "text-green-400" : "text-red-400"
+              }`}
+            >
+              PnL: {totalPnl >= 0 ? "+" : ""}${totalPnl.toFixed(4)}
+            </p>
+          )}
         </div>
       </div>
 
@@ -129,7 +198,7 @@ export default async function Dashboard() {
                 {recentTxns.map((tx) => (
                   <tr key={tx.id} className="border-b border-border/50">
                     <td className="py-3 text-sm capitalize text-zinc-300">
-                      {tx.type.replace("_", " ")}
+                      {TX_TYPE_LABELS[tx.type] ?? tx.type.replace("_", " ")}
                     </td>
                     <td
                       className={`py-3 font-mono text-sm ${

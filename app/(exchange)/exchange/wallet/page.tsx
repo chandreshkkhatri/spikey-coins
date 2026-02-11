@@ -6,6 +6,19 @@ import {
 } from "@/lib/db/queries/wallet";
 import Link from "next/link";
 
+const TX_TYPE_LABELS: Record<string, string> = {
+  deposit: "Deposit",
+  withdrawal: "Withdrawal",
+  withdrawal_fee: "Withdrawal Fee",
+  trade_debit: "Trade",
+  trade_credit: "Trade",
+  fee: "Trading Fee",
+  margin_lock: "Margin Lock",
+  margin_release: "Margin Release",
+  liquidation: "Liquidation",
+  funding: "Funding",
+};
+
 export default async function Wallet() {
   const user = await getSession();
   if (!user) return null;
@@ -100,7 +113,7 @@ export default async function Wallet() {
                 {recentTxns.map((tx) => (
                   <tr key={tx.id} className="border-b border-border/50">
                     <td className="py-3 text-sm capitalize text-zinc-300">
-                      {tx.type.replace("_", " ")}
+                      {TX_TYPE_LABELS[tx.type] ?? tx.type.replace("_", " ")}
                     </td>
                     <td
                       className={`py-3 font-mono text-sm ${
