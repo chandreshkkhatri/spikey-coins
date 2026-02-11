@@ -24,3 +24,21 @@ export const wallets = pgTable(
   },
   (table) => [unique("wallets_user_currency").on(table.userId, table.currency)]
 );
+
+export const transactions = pgTable("transactions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .references(() => users.id)
+    .notNull(),
+  walletId: uuid("wallet_id")
+    .references(() => wallets.id)
+    .notNull(),
+  type: text("type").notNull(), // deposit | withdrawal | withdrawal_fee
+  currency: text("currency").notNull(), // USDT | USDC
+  amount: decimal("amount", { precision: 18, scale: 8 }).notNull(), // positive=credit, negative=debit
+  balanceAfter: decimal("balance_after", { precision: 18, scale: 8 }).notNull(),
+  referenceId: uuid("reference_id"),
+  referenceType: text("reference_type"),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});

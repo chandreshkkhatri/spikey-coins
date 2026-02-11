@@ -1,10 +1,68 @@
-import ComingSoon from "@/app/components/ComingSoon";
+import { getSession } from "@/lib/auth/session";
+import { getUserWallets, getTotalBalance } from "@/lib/db/queries/wallet";
+import DepositForm from "@/app/components/DepositForm";
 
-export default function Deposit() {
+export default async function Deposit() {
+  const user = await getSession();
+  if (!user) return null;
+
+  const { usdt, usdc } = await getUserWallets(user.id);
+  const totalBalance = getTotalBalance(
+    usdt?.balance ?? null,
+    usdc?.balance ?? null
+  );
+
+  const eligible = totalBalance < 1;
+
   return (
-    <ComingSoon
-      title="Deposit"
-      description="Deposit USDT or USDC into your trading account. Maximum $5 per deposit when your balance is below $1."
-    />
+    <div className="mx-auto max-w-lg">
+      <h1 className="mb-2 text-2xl font-bold text-white">Deposit</h1>
+      <p className="mb-8 text-zinc-400">
+        Add USDT or USDC to your trading account.
+      </p>
+
+      {/* Balance Summary */}
+      <div className="mb-6 rounded-2xl border border-border bg-surface p-6">
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-gold">
+          Current Balances
+        </h2>
+        <dl className="space-y-2">
+          <div className="flex justify-between">
+            <dt className="text-sm text-zinc-400">USDT</dt>
+            <dd className="font-mono text-sm text-white">
+              ${parseFloat(usdt?.balance ?? "0").toFixed(2)}
+            </dd>
+          </div>
+          <div className="flex justify-between">
+            <dt className="text-sm text-zinc-400">USDC</dt>
+            <dd className="font-mono text-sm text-white">
+              ${parseFloat(usdc?.balance ?? "0").toFixed(2)}
+            </dd>
+          </div>
+          <div className="flex justify-between border-t border-border pt-2">
+            <dt className="text-sm font-medium text-zinc-300">Total</dt>
+            <dd className="font-mono text-sm font-medium text-white">
+              ${totalBalance.toFixed(2)}
+            </dd>
+          </div>
+        </dl>
+      </div>
+
+      {/* Eligibility Gate */}
+      {!eligible ? (
+        <div className="rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-6">
+          <h3 className="mb-2 text-sm font-semibold text-yellow-400">
+            Deposits Unavailable
+          </h3>
+          <p className="text-sm text-zinc-400">
+            Your total balance is ${totalBalance.toFixed(2)}. Deposits are only
+            available when your combined balance is below $1.00. Trade or
+            withdraw funds to become eligible again.
+          </p>
+        </div>
+      ) : (
+        <DepositForm />
+      )}
+    </div>
   );
 }
