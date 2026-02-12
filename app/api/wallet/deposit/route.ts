@@ -9,8 +9,8 @@ const depositSchema = z.object({
   currency: z.enum(["USDT", "USDC"]),
   amount: z.string().refine((val) => {
     const num = parseFloat(val);
-    return !isNaN(num) && num > 0 && num <= 5;
-  }, "Amount must be between $0.01 and $5.00"),
+    return !isNaN(num) && num > 0 && num <= 20;
+  }, "Amount must be between $0.01 and $20.00"),
 });
 
 export async function POST(request: NextRequest) {
@@ -43,14 +43,14 @@ export async function POST(request: NextRequest) {
         throw new Error("Wallet not found");
       }
 
-      // Eligibility: total balance < $1
+      // Eligibility: total balance < $5
       const totalBalance =
         parseFloat(usdtWallet?.balance ?? "0") +
         parseFloat(usdcWallet?.balance ?? "0");
 
-      if (totalBalance >= 1) {
+      if (totalBalance >= 5) {
         throw new Error(
-          `Deposits are only allowed when your total balance is below $1.00. Your current total balance is $${totalBalance.toFixed(2)}.`
+          `Deposits are only allowed when your total balance is below $5.00. Your current total balance is $${totalBalance.toFixed(2)}.`
         );
       }
 
