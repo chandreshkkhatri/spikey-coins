@@ -24,10 +24,10 @@ export default function Hero() {
 
         <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
           <a
-            href="#early-access"
+            href="/signup"
             className="animate-pulse-glow rounded-full bg-gold px-8 py-3.5 text-base font-semibold text-black transition-colors hover:bg-gold-light"
           >
-            Get Early Access
+            Start Trading
           </a>
           <a
             href="#features"
@@ -38,7 +38,7 @@ export default function Hero() {
         </div>
 
         <div className="mt-12 flex items-center justify-center gap-6 text-xs font-medium uppercase tracking-wider text-zinc-500">
-          <span>Non-Custodial</span>
+          <span>Full Transparency</span>
           <span className="text-gold/50">{"\u25C6"}</span>
           <span>24/7 Trading</span>
           <span className="text-gold/50">{"\u25C6"}</span>
