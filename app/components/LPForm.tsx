@@ -71,6 +71,8 @@ export default function LPForm({
   function generateOrders(): OrderPreview[] {
     if (isNaN(centerPrice) || centerPrice <= 0) return [];
 
+    const safeSpread = Math.max(0.0001, Math.min(spread, 0.1));
+    const safeLevels = LEVEL_OPTIONS.includes(levels) ? levels : 3;
     const orders: OrderPreview[] = [];
 
     if (pairType === "spot") {
@@ -78,11 +80,15 @@ export default function LPForm({
       const buyAmt = parseFloat(buyAmount);
 
       // Sell side: selling USDT at prices above center
-      if (!isNaN(sellAmt) && sellAmt > 0) {
-        const perLevel = sellAmt / levels;
-        for (let i = 1; i <= levels; i++) {
-          const price = centerPrice * (1 + spread * i);
-          const qty = Math.max(perLevel, minQty);
+      if (!isNaN(sellAmt) && sellAmt >= minQty) {
+        let remainingSell = sellAmt;
+        for (let i = 1; i <= safeLevels; i++) {
+          if (remainingSell < minQty) break;
+          const price = centerPrice * (1 + safeSpread * i);
+          const remainingLevels = safeLevels - i + 1;
+          let qty = Math.max(remainingSell / remainingLevels, minQty);
+          qty = Math.min(qty, remainingSell);
+          if (qty < minQty) break;
           orders.push({
             side: "sell",
             price: roundToTick(price),
@@ -91,24 +97,35 @@ export default function LPForm({
             ),
             cost: qty,
           });
+          remainingSell -= qty;
         }
       }
 
       // Buy side: buying USDT with USDC at prices below center
       if (!isNaN(buyAmt) && buyAmt > 0) {
-        const perLevel = buyAmt / levels;
-        for (let i = 1; i <= levels; i++) {
-          const price = centerPrice * (1 - spread * i);
+        let remainingBuy = buyAmt;
+        for (let i = 1; i <= safeLevels; i++) {
+          if (remainingBuy <= 0) break;
+          const price = centerPrice * (1 - safeSpread * i);
           if (price <= 0) continue;
-          const qty = Math.max(perLevel / price, minQty);
+          const remainingLevels = safeLevels - i + 1;
+          const budget = remainingBuy / remainingLevels;
+          let qty = Math.max(budget / price, minQty);
+          let cost = qty * price;
+          if (cost > remainingBuy) {
+            qty = remainingBuy / price;
+            cost = qty * price;
+          }
+          if (qty < minQty) break;
           orders.push({
             side: "buy",
             price: roundToTick(price),
             quantity: qty.toFixed(
               minQuantity.includes(".") ? minQuantity.split(".")[1].length : 0
             ),
-            cost: qty * price,
+            cost,
           });
+          remainingBuy -= cost;
         }
       }
     } else {
@@ -118,11 +135,11 @@ export default function LPForm({
 
       const cSize = parseFloat(contractSize);
       const marginPerSide = total / 2;
-      const marginPerOrder = marginPerSide / levels;
+      const marginPerOrder = marginPerSide / safeLevels;
 
-      for (let i = 1; i <= levels; i++) {
+      for (let i = 1; i <= safeLevels; i++) {
         // Buy side (below center)
-        const buyPrice = centerPrice * (1 - spread * i);
+        const buyPrice = centerPrice * (1 - safeSpread * i);
         if (buyPrice > 0) {
           const notional = marginPerOrder * leverage;
           const qty = Math.max(Math.floor(notional / (cSize * buyPrice)), 1);
@@ -136,7 +153,7 @@ export default function LPForm({
         }
 
         // Sell side (above center)
-        const sellPrice = centerPrice * (1 + spread * i);
+        const sellPrice = centerPrice * (1 + safeSpread * i);
         const notional = marginPerOrder * leverage;
         const qty = Math.max(Math.floor(notional / (cSize * sellPrice)), 1);
         const actualMargin = (qty * cSize * sellPrice) / leverage;
@@ -158,12 +175,22 @@ export default function LPForm({
   const totalCostBuy = buyOrders.reduce((s, o) => s + o.cost, 0);
   const totalCostSell = sellOrders.reduce((s, o) => s + o.cost, 0);
 
+  const hasBuyOrders = buyOrders.length > 0;
+  const hasSellOrders = sellOrders.length > 0;
+  const canSubmitSpot =
+    (!hasSellOrders || totalCostSell <= usdtAvailable) &&
+    (!hasBuyOrders || totalCostBuy <= usdcAvailable);
+
+  const collateralAvailable =
+    collateral === "USDC" ? usdcAvailable : usdtAvailable;
+  const totalFuturesCost = totalCostBuy + totalCostSell;
+
   const canSubmit =
     preview.length > 0 &&
     !loading &&
     (pairType === "spot"
-      ? totalCostSell <= usdtAvailable || totalCostBuy <= usdcAvailable
-      : parseFloat(totalAmount) > 0);
+      ? canSubmitSpot
+      : parseFloat(totalAmount) > 0 && totalFuturesCost <= collateralAvailable);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -174,6 +201,7 @@ export default function LPForm({
 
     let placed = 0;
     let failed = 0;
+    let firstError = "";
 
     for (const order of preview) {
       try {
@@ -203,8 +231,12 @@ export default function LPForm({
 
         placed++;
         setProgress({ placed, total: preview.length });
-      } catch {
+      } catch (err) {
         failed++;
+        if (!firstError) {
+          firstError =
+            err instanceof Error ? err.message : "Unknown error";
+        }
       }
     }
 
@@ -212,14 +244,16 @@ export default function LPForm({
 
     if (placed > 0) {
       setSuccess(
-        `Placed ${placed} of ${preview.length} orders${failed > 0 ? ` (${failed} failed)` : ""}`
+        `Placed ${placed} of ${preview.length} orders${failed > 0 ? ` (${failed} failed: ${firstError})` : ""}`
       );
       setSellAmount("");
       setBuyAmount("");
       setTotalAmount("");
       router.refresh();
     } else {
-      setError("All orders failed. Check your balances and try again.");
+      setError(
+        firstError || "All orders failed. Check your balances and try again."
+      );
     }
   }
 
