@@ -2,6 +2,17 @@
 
 An academic cryptocurrency-based commodities exchange for trading gold and silver futures with stablecoin settlement.
 
+## Progress Summary
+
+| Sprint | Status | Routes | Key Deliverables |
+|--------|--------|--------|-----------------|
+| 0 — Documentation + Placeholders | Done | 31 | Next.js scaffold, 5 route groups, 17 doc pages, dark theme |
+| 1 — Auth & User Accounts | Done | 38 | Firebase Auth, sessions, users/wallets tables |
+| 2 — Wallet, Deposits & Withdrawals | Done | 40 | USDT/USDC deposits, withdrawals, transactions |
+| 3 — Trading Engine | Done | 47 | 3 order books, matching, futures, margin, liquidation |
+| 4 — Transparency + Liquidity | Done | 47 | Transparency dashboard, one-click LP, zero maker fees |
+| 5 — System Market Maker | Planned | — | Automated baseline liquidity bot |
+
 ## Completed Sprints
 
 ### Sprint 0: Documentation + Placeholders
@@ -33,7 +44,7 @@ An academic cryptocurrency-based commodities exchange for trading gold and silve
 - Liquidation engine for under-margined positions
 - Live gold/silver prices from metals.dev (30-min cache, 100 req/month free tier)
 
-### Sprint 4: Transparency + Liquidity (Current)
+### Sprint 4: Transparency + Liquidity
 - Transparency dashboard with public exchange statistics
 - One-click liquidity provision ("Provide Liquidity" feature)
 - Zero maker fees to incentivize limit order placement
