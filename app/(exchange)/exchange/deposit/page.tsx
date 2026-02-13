@@ -12,7 +12,7 @@ export default async function Deposit() {
     usdc?.balance ?? null
   );
 
-  const eligible = totalBalance < 1;
+  const eligible = totalBalance < 5;
 
   return (
     <div className="mx-auto max-w-lg">
@@ -56,7 +56,7 @@ export default async function Deposit() {
           </h3>
           <p className="text-sm text-zinc-400">
             Your total balance is ${totalBalance.toFixed(2)}. Deposits are only
-            available when your combined balance is below $1.00. Trade or
+            available when your combined balance is below $5.00. Trade or
             withdraw funds to become eligible again.
           </p>
         </div>

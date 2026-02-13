@@ -4,7 +4,7 @@ import { getOrderBook, getRecentTrades, getUserOpenOrders } from "@/lib/db/queri
 import { PAIRS } from "@/lib/trading/constants";
 import OrderBook from "@/app/components/OrderBook";
 import TradeHistory from "@/app/components/TradeHistory";
-import OrderForm from "@/app/components/OrderForm";
+import TradingFormTabs from "@/app/components/TradingFormTabs";
 import OpenOrdersTable from "@/app/components/OpenOrdersTable";
 
 export default async function StablecoinExchange() {
@@ -54,7 +54,7 @@ export default async function StablecoinExchange() {
             </div>
           </div>
 
-          <OrderForm
+          <TradingFormTabs
             pair="USDT-USDC"
             pairType="spot"
             minQuantity={pairConfig.minQuantity}

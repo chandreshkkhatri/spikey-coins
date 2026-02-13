@@ -3,10 +3,10 @@ export const PAIRS = {
     base: "USDT",
     quote: "USDC",
     type: "spot" as const,
-    makerFeeRate: "0.0001", // 0.01%
+    makerFeeRate: "0", // 0% — incentivize liquidity provision
     takerFeeRate: "0.0003", // 0.03%
     tickSize: "0.0001",
-    minQuantity: "0.01",
+    minQuantity: "0.001",
   },
   "XAU-PERP": {
     base: "XAU",
@@ -14,7 +14,7 @@ export const PAIRS = {
     type: "futures" as const,
     contractSize: "0.001", // 0.001 troy oz per contract
     tickSize: "0.01",
-    makerFeeRate: "0.0002", // 0.02%
+    makerFeeRate: "0", // 0% — incentivize liquidity provision
     takerFeeRate: "0.0005", // 0.05%
     maxLeverage: 50,
     initialMarginRate: "0.02", // 2%
@@ -27,7 +27,7 @@ export const PAIRS = {
     type: "futures" as const,
     contractSize: "0.1", // 0.1 troy oz per contract
     tickSize: "0.001",
-    makerFeeRate: "0.0002", // 0.02%
+    makerFeeRate: "0", // 0% — incentivize liquidity provision
     takerFeeRate: "0.0005", // 0.05%
     maxLeverage: 50,
     initialMarginRate: "0.02",

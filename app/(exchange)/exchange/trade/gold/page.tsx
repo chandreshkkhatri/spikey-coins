@@ -11,7 +11,7 @@ import { calculateUnrealizedPnl } from "@/lib/services/margin";
 import { PAIRS } from "@/lib/trading/constants";
 import OrderBook from "@/app/components/OrderBook";
 import TradeHistory from "@/app/components/TradeHistory";
-import OrderForm from "@/app/components/OrderForm";
+import TradingFormTabs from "@/app/components/TradingFormTabs";
 import OpenOrdersTable from "@/app/components/OpenOrdersTable";
 import PriceDisplay from "@/app/components/PriceDisplay";
 import PositionCard from "@/app/components/PositionCard";
@@ -102,7 +102,7 @@ export default async function GoldFutures() {
         </div>
 
         <div>
-          <OrderForm
+          <TradingFormTabs
             pair="XAU-PERP"
             pairType="futures"
             minQuantity={pairConfig.minQuantity}

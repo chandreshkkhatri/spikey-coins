@@ -7,15 +7,15 @@ const features = [
   },
   {
     icon: "\u26D3\uFE0F",
-    title: "Blockchain Transparency",
+    title: "Full Transparency",
     description:
-      "Every trade is verifiable on-chain. Full audit trail with immutable record-keeping for complete peace of mind.",
+      "Public dashboard with live exchange stats — trading volume, fee revenue, order book depth, and recent trades. Nothing hidden.",
   },
   {
     icon: "\uD83D\uDEE1\uFE0F",
-    title: "Bank-Grade Security",
+    title: "Secure by Design",
     description:
-      "Multi-signature wallets, cold storage, and industry-leading security protocols protect your assets around the clock.",
+      "Server-side session verification, authenticated API routes, and secure credential handling protect your account and assets.",
   },
   {
     icon: "\uD83D\uDCCA",

@@ -13,7 +13,7 @@ export default function DepositForm() {
 
   const parsedAmount = parseFloat(amount);
   const isValidAmount =
-    !isNaN(parsedAmount) && parsedAmount > 0 && parsedAmount <= 5;
+    !isNaN(parsedAmount) && parsedAmount > 0 && parsedAmount <= 20;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -77,13 +77,13 @@ export default function DepositForm() {
 
         <div>
           <label className="mb-1.5 block text-sm text-zinc-400">
-            Amount (max $5.00)
+            Amount (max $20.00)
           </label>
           <input
             type="number"
             step="0.01"
             min="0.01"
-            max="5"
+            max="20"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0.00"
@@ -112,7 +112,7 @@ export default function DepositForm() {
       </form>
 
       <p className="mt-4 text-xs text-zinc-500">
-        No platform fees. Maximum $5.00 per deposit.
+        No platform fees. Maximum $20.00 per deposit.
       </p>
     </div>
   );

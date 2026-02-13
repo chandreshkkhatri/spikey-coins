@@ -1,27 +1,27 @@
 const steps = [
   {
     number: "01",
-    title: "Connect Your Wallet",
+    title: "Create Your Account",
     description:
-      "Link your cryptocurrency wallet to the Spikey Coins platform. We support all major wallets and chains.",
+      "Sign up with Google in seconds. No crypto wallet needed — just a Google account to get started.",
   },
   {
     number: "02",
     title: "Fund Your Account",
     description:
-      "Deposit crypto to your trading account. Multiple cryptocurrencies accepted as collateral for futures positions.",
+      "Deposit USDT or USDC to your trading wallet. Quick, simple, and ready to trade in minutes.",
   },
   {
     number: "03",
     title: "Choose Your Market",
     description:
-      "Select from gold or silver futures contracts with various expiration dates and leverage levels.",
+      "Trade USDT/USDC spot, or go long and short on gold and silver perpetual futures with up to 50x leverage.",
   },
   {
     number: "04",
     title: "Start Trading",
     description:
-      "Execute trades in real time with institutional-grade matching and blockchain-verified settlement.",
+      "Place market or limit orders with real-time matching. Provide liquidity and earn zero maker fees.",
   },
 ];
 
