@@ -1,9 +1,12 @@
+import type { AccentColor } from "@/lib/trading/constants";
+
 interface PriceDisplayProps {
   indexPrice: string;
   markPrice: string;
   fundingRate: string;
   nextFundingAt: string;
   contract: string;
+  accentColor?: AccentColor;
 }
 
 export default function PriceDisplay({
@@ -12,6 +15,7 @@ export default function PriceDisplay({
   fundingRate,
   nextFundingAt,
   contract,
+  accentColor = "gold",
 }: PriceDisplayProps) {
   const rate = parseFloat(fundingRate);
   const ratePercent = (rate * 100).toFixed(4);
@@ -36,7 +40,7 @@ export default function PriceDisplay({
       </div>
       <div>
         <span className="text-xs text-zinc-500">Mark</span>
-        <p className="font-mono text-sm font-medium text-gold">
+        <p className={`font-mono text-sm font-medium text-accent-${accentColor}`}>
           ${parseFloat(markPrice).toFixed(priceDecimals)}
         </p>
       </div>

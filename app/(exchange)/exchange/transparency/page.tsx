@@ -107,7 +107,7 @@ export default async function Transparency() {
           >
             <p className="text-xs text-zinc-500">{stat.label}</p>
             <p
-              className={`mt-2 font-mono text-2xl font-bold ${stat.accent ? "text-gold" : "text-white"}`}
+              className={`mt-2 font-mono text-2xl font-bold ${stat.accent ? "text-accent-gold" : "text-white"}`}
             >
               {stat.value}
             </p>
@@ -117,7 +117,7 @@ export default async function Transparency() {
 
       {/* Market Prices */}
       <div className="mb-8">
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-gold">
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-accent-gold">
           Market Prices
         </h2>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -165,7 +165,7 @@ export default async function Transparency() {
 
       {/* Open Interest */}
       <div className="mb-8">
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-gold">
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-accent-gold">
           Open Interest
         </h2>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -199,7 +199,7 @@ export default async function Transparency() {
 
       {/* Order Book Depth */}
       <div className="mb-8">
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-gold">
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-accent-gold">
           Order Book Depth
         </h2>
         <div className="grid gap-4 sm:grid-cols-3">
@@ -246,7 +246,7 @@ export default async function Transparency() {
 
       {/* 24h Volume Breakdown */}
       <div className="mb-8">
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-gold">
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-accent-gold">
           24h Volume
         </h2>
         <div className="grid gap-4 sm:grid-cols-3">
@@ -270,7 +270,7 @@ export default async function Transparency() {
 
       {/* Recent Trades (Anonymized) */}
       <div>
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-gold">
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-accent-gold">
           Recent Trades
         </h2>
         {allRecentTrades.length === 0 ? (

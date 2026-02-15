@@ -1,3 +1,5 @@
+import { getAccentColor } from "@/lib/trading/constants";
+
 interface PositionCardProps {
   position: {
     id: string;
@@ -25,6 +27,7 @@ export default function PositionCard({
   const unrealizedPnl = parseFloat(position.unrealizedPnl ?? "0");
   const isProfitable = unrealizedPnl >= 0;
   const priceDecimals = position.contract === "XAG-PERP" ? 3 : 2;
+  const accentColor = getAccentColor(position.contract);
 
   return (
     <div className="rounded-2xl border border-border bg-surface p-5">
@@ -60,7 +63,7 @@ export default function PositionCard({
         </div>
         <div>
           <dt className="text-zinc-500">Mark Price</dt>
-          <dd className="font-mono text-gold">
+          <dd className={`font-mono text-accent-${accentColor}`}>
             ${parseFloat(position.markPrice ?? "0").toFixed(priceDecimals)}
           </dd>
         </div>

@@ -20,6 +20,45 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Contextual accent color utilities for dual theming */
+.text-accent-gold { color: var(--color-gold); }
+.text-accent-gold-light { color: var(--color-gold-light); }
+.text-accent-silver { color: var(--color-silver); }
+.text-accent-silver-light { color: var(--color-silver-light); }
+
+.bg-accent-gold { background-color: var(--color-gold); }
+.bg-accent-gold-light { background-color: var(--color-gold-light); }
+.bg-accent-silver { background-color: var(--color-silver); }
+.bg-accent-silver-light { background-color: var(--color-silver-light); }
+
+.border-accent-gold { border-color: var(--color-gold); }
+.border-accent-gold-light { border-color: var(--color-gold-light); }
+.border-accent-silver { border-color: var(--color-silver); }
+.border-accent-silver-light { border-color: var(--color-silver-light); }
+
+/* Opacity variants for backgrounds and borders */
+.bg-accent-gold\/10 { background-color: rgb(245 166 35 / 0.1); }
+.bg-accent-gold\/20 { background-color: rgb(245 166 35 / 0.2); }
+.bg-accent-silver\/10 { background-color: rgb(192 192 192 / 0.1); }
+.bg-accent-silver\/20 { background-color: rgb(192 192 192 / 0.2); }
+
+.border-accent-gold\/30 { border-color: rgb(245 166 35 / 0.3); }
+.border-accent-gold\/50 { border-color: rgb(245 166 35 / 0.5); }
+.border-accent-silver\/30 { border-color: rgb(192 192 192 / 0.3); }
+.border-accent-silver\/50 { border-color: rgb(192 192 192 / 0.5); }
+
+.focus\:border-accent-gold\/50:focus { border-color: rgb(245 166 35 / 0.5); }
+.focus\:border-accent-silver\/50:focus { border-color: rgb(192 192 192 / 0.5); }
+
+.hover\:bg-accent-gold-light:hover { background-color: var(--color-gold-light); }
+.hover\:bg-accent-silver-light:hover { background-color: var(--color-silver-light); }
+
+.hover\:border-accent-gold\/30:hover { border-color: rgb(245 166 35 / 0.3); }
+.hover\:border-accent-silver\/30:hover { border-color: rgb(192 192 192 / 0.3); }
+
+.accent-accent-gold { accent-color: var(--color-gold); }
+.accent-accent-silver { accent-color: var(--color-silver); }
+
 @theme {
   --animate-pulse-glow: pulse-glow 2s ease-in-out infinite;
 

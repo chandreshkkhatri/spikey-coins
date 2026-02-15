@@ -1,12 +1,14 @@
 import type { OrderBookLevel } from "@/lib/trading/types";
+import type { AccentColor } from "@/lib/trading/constants";
 
 interface OrderBookProps {
   bids: OrderBookLevel[];
   asks: OrderBookLevel[];
   pair: string;
+  accentColor?: AccentColor;
 }
 
-export default function OrderBook({ bids, asks, pair }: OrderBookProps) {
+export default function OrderBook({ bids, asks, pair, accentColor = "gold" }: OrderBookProps) {
   const maxQty = Math.max(
     ...bids.map((b) => parseFloat(b.quantity)),
     ...asks.map((a) => parseFloat(a.quantity)),
@@ -18,7 +20,7 @@ export default function OrderBook({ bids, asks, pair }: OrderBookProps) {
 
   return (
     <div className="rounded-2xl border border-border bg-surface p-4">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-gold">
+      <h2 className={`mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-accent-${accentColor}`}>
         Order Book
       </h2>
 

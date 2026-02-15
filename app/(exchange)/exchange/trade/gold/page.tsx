@@ -74,13 +74,14 @@ export default async function GoldFutures() {
           fundingRate={markData.fundingRate}
           nextFundingAt={markData.nextFundingAt}
           contract="XAU-PERP"
+          accentColor="gold"
         />
       </div>
 
       {/* Open Positions */}
       {enrichedPositions.length > 0 && (
         <div className="mb-6 space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-gold">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-accent-gold">
             Open Positions
           </h2>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -98,6 +99,7 @@ export default async function GoldFutures() {
             bids={orderBook.bids}
             asks={orderBook.asks}
             pair="XAU-PERP"
+            accentColor="gold"
           />
         </div>
 
@@ -113,12 +115,13 @@ export default async function GoldFutures() {
             maxLeverage={pairConfig.maxLeverage}
             initialMarginRate={pairConfig.initialMarginRate}
             currentPrice={parseFloat(markData.markPrice).toFixed(2)}
+            accentColor="gold"
           />
         </div>
 
         <div className="space-y-6">
-          <TradeHistory trades={recentTrades} pair="XAU-PERP" />
-          <OpenOrdersTable orders={openOrders} />
+          <TradeHistory trades={recentTrades} pair="XAU-PERP" accentColor="gold" />
+          <OpenOrdersTable orders={openOrders} accentColor="gold" />
         </div>
       </div>
     </div>

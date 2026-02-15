@@ -61,7 +61,7 @@ export default async function Positions() {
       {/* Open Positions */}
       <section className="mb-8">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-gold">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-accent-gold">
             Open Positions ({enrichedPositions.length})
           </h2>
           {enrichedPositions.length > 0 && (
@@ -93,13 +93,13 @@ export default async function Positions() {
 
       {/* Open Orders */}
       <section className="mb-8">
-        <OpenOrdersTable orders={openOrders} />
+        <OpenOrdersTable orders={openOrders} accentColor="gold" />
       </section>
 
       {/* Trade History */}
       <section>
         <div className="rounded-2xl border border-border bg-surface p-4">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-gold">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-accent-gold">
             Trade History
           </h2>
           {tradeHistory.length === 0 ? (

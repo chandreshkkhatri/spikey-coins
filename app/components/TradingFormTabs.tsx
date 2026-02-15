@@ -3,6 +3,7 @@
 import { useState } from "react";
 import OrderForm from "./OrderForm";
 import LPForm from "./LPForm";
+import type { AccentColor } from "@/lib/trading/constants";
 
 interface TradingFormTabsProps {
   pair: string;
@@ -15,10 +16,12 @@ interface TradingFormTabsProps {
   contractSize?: string;
   maxLeverage?: number;
   initialMarginRate?: string;
+  accentColor?: AccentColor;
 }
 
 export default function TradingFormTabs(props: TradingFormTabsProps) {
   const [tab, setTab] = useState<"trade" | "lp">("trade");
+  const accentColor = props.accentColor ?? "gold";
 
   return (
     <div>
@@ -34,7 +37,7 @@ export default function TradingFormTabs(props: TradingFormTabsProps) {
             onClick={() => setTab(key)}
             className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
               tab === key
-                ? "border-gold bg-gold/10 text-gold"
+                ? `border-accent-${accentColor} bg-accent-${accentColor}/10 text-accent-${accentColor}`
                 : "border-border text-zinc-400 hover:text-white"
             }`}
           >
@@ -44,9 +47,9 @@ export default function TradingFormTabs(props: TradingFormTabsProps) {
       </div>
 
       {tab === "trade" ? (
-        <OrderForm {...props} />
+        <OrderForm {...props} accentColor={accentColor} />
       ) : (
-        <LPForm {...props} />
+        <LPForm {...props} accentColor={accentColor} />
       )}
     </div>
   );
