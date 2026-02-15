@@ -7,7 +7,7 @@ export default function Navbar() {
           className="flex items-center gap-2 text-xl font-bold text-white"
         >
           <span className="text-gold">{"\u25C6"}</span>
-          Spikey Coins
+          Open Mandi
         </a>
 
         <div className="hidden items-center gap-8 md:flex">

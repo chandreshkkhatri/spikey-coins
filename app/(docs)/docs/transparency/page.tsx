@@ -6,10 +6,10 @@ export default function Transparency() {
       <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gold">
         Using the Exchange
       </p>
-      <h1>Transparency at Spikey Coins</h1>
+      <h1>Transparency at Open Mandi</h1>
 
       <p className="lead">
-        Most exchanges keep their inner workings private. Spikey Coins does the
+        Most exchanges keep their inner workings private. Open Mandi does the
         opposite. As an academic platform, we believe in full transparency
         &mdash; you can see exactly how the exchange operates, how much revenue
         it generates, and what&apos;s happening across the entire platform.
@@ -17,7 +17,7 @@ export default function Transparency() {
 
       <h2>Our Commitment to Transparency</h2>
       <p>
-        Spikey Coins publishes real-time and historical data about its
+        Open Mandi publishes real-time and historical data about its
         operations. This isn&apos;t just a marketing claim &mdash; it&apos;s
         built into the platform as a core feature. The Transparency Dashboard is
         available to everyone, even without an account.

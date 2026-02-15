@@ -1,4 +1,4 @@
-# Spikey Coins
+# Open Mandi
 
 An academic cryptocurrency-based commodities exchange for trading gold and silver futures with stablecoin settlement.
 
@@ -80,8 +80,8 @@ lib/
 
 ```bash
 # Clone and install
-git clone https://github.com/chandreshkkhatri/spikey-coins.git
-cd spikey-coins
+git clone https://github.com/chandreshkkhatri/openmandi.git
+cd openmandi
 npm install
 
 # Configure environment

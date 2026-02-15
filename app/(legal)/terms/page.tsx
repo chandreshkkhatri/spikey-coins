@@ -7,8 +7,8 @@ export default function TermsAndConditions() {
       </p>
       <p>
         These Terms and Conditions (&quot;Terms&quot;) govern your access to and
-        use of the Spikey Coins platform (&quot;Platform&quot;,
-        &quot;Service&quot;), operated by Spikey Coins (&quot;we&quot;,
+        use of the Open Mandi platform (&quot;Platform&quot;,
+        &quot;Service&quot;), operated by Open Mandi (&quot;we&quot;,
         &quot;us&quot;, &quot;our&quot;). By accessing or using the Platform, you
         agree to be bound by these Terms. If you do not agree, you must not use
         the Platform.
@@ -16,7 +16,7 @@ export default function TermsAndConditions() {
 
       <h2>1. Service Description</h2>
       <p>
-        Spikey Coins is an academic and educational cryptocurrency-based
+        Open Mandi is an academic and educational cryptocurrency-based
         commodities exchange. The Platform enables registered users to:
       </p>
       <ol type="a">
@@ -275,17 +275,17 @@ export default function TermsAndConditions() {
           IMPLIED.
         </li>
         <li>
-          IN NO EVENT SHALL SPIKEY COINS BE LIABLE FOR ANY INDIRECT, INCIDENTAL,
+          IN NO EVENT SHALL OPEN MANDI BE LIABLE FOR ANY INDIRECT, INCIDENTAL,
           SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES ARISING FROM YOUR USE OF
           THE PLATFORM.
         </li>
         <li>
-          SPIKEY COINS&apos; TOTAL LIABILITY SHALL NOT EXCEED THE AMOUNT OF FEES
+          OPEN MANDI&apos; TOTAL LIABILITY SHALL NOT EXCEED THE AMOUNT OF FEES
           PAID BY THE USER TO THE PLATFORM IN THE TWELVE (12) MONTHS PRECEDING
           THE CLAIM.
         </li>
         <li>
-          SPIKEY COINS SHALL NOT BE LIABLE FOR TRADING LOSSES, LIQUIDATION
+          OPEN MANDI SHALL NOT BE LIABLE FOR TRADING LOSSES, LIQUIDATION
           LOSSES, OR LOSSES ARISING FROM PRICE MOVEMENTS, MARKET CONDITIONS, OR
           USER ERROR.
         </li>
@@ -294,7 +294,7 @@ export default function TermsAndConditions() {
       <h2>13. Intellectual Property</h2>
       <p>
         All content, software, designs, and trademarks on the Platform are the
-        property of Spikey Coins or its licensors. Users are granted a limited,
+        property of Open Mandi or its licensors. Users are granted a limited,
         non-exclusive, non-transferable license to access and use the Platform
         for its intended purpose.
       </p>
@@ -330,7 +330,7 @@ export default function TermsAndConditions() {
       <h2>18. Contact Information</h2>
       <p>
         For questions regarding these Terms, please contact us at{" "}
-        <strong>legal@spikeycoins.com</strong>.
+        <strong>legal@openmandis.com</strong>.
       </p>
     </article>
   );

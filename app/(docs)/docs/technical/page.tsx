@@ -55,7 +55,7 @@ export default function TechnicalDocsHub() {
       </h1>
       <p className="mb-12 text-lg text-zinc-400">
         Detailed technical documentation covering the internal architecture,
-        algorithms, data models, and APIs that power the Spikey Coins exchange.
+        algorithms, data models, and APIs that power the Open Mandi exchange.
         This documentation is intended for developers, researchers, and anyone
         interested in the engineering behind the platform.
       </p>

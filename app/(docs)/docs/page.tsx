@@ -50,10 +50,10 @@ export default function DocsHub() {
         Documentation
       </p>
       <h1 className="mb-4 text-4xl font-bold text-white">
-        Spikey Coins Documentation
+        Open Mandi Documentation
       </h1>
       <p className="mb-12 text-lg text-zinc-400">
-        Welcome to the Spikey Coins documentation. Whether you&apos;re new to
+        Welcome to the Open Mandi documentation. Whether you&apos;re new to
         commodities trading or an experienced trader exploring crypto-powered
         markets, these guides will help you understand how everything works.
       </p>

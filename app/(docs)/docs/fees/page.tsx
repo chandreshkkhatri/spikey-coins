@@ -9,7 +9,7 @@ export default function Fees() {
       <h1>Fee Structure</h1>
 
       <p className="lead">
-        Transparency is a core value at Spikey Coins. We believe you should know
+        Transparency is a core value at Open Mandi. We believe you should know
         exactly what you&apos;re paying, why you&apos;re paying it, and where
         that money goes. Here&apos;s a complete breakdown of every fee on the
         platform.
@@ -17,7 +17,7 @@ export default function Fees() {
 
       <h2>Our Fee Philosophy</h2>
       <p>
-        Fees on Spikey Coins serve two purposes: they sustain the platform and
+        Fees on Open Mandi serve two purposes: they sustain the platform and
         they teach you how fees work on real exchanges. Every fee collected is
         visible on the{" "}
         <Link href="/docs/transparency">Transparency Dashboard</Link>, so you
@@ -100,7 +100,7 @@ export default function Fees() {
 
       <h2>Deposit Fees</h2>
       <p>
-        <strong>No fees</strong>. Deposits are free on Spikey Coins. You may pay
+        <strong>No fees</strong>. Deposits are free on Open Mandi. You may pay
         network transaction fees (gas fees) on the blockchain side, but the
         platform itself does not charge for deposits.
       </p>
@@ -173,7 +173,7 @@ export default function Fees() {
 
       <h2>Where Do Fees Go?</h2>
       <p>
-        Every fee collected by Spikey Coins is tracked and displayed on the{" "}
+        Every fee collected by Open Mandi is tracked and displayed on the{" "}
         <Link href="/exchange/transparency">Transparency Dashboard</Link>. You
         can see total fees collected, broken down by type, in real time. As an
         academic platform, this transparency is central to our mission of

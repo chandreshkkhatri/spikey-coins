@@ -7,7 +7,7 @@ export default function Security() {
       <h1>Security Model</h1>
 
       <p className="lead">
-        The Spikey Coins security model follows a defense-in-depth approach,
+        The Open Mandi security model follows a defense-in-depth approach,
         implementing multiple layers of protection across authentication, data
         integrity, and financial operations. As an academic platform, the
         security design balances robustness with transparency.

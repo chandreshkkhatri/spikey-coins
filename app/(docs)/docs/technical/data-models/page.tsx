@@ -7,7 +7,7 @@ export default function DataModels() {
       <h1>Data Models</h1>
 
       <p className="lead">
-        This document describes the entity schemas that underpin the Spikey Coins
+        This document describes the entity schemas that underpin the Open Mandi
         exchange. Financial values are represented using decimal types in the data
         model to minimize floating-point precision issues.
       </p>

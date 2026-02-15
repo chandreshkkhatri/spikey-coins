@@ -12,7 +12,7 @@ export default function AuthLayout({
           href="/"
           className="flex items-center gap-2 text-2xl font-bold text-white"
         >
-          <span className="text-gold">&#9670;</span> Spikey Coins
+          <span className="text-gold">&#9670;</span> Open Mandi
         </Link>
       </div>
       <div className="w-full max-w-md">{children}</div>

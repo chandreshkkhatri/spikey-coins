@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Spikey Coins | Crypto-Powered Gold & Silver Futures Exchange",
+  title: "Open Mandi | Crypto-Powered Gold & Silver Futures Exchange",
   description:
-    "Trade gold and silver futures using cryptocurrency. Spikey Coins is a next-generation commodities exchange bridging digital assets and precious metals markets.",
+    "Trade gold and silver futures using cryptocurrency. Open Mandi is a next-generation commodities exchange bridging digital assets and precious metals markets.",
   keywords: [
     "cryptocurrency",
     "gold futures",
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     "digital assets",
   ],
   openGraph: {
-    title: "Spikey Coins | Crypto-Powered Gold & Silver Futures Exchange",
+    title: "Open Mandi | Crypto-Powered Gold & Silver Futures Exchange",
     description:
       "Trade gold and silver futures using cryptocurrency. A next-generation commodities exchange bridging digital assets and precious metals.",
     type: "website",

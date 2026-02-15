@@ -1,4 +1,4 @@
-# Spikey Coins Roadmap
+# Open Mandi Roadmap
 
 An academic cryptocurrency-based commodities exchange for trading gold and silver futures with stablecoin settlement.
 

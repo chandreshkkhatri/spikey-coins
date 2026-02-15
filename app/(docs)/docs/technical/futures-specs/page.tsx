@@ -7,7 +7,7 @@ export default function FuturesSpecs() {
       <h1>Futures Contract Specifications</h1>
 
       <p className="lead">
-        Spikey Coins offers perpetual futures contracts for gold (XAU) and
+        Open Mandi offers perpetual futures contracts for gold (XAU) and
         silver (XAG), collateralized with USDT or USDC. This document details
         the contract parameters, margin model, and liquidation mechanics.
       </p>

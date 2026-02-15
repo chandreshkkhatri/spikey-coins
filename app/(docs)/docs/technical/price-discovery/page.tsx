@@ -7,7 +7,7 @@ export default function PriceDiscovery() {
       <h1>USDT/USDC Price Discovery Mechanism</h1>
 
       <p className="lead">
-        The USDT/USDC exchange on Spikey Coins operates as a free market with no
+        The USDT/USDC exchange on Open Mandi operates as a free market with no
         administered or pegged rate. The exchange rate is determined entirely by
         the interaction of buy and sell orders on the order book.
       </p>
@@ -15,7 +15,7 @@ export default function PriceDiscovery() {
       <h2>Free Market Principle</h2>
       <p>
         Unlike centralized stablecoin swaps that enforce a 1:1 rate (or apply a
-        fixed spread), Spikey Coins treats USDT and USDC as two distinct assets
+        fixed spread), Open Mandi treats USDT and USDC as two distinct assets
         with independent valuations on the platform. The exchange rate emerges
         from the collective decisions of participants.
       </p>
@@ -69,7 +69,7 @@ Example:
         <code>{`spread = bestAsk - bestBid
 spreadPercent = (spread / midPrice) * 100`}</code>
       </pre>
-      <p>Key dynamics on the Spikey Coins USDT/USDC market:</p>
+      <p>Key dynamics on the Open Mandi USDT/USDC market:</p>
       <ul>
         <li>
           <strong>Thin liquidity</strong> &mdash; with strict deposit limits and
@@ -113,7 +113,7 @@ spreadPercent = (spread / midPrice) * 100`}</code>
       <h2>Comparison to External Markets</h2>
       <p>
         On major centralized exchanges, the USDT/USDC rate typically remains
-        within 0.01-0.05% of 1:1. On Spikey Coins, deviations may be larger
+        within 0.01-0.05% of 1:1. On Open Mandi, deviations may be larger
         due to:
       </p>
       <ul>

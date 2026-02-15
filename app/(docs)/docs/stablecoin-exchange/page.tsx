@@ -7,7 +7,7 @@ export default function StablecoinExchange() {
       <h1>USDT / USDC Stablecoin Exchange</h1>
 
       <p className="lead">
-        Spikey Coins includes a built-in exchange where you can swap between USDT
+        Open Mandi includes a built-in exchange where you can swap between USDT
         and USDC. Unlike most exchanges that fix the rate at 1:1, our rate is
         determined by the free market &mdash; by the actual buying and selling
         activity of traders on the platform.
@@ -15,7 +15,7 @@ export default function StablecoinExchange() {
 
       <h2>What is the Stablecoin Exchange?</h2>
       <p>
-        The stablecoin exchange is a marketplace within Spikey Coins where you
+        The stablecoin exchange is a marketplace within Open Mandi where you
         can trade USDT for USDC and vice versa. It has its own order book, just
         like the gold and silver futures markets.
       </p>
@@ -46,7 +46,7 @@ export default function StablecoinExchange() {
 
       <h2>How the Exchange Rate is Determined</h2>
       <p>
-        The exchange rate between USDT and USDC on Spikey Coins is{" "}
+        The exchange rate between USDT and USDC on Open Mandi is{" "}
         <strong>not fixed</strong>. It&apos;s determined entirely by supply and
         demand through the order book.
       </p>
@@ -108,7 +108,7 @@ export default function StablecoinExchange() {
       <h2>Why Rates May Differ from 1:1</h2>
       <p>
         Even though both USDT and USDC are designed to be worth $1, their
-        exchange rate on Spikey Coins can deviate from 1:1 for several reasons:
+        exchange rate on Open Mandi can deviate from 1:1 for several reasons:
       </p>
       <ul>
         <li>

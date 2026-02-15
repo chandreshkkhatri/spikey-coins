@@ -10,7 +10,7 @@ export default function DocsHeader() {
             className="flex items-center gap-2 text-lg font-bold text-white"
           >
             <span className="text-gold">{"\u25C6"}</span>
-            Spikey Coins
+            Open Mandi
           </Link>
           <span className="text-zinc-700">|</span>
           <Link href="/docs" className="text-sm text-zinc-400 hover:text-white">

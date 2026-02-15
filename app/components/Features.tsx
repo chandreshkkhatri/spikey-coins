@@ -43,7 +43,7 @@ export default function Features() {
       <div className="mx-auto max-w-7xl px-6">
         <div className="mb-16 text-center">
           <p className="mb-2 text-sm font-semibold uppercase tracking-[0.2em] text-gold">
-            Why Spikey Coins
+            Why Open Mandi
           </p>
           <h2 className="text-3xl font-bold text-white md:text-5xl">
             Built for the Modern Trader

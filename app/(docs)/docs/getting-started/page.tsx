@@ -6,17 +6,17 @@ export default function GettingStarted() {
       <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gold">
         Guide
       </p>
-      <h1>Getting Started with Spikey Coins</h1>
+      <h1>Getting Started with Open Mandi</h1>
 
       <p className="lead">
-        Spikey Coins is an academic cryptocurrency-based commodities exchange
+        Open Mandi is an academic cryptocurrency-based commodities exchange
         where you can trade gold and silver futures using stablecoins. This guide
         will walk you through everything you need to get up and running.
       </p>
 
-      <h2>What is Spikey Coins?</h2>
+      <h2>What is Open Mandi?</h2>
       <p>
-        Spikey Coins is a learning-focused trading platform. It lets you
+        Open Mandi is a learning-focused trading platform. It lets you
         experience how a real commodities exchange works, but in a safe,
         low-stakes environment. You trade with small amounts of USDT and USDC
         (two popular stablecoins pegged to the US dollar), and you can buy and
@@ -38,7 +38,7 @@ export default function GettingStarted() {
 
       <h2>Step 2: Make Your First Deposit</h2>
       <p>
-        To start trading, you need to deposit some funds. Spikey Coins accepts
+        To start trading, you need to deposit some funds. Open Mandi accepts
         two stablecoins:
       </p>
       <ul>

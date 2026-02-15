@@ -52,7 +52,7 @@ export default function Login() {
     <div className="rounded-2xl border border-border bg-surface p-8">
       <h1 className="mb-2 text-2xl font-bold text-white">Welcome back</h1>
       <p className="mb-6 text-sm text-zinc-400">
-        Sign in to your Spikey Coins account
+        Sign in to your Open Mandi account
       </p>
 
       {error && (

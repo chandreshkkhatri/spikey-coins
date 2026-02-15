@@ -7,7 +7,7 @@ export default function OrderEngine() {
       <h1>Order Matching Engine</h1>
 
       <p className="lead">
-        The order matching engine is the core component of the Spikey Coins
+        The order matching engine is the core component of the Open Mandi
         exchange. It processes incoming orders, maintains the order book, and
         executes trades using a price-time priority (FIFO) algorithm.
       </p>

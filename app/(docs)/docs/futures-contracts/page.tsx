@@ -8,7 +8,7 @@ export default function FuturesContracts() {
 
       <p className="lead">
         A futures contract is simply an agreement to buy or sell something at a
-        specific price on a future date. On Spikey Coins, you trade gold and
+        specific price on a future date. On Open Mandi, you trade gold and
         silver futures &mdash; meaning you&apos;re making bets on where you
         think the price of these metals will go.
       </p>
@@ -26,7 +26,7 @@ export default function FuturesContracts() {
         they&apos;ll receive.
       </p>
       <p>
-        On Spikey Coins, you don&apos;t actually receive physical gold or
+        On Open Mandi, you don&apos;t actually receive physical gold or
         silver. Instead, contracts are <strong>cash-settled</strong> &mdash; the
         difference between your entry price and the settlement price is
         calculated, and your account is credited or debited accordingly.
@@ -78,7 +78,7 @@ export default function FuturesContracts() {
         contract value that acts as collateral.
       </p>
       <p>
-        On Spikey Coins, your margin is held in USDT or USDC. If the market
+        On Open Mandi, your margin is held in USDT or USDC. If the market
         moves against you and your margin runs low, you may need to add more
         funds or your position could be <strong>liquidated</strong> (
         automatically closed) to prevent further losses.
@@ -98,7 +98,7 @@ export default function FuturesContracts() {
 
       <h2>Contract Settlement</h2>
       <p>
-        Futures contracts on Spikey Coins are settled in stablecoins. When a
+        Futures contracts on Open Mandi are settled in stablecoins. When a
         contract expires or when you close your position, the profit or loss is
         calculated and your USDT/USDC balance is updated accordingly.
       </p>
@@ -124,7 +124,7 @@ export default function FuturesContracts() {
         </li>
       </ul>
       <p>
-        Because Spikey Coins is an academic platform with small deposit limits,
+        Because Open Mandi is an academic platform with small deposit limits,
         your risk is naturally constrained. But it&apos;s important to understand
         these concepts as they apply to real-world trading.
       </p>

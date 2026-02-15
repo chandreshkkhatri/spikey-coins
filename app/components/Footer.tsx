@@ -5,7 +5,7 @@ export default function Footer() {
         <div className="flex flex-col items-center gap-6 text-center md:flex-row md:justify-between md:text-left">
           <div>
             <p className="text-lg font-bold text-white">
-              <span className="text-gold">{"\u25C6"}</span> Spikey Coins
+              <span className="text-gold">{"\u25C6"}</span> Open Mandi
             </p>
             <p className="mt-1 text-sm text-zinc-500">
               Crypto-powered commodities trading
@@ -30,7 +30,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="mt-8 border-t border-border pt-8 text-center text-xs text-zinc-600">
-          &copy; 2026 Spikey Coins. All rights reserved.
+          &copy; 2026 Open Mandi. All rights reserved.
         </div>
       </div>
     </footer>

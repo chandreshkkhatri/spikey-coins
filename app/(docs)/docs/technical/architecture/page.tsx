@@ -7,7 +7,7 @@ export default function Architecture() {
       <h1>System Architecture</h1>
 
       <p className="lead">
-        Spikey Coins is built as a monolithic Next.js application using the App
+        Open Mandi is built as a monolithic Next.js application using the App
         Router paradigm. The architecture prioritizes simplicity and
         transparency, suitable for an academic exchange handling low-volume
         trading activity.

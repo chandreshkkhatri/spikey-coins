@@ -7,14 +7,14 @@ export default function ApiReference() {
       <h1>API Reference</h1>
 
       <p className="lead">
-        The Spikey Coins API provides RESTful endpoints for account management,
+        The Open Mandi API provides RESTful endpoints for account management,
         wallet operations, trading, and transparency data. WebSocket feeds are
         available for real-time market data.
       </p>
 
       <h2>Base URL</h2>
       <pre>
-        <code>{`https://api.spikeycoins.com/api/v1  (Coming Soon)`}</code>
+        <code>{`https://api.openmandis.com/api/v1  (Coming Soon)`}</code>
       </pre>
 
       <h2>Authentication</h2>
@@ -285,7 +285,7 @@ export default function ApiReference() {
 
       <h2>WebSocket Feeds</h2>
       <pre>
-        <code>{`WebSocket URL: wss://api.spikeycoins.com/ws  (Coming Soon)
+        <code>{`WebSocket URL: wss://api.openmandis.com/ws  (Coming Soon)
 
 Subscription channels:
   - orderbook:<symbol>     Real-time order book updates

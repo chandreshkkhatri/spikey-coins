@@ -9,13 +9,13 @@ export default function DepositsWithdrawals() {
       <h1>Deposits &amp; Withdrawals</h1>
 
       <p className="lead">
-        Spikey Coins has simple but deliberate rules for deposits and
+        Open Mandi has simple but deliberate rules for deposits and
         withdrawals. These limits are designed to keep the platform educational
         and low-risk while still giving you a realistic trading experience.
       </p>
 
       <h2>Accepted Currencies</h2>
-      <p>Spikey Coins accepts two stablecoins for deposits:</p>
+      <p>Open Mandi accepts two stablecoins for deposits:</p>
       <ul>
         <li>
           <strong>USDT</strong> (Tether)
@@ -49,7 +49,7 @@ export default function DepositsWithdrawals() {
       <p>These rules exist for good reasons:</p>
       <ul>
         <li>
-          <strong>Educational focus</strong> &mdash; Spikey Coins is an academic
+          <strong>Educational focus</strong> &mdash; Open Mandi is an academic
           platform, not a commercial exchange. Small amounts keep the focus on
           learning rather than profit-seeking.
         </li>
@@ -114,7 +114,7 @@ export default function DepositsWithdrawals() {
       <h2>Frequently Asked Questions</h2>
       <h3>Can I deposit Bitcoin, Ethereum, or other cryptocurrencies?</h3>
       <p>
-        No. Spikey Coins only accepts USDT and USDC. You can convert other
+        No. Open Mandi only accepts USDT and USDC. You can convert other
         cryptocurrencies to USDT or USDC on an external exchange before
         depositing.
       </p>

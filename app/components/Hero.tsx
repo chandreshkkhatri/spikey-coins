@@ -17,7 +17,7 @@ export default function Hero() {
         </h1>
 
         <p className="mx-auto mb-10 max-w-2xl text-lg leading-relaxed text-zinc-400 md:text-xl">
-          Spikey Coins bridges cryptocurrency and precious metals markets.
+          Open Mandi bridges cryptocurrency and precious metals markets.
           Access gold and silver futures contracts with the speed, transparency,
           and security of blockchain technology.
         </p>

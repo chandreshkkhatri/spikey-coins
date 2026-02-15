@@ -32,7 +32,7 @@ export default function WhatIsCommodities() {
         </li>
       </ul>
       <p>
-        Spikey Coins focuses on <strong>precious metals</strong> &mdash;
+        Open Mandi focuses on <strong>precious metals</strong> &mdash;
         specifically gold and silver, two of the oldest and most trusted stores
         of value in human history.
       </p>
@@ -90,15 +90,15 @@ export default function WhatIsCommodities() {
         fair price of something through the interaction of buyers and sellers.
       </p>
       <p>
-        Nobody sets the price of gold on Spikey Coins. Instead, the price
+        Nobody sets the price of gold on Open Mandi. Instead, the price
         emerges naturally from what traders are willing to buy and sell at. If
         more people want to buy than sell, the price goes up. If more people want
         to sell than buy, the price goes down. This is the free market in action.
       </p>
 
-      <h2>Spikey Coins as a Commodities Exchange</h2>
+      <h2>Open Mandi as a Commodities Exchange</h2>
       <p>
-        Spikey Coins brings this traditional concept into the world of
+        Open Mandi brings this traditional concept into the world of
         cryptocurrency. Instead of using traditional money through banks and
         brokers, you use stablecoins (USDT and USDC) to trade gold and silver
         futures contracts.

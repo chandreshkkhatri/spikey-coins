@@ -51,7 +51,7 @@ export default function Signup() {
     <div className="rounded-2xl border border-border bg-surface p-8">
       <h1 className="mb-2 text-2xl font-bold text-white">Create an account</h1>
       <p className="mb-6 text-sm text-zinc-400">
-        Start trading gold and silver futures on Spikey Coins
+        Start trading gold and silver futures on Open Mandi
       </p>
 
       {error && (

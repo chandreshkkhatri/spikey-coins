@@ -7,7 +7,7 @@ export default function CryptoTrading() {
       <h1>Crypto-Powered Commodities Trading</h1>
 
       <p className="lead">
-        Spikey Coins combines two worlds: traditional commodities trading and
+        Open Mandi combines two worlds: traditional commodities trading and
         modern cryptocurrency. Instead of wiring money through a bank, you use
         stablecoins to trade gold and silver futures. Here&apos;s how it all
         fits together.
@@ -20,7 +20,7 @@ export default function CryptoTrading() {
         stablecoins are pegged to real-world currencies &mdash; usually the US
         dollar.
       </p>
-      <p>Spikey Coins accepts two stablecoins:</p>
+      <p>Open Mandi accepts two stablecoins:</p>
       <ul>
         <li>
           <strong>USDT (Tether)</strong> &mdash; the most widely used stablecoin,
@@ -54,14 +54,14 @@ export default function CryptoTrading() {
         </li>
         <li>
           <strong>Lower barriers</strong> &mdash; traditional futures brokers
-          often require large minimum deposits. Spikey Coins lets you start with
+          often require large minimum deposits. Open Mandi lets you start with
           as little as $5.
         </li>
       </ul>
 
       <h2>How Your Funds are Managed</h2>
       <p>
-        When you deposit USDT or USDC into Spikey Coins, your balance is tracked
+        When you deposit USDT or USDC into Open Mandi, your balance is tracked
         on the platform. Your funds are used as collateral for trading futures
         and can be exchanged between USDT and USDC using the built-in stablecoin
         exchange.
@@ -74,7 +74,7 @@ export default function CryptoTrading() {
 
       <h2>Settlement and Finality</h2>
       <p>
-        When a trade is matched on Spikey Coins, settlement happens
+        When a trade is matched on Open Mandi, settlement happens
         immediately. There&apos;s no waiting period. Your balances are updated
         in real time, and your positions reflect current market prices.
       </p>
@@ -85,7 +85,7 @@ export default function CryptoTrading() {
 
       <h2>The Two-Stablecoin System</h2>
       <p>
-        An interesting feature of Spikey Coins is that USDT and USDC trade
+        An interesting feature of Open Mandi is that USDT and USDC trade
         against each other on an open market. Even though both are designed to
         be worth $1, the exchange rate between them on our platform is determined
         by supply and demand.
@@ -103,7 +103,7 @@ export default function CryptoTrading() {
           <tr>
             <th>Feature</th>
             <th>Traditional Brokerage</th>
-            <th>Spikey Coins</th>
+            <th>Open Mandi</th>
           </tr>
         </thead>
         <tbody>
