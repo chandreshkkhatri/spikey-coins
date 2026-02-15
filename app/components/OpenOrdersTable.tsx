@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Order } from "@/lib/trading/types";
+import type { AccentColor } from "@/lib/trading/constants";
 
 interface OpenOrdersTableProps {
   orders: Order[];
+  accentColor?: AccentColor;
 }
 
-export default function OpenOrdersTable({ orders }: OpenOrdersTableProps) {
+export default function OpenOrdersTable({ orders, accentColor = "gold" }: OpenOrdersTableProps) {
   const router = useRouter();
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
@@ -31,7 +33,7 @@ export default function OpenOrdersTable({ orders }: OpenOrdersTableProps) {
   if (orders.length === 0) {
     return (
       <div className="rounded-2xl border border-border bg-surface p-4">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-gold">
+        <h2 className={`mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-accent-${accentColor}`}>
           Open Orders
         </h2>
         <p className="py-2 text-center text-sm text-zinc-500">
@@ -43,7 +45,7 @@ export default function OpenOrdersTable({ orders }: OpenOrdersTableProps) {
 
   return (
     <div className="rounded-2xl border border-border bg-surface p-4">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-gold">
+      <h2 className={`mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-accent-${accentColor}`}>
         Open Orders
       </h2>
       <div className="overflow-x-auto">

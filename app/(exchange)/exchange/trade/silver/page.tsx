@@ -72,12 +72,13 @@ export default async function SilverFutures() {
           fundingRate={markData.fundingRate}
           nextFundingAt={markData.nextFundingAt}
           contract="XAG-PERP"
+          accentColor="silver"
         />
       </div>
 
       {enrichedPositions.length > 0 && (
         <div className="mb-6 space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-gold">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-accent-silver">
             Open Positions
           </h2>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -94,6 +95,7 @@ export default async function SilverFutures() {
             bids={orderBook.bids}
             asks={orderBook.asks}
             pair="XAG-PERP"
+            accentColor="silver"
           />
         </div>
 
@@ -109,12 +111,13 @@ export default async function SilverFutures() {
             maxLeverage={pairConfig.maxLeverage}
             initialMarginRate={pairConfig.initialMarginRate}
             currentPrice={parseFloat(markData.markPrice).toFixed(3)}
+            accentColor="silver"
           />
         </div>
 
         <div className="space-y-6">
-          <TradeHistory trades={recentTrades} pair="XAG-PERP" />
-          <OpenOrdersTable orders={openOrders} />
+          <TradeHistory trades={recentTrades} pair="XAG-PERP" accentColor="silver" />
+          <OpenOrdersTable orders={openOrders} accentColor="silver" />
         </div>
       </div>
     </div>

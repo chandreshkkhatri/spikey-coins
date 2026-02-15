@@ -51,3 +51,18 @@ export const FALLBACK_PRICES = {
   gold: 2850,
   silver: 32,
 } as const;
+
+// Accent color type for contextual theming
+export type AccentColor = "gold" | "silver";
+
+// Get accent color based on trading pair
+export function getAccentColor(pair: string): AccentColor {
+  if (pair.includes("XAU")) return "gold";
+  if (pair.includes("XAG")) return "silver";
+  return "gold"; // default for USDT-USDC or unknown
+}
+
+// Get accent color based on currency
+export function getCurrencyColor(currency: "USDT" | "USDC"): AccentColor {
+  return currency === "USDT" ? "gold" : "silver";
+}

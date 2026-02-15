@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import type { AccentColor } from "@/lib/trading/constants";
+import { getCurrencyColor } from "@/lib/trading/constants";
 
 interface OrderFormProps {
   pair: string;
@@ -14,6 +16,7 @@ interface OrderFormProps {
   maxLeverage?: number;
   initialMarginRate?: string;
   currentPrice?: string;
+  accentColor?: AccentColor;
 }
 
 export default function OrderForm({
@@ -27,6 +30,7 @@ export default function OrderForm({
   maxLeverage = 50,
   initialMarginRate,
   currentPrice,
+  accentColor = "gold",
 }: OrderFormProps) {
   const router = useRouter();
   const [side, setSide] = useState<"buy" | "sell">("buy");
@@ -114,7 +118,7 @@ export default function OrderForm({
 
   return (
     <div className="rounded-2xl border border-border bg-surface p-6">
-      <h2 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-gold">
+      <h2 className={`mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-accent-${accentColor}`}>
         Place Order
       </h2>
 
@@ -148,7 +152,7 @@ export default function OrderForm({
               onClick={() => setOrderType(t)}
               className={`rounded-lg border px-4 py-2 text-sm font-medium capitalize transition-colors ${
                 orderType === t
-                  ? "border-gold bg-gold/10 text-gold"
+                  ? `border-accent-${accentColor} bg-accent-${accentColor}/10 text-accent-${accentColor}`
                   : "border-border text-zinc-400 hover:text-white"
               }`}
             >
@@ -168,7 +172,7 @@ export default function OrderForm({
               value={price}
               onChange={(e) => setPrice(e.target.value)}
               placeholder="0.00"
-              className="w-full rounded-lg border border-border bg-black px-4 py-2.5 font-mono text-white placeholder-zinc-600 outline-none transition-colors focus:border-gold/50"
+              className={`w-full rounded-lg border border-border bg-black px-4 py-2.5 font-mono text-white placeholder-zinc-600 outline-none transition-colors focus:border-accent-${accentColor}/50`}
             />
           </div>
         ) : (
@@ -189,7 +193,7 @@ export default function OrderForm({
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
             placeholder="0"
-            className="w-full rounded-lg border border-border bg-black px-4 py-2.5 font-mono text-white placeholder-zinc-600 outline-none transition-colors focus:border-gold/50"
+            className={`w-full rounded-lg border border-border bg-black px-4 py-2.5 font-mono text-white placeholder-zinc-600 outline-none transition-colors focus:border-accent-${accentColor}/50`}
           />
         </div>
 
@@ -201,20 +205,23 @@ export default function OrderForm({
                 Collateral
               </label>
               <div className="flex gap-2">
-                {(["USDT", "USDC"] as const).map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setCollateral(c)}
-                    className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
-                      collateral === c
-                        ? "border-gold bg-gold/10 text-gold"
-                        : "border-border text-zinc-400 hover:text-white"
-                    }`}
-                  >
-                    {c}
-                  </button>
-                ))}
+                {(["USDT", "USDC"] as const).map((c) => {
+                  const currencyColor = getCurrencyColor(c);
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setCollateral(c)}
+                      className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+                        collateral === c
+                          ? `border-accent-${currencyColor} bg-accent-${currencyColor}/10 text-accent-${currencyColor}`
+                          : "border-border text-zinc-400 hover:text-white"
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -228,7 +235,7 @@ export default function OrderForm({
                 max={maxLeverage}
                 value={leverage}
                 onChange={(e) => setLeverage(parseInt(e.target.value))}
-                className="w-full accent-gold"
+                className={`w-full accent-accent-${accentColor}`}
               />
               <div className="flex justify-between text-xs text-zinc-500">
                 <span>1x</span>

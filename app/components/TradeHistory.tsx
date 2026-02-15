@@ -1,16 +1,18 @@
 import type { Trade } from "@/lib/trading/types";
+import type { AccentColor } from "@/lib/trading/constants";
 
 interface TradeHistoryProps {
   trades: Trade[];
   pair: string;
+  accentColor?: AccentColor;
 }
 
-export default function TradeHistory({ trades, pair }: TradeHistoryProps) {
+export default function TradeHistory({ trades, pair, accentColor = "gold" }: TradeHistoryProps) {
   const priceDecimals = pair === "USDT-USDC" ? 4 : pair === "XAG-PERP" ? 3 : 2;
 
   return (
     <div className="rounded-2xl border border-border bg-surface p-4">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-gold">
+      <h2 className={`mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-accent-${accentColor}`}>
         Recent Trades
       </h2>
 

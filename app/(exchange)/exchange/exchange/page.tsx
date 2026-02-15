@@ -34,20 +34,21 @@ export default async function StablecoinExchange() {
             bids={orderBook.bids}
             asks={orderBook.asks}
             pair="USDT-USDC"
+            accentColor="gold"
           />
         </div>
 
         {/* Center: Balances + Order Form */}
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-xl border border-border bg-surface p-3">
-              <p className="text-xs text-zinc-500">USDT Available</p>
+            <div className="rounded-xl border border-accent-gold/20 bg-surface p-3">
+              <p className="text-xs text-accent-gold">USDT Available</p>
               <p className="font-mono text-sm font-medium text-white">
                 ${parseFloat(usdt?.availableBalance ?? "0").toFixed(2)}
               </p>
             </div>
-            <div className="rounded-xl border border-border bg-surface p-3">
-              <p className="text-xs text-zinc-500">USDC Available</p>
+            <div className="rounded-xl border border-accent-silver/20 bg-surface p-3">
+              <p className="text-xs text-accent-silver">USDC Available</p>
               <p className="font-mono text-sm font-medium text-white">
                 ${parseFloat(usdc?.availableBalance ?? "0").toFixed(2)}
               </p>
@@ -62,13 +63,14 @@ export default async function StablecoinExchange() {
             usdtAvailable={parseFloat(usdt?.availableBalance ?? "0")}
             usdcAvailable={parseFloat(usdc?.availableBalance ?? "0")}
             currentPrice="1.0000"
+            accentColor="gold"
           />
         </div>
 
         {/* Right: Recent Trades + Open Orders */}
         <div className="space-y-6">
-          <TradeHistory trades={recentTrades} pair="USDT-USDC" />
-          <OpenOrdersTable orders={openOrders} />
+          <TradeHistory trades={recentTrades} pair="USDT-USDC" accentColor="gold" />
+          <OpenOrdersTable orders={openOrders} accentColor="gold" />
         </div>
       </div>
     </div>

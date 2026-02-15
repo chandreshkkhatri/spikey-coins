@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import type { AccentColor } from "@/lib/trading/constants";
+import { getCurrencyColor } from "@/lib/trading/constants";
 
 interface LPFormProps {
   pair: string;
@@ -13,6 +15,7 @@ interface LPFormProps {
   currentPrice: string;
   contractSize?: string;
   maxLeverage?: number;
+  accentColor?: AccentColor;
 }
 
 const SPREAD_PRESETS = [
@@ -40,6 +43,7 @@ export default function LPForm({
   currentPrice,
   contractSize,
   maxLeverage = 50,
+  accentColor = "gold",
 }: LPFormProps) {
   const router = useRouter();
   const [spread, setSpread] = useState(0.005);
@@ -263,7 +267,7 @@ export default function LPForm({
 
   return (
     <div className="rounded-2xl border border-border bg-surface p-6">
-      <h2 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-gold">
+      <h2 className={`mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-accent-${accentColor}`}>
         Provide Liquidity
       </h2>
 
@@ -291,7 +295,7 @@ export default function LPForm({
                   value={sellAmount}
                   onChange={(e) => setSellAmount(e.target.value)}
                   placeholder="0.00"
-                  className="w-full rounded-lg border border-border bg-black px-4 py-2.5 font-mono text-white placeholder-zinc-600 outline-none transition-colors focus:border-gold/50"
+                  className={`w-full rounded-lg border border-border bg-black px-4 py-2.5 font-mono text-white placeholder-zinc-600 outline-none transition-colors focus:border-accent-${accentColor}/50`}
                 />
                 <span className="text-xs text-zinc-500">
                   avail: ${usdtAvailable.toFixed(2)}
@@ -310,7 +314,7 @@ export default function LPForm({
                   value={buyAmount}
                   onChange={(e) => setBuyAmount(e.target.value)}
                   placeholder="0.00"
-                  className="w-full rounded-lg border border-border bg-black px-4 py-2.5 font-mono text-white placeholder-zinc-600 outline-none transition-colors focus:border-gold/50"
+                  className={`w-full rounded-lg border border-border bg-black px-4 py-2.5 font-mono text-white placeholder-zinc-600 outline-none transition-colors focus:border-accent-${accentColor}/50`}
                 />
                 <span className="text-xs text-zinc-500">
                   avail: ${usdcAvailable.toFixed(2)}
@@ -325,20 +329,23 @@ export default function LPForm({
                 Collateral
               </label>
               <div className="flex gap-2">
-                {(["USDT", "USDC"] as const).map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setCollateral(c)}
-                    className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
-                      collateral === c
-                        ? "border-gold bg-gold/10 text-gold"
-                        : "border-border text-zinc-400 hover:text-white"
-                    }`}
-                  >
-                    {c}
-                  </button>
-                ))}
+                {(["USDT", "USDC"] as const).map((c) => {
+                  const currencyColor = getCurrencyColor(c);
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setCollateral(c)}
+                      className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+                        collateral === c
+                          ? `border-accent-${currencyColor} bg-accent-${currencyColor}/10 text-accent-${currencyColor}`
+                          : "border-border text-zinc-400 hover:text-white"
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  );
+                })}
               </div>
             </div>
             <div>
@@ -353,7 +360,7 @@ export default function LPForm({
                   value={totalAmount}
                   onChange={(e) => setTotalAmount(e.target.value)}
                   placeholder="0.00"
-                  className="w-full rounded-lg border border-border bg-black px-4 py-2.5 font-mono text-white placeholder-zinc-600 outline-none transition-colors focus:border-gold/50"
+                  className={`w-full rounded-lg border border-border bg-black px-4 py-2.5 font-mono text-white placeholder-zinc-600 outline-none transition-colors focus:border-accent-${accentColor}/50`}
                 />
                 <span className="text-xs text-zinc-500">
                   avail: $
@@ -374,7 +381,7 @@ export default function LPForm({
                 max={maxLeverage}
                 value={leverage}
                 onChange={(e) => setLeverage(parseInt(e.target.value))}
-                className="w-full accent-gold"
+                className={`w-full accent-accent-${accentColor}`}
               />
               <div className="flex justify-between text-xs text-zinc-500">
                 <span>1x</span>
@@ -395,7 +402,7 @@ export default function LPForm({
                 onClick={() => setSpread(preset.value)}
                 className={`flex-1 rounded-lg border px-3 py-2 text-center text-xs font-medium transition-colors ${
                   spread === preset.value
-                    ? "border-gold bg-gold/10 text-gold"
+                    ? `border-accent-${accentColor} bg-accent-${accentColor}/10 text-accent-${accentColor}`
                     : "border-border text-zinc-400 hover:text-white"
                 }`}
               >
@@ -421,7 +428,7 @@ export default function LPForm({
                 onClick={() => setLevels(l)}
                 className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
                   levels === l
-                    ? "border-gold bg-gold/10 text-gold"
+                    ? `border-accent-${accentColor} bg-accent-${accentColor}/10 text-accent-${accentColor}`
                     : "border-border text-zinc-400 hover:text-white"
                 }`}
               >
@@ -521,7 +528,7 @@ export default function LPForm({
         <button
           type="submit"
           disabled={!canSubmit}
-          className="w-full rounded-lg bg-gold px-4 py-2.5 font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50"
+          className={`w-full rounded-lg bg-accent-${accentColor} px-4 py-2.5 font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50`}
         >
           {loading
             ? `Placing orders... (${progress.placed}/${progress.total})`
