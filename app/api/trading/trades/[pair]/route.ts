@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getRecentTrades } from "@/lib/db/queries/trading";
 
+export const dynamic = "force-dynamic";
+
 const VALID_PAIRS = ["USDT-USDC", "XAU-PERP", "XAG-PERP"];
 
 export async function GET(
@@ -23,7 +25,13 @@ export async function GET(
     );
     const trades = await getRecentTrades(pair, Math.min(limit, 100));
 
-    return NextResponse.json({ success: true, trades });
+    return NextResponse.json({ success: true, trades }, {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "CDN-Cache-Control": "no-store",
+        "Vercel-CDN-Cache-Control": "no-store",
+      },
+    });
   } catch {
     return NextResponse.json(
       { success: false, error: "Failed to fetch trades" },

@@ -8,6 +8,6 @@ export default defineConfig({
   schema: "./lib/db/schema.ts",
   dialect: "postgresql",
   dbCredentials: {
-    url: process.env.POSTGRES_URL_NON_POOLING!,
+    url: (process.env.OPENMANDI_DATABASE_URL_NON_POOLING || process.env.POSTGRES_URL_NON_POOLING)!,
   },
 });

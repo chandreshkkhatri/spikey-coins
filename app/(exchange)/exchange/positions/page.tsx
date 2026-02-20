@@ -11,6 +11,8 @@ import type { FuturesPair } from "@/lib/trading/constants";
 import PositionCard from "@/app/components/PositionCard";
 import OpenOrdersTable from "@/app/components/OpenOrdersTable";
 
+export const dynamic = "force-dynamic";
+
 export default async function Positions() {
   const user = await getSession();
   if (!user) return null;

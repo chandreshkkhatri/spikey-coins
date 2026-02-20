@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { getUserPositions } from "@/lib/db/queries/trading";
+
+export const dynamic = "force-dynamic";
 import { getMarkPrice } from "@/lib/services/prices";
 import {
   calculateUnrealizedPnl,

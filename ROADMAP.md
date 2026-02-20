@@ -11,7 +11,7 @@ An academic cryptocurrency-based commodities exchange for trading gold and silve
 | 2 — Wallet, Deposits & Withdrawals | Done | 40 | USDT/USDC deposits, withdrawals, transactions |
 | 3 — Trading Engine | Done | 47 | 3 order books, matching, futures, margin, liquidation |
 | 4 — Transparency + Liquidity | Done | 47 | Transparency dashboard, one-click LP, zero maker fees |
-| 5 — System Market Maker | Planned | — | Automated baseline liquidity bot |
+| 5 — System Market Maker | Done | 47 | Automated baseline liquidity bot + Binance hedging |
 
 ## Completed Sprints
 
@@ -59,17 +59,16 @@ An academic cryptocurrency-based commodities exchange for trading gold and silve
 
 ## Backlog / Future Sprints
 
-### Sprint 5: System Market Maker (Planned)
+### Sprint 5: System Market Maker (Done)
 
 **Problem**: With few users in an academic setting, order books will be empty and no trades can happen. While Sprint 4's LP feature lets users manually provide liquidity, a system-level solution ensures baseline liquidity at all times.
 
-**Proposed Solution**: Market Maker Bot
-- System/house account that provides baseline liquidity
-- Places limit orders on both sides of each order book
-- Configurable spread around the index price (e.g., +/- 0.1%)
-- Configurable order sizes and refresh interval
-- Self-trade prevention already built into matching engine
-- Runs as a cron endpoint or background job
+**Solution**: Market Maker Bot & Hedger
+- [x] Standalone Market Maker script (`scripts/market-maker.ts`)
+- [x] Multi-level dense order books for Gold, Silver, and Stablecoins
+- [x] Standalone Hedger script (`scripts/hedger.ts`) with Binance Futures integration
+- [x] HMAC-SHA256 authenticated hedging with Testnet support
+- [x] Multi-instance tagging system for portable deployment
 
 ### Sprint 6+: Potential Features
 - [ ] Real-time WebSocket price updates

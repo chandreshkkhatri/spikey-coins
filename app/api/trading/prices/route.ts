@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getIndexPrices, getMarkPrice, getOrderBookMidPrice } from "@/lib/services/prices";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const indexPrices = await getIndexPrices();
@@ -18,6 +20,12 @@ export async function GET() {
         midPrice: usdtUsdcMid ?? "1.00000000",
       },
       fetchedAt: indexPrices.timestamp,
+    }, {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "CDN-Cache-Control": "no-store",
+        "Vercel-CDN-Cache-Control": "no-store",
+      },
     });
   } catch {
     return NextResponse.json(

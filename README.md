@@ -19,15 +19,15 @@ Built as a learning platform to explore exchange mechanics — order matching, m
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Framework | Next.js 16.1.1, React 19, TypeScript |
-| Styling | Tailwind CSS 4, @tailwindcss/typography |
-| Auth | Firebase Auth (Google sign-in) + httpOnly session cookies |
-| Database | Vercel Postgres (Neon serverless) + Drizzle ORM |
-| Validation | Zod |
-| Deployment | Vercel |
-| Price Data | metals.dev API (gold/silver) |
+| Layer      | Technology                                                |
+| ---------- | --------------------------------------------------------- |
+| Framework  | Next.js 16.1.1, React 19, TypeScript                      |
+| Styling    | Tailwind CSS 4, @tailwindcss/typography                   |
+| Auth       | Firebase Auth (Google sign-in) + httpOnly session cookies |
+| Database   | Vercel Postgres (Neon serverless) + Drizzle ORM           |
+| Validation | Zod                                                       |
+| Deployment | Vercel                                                    |
+| Price Data | metals.dev API (gold/silver)                              |
 
 ## Project Structure
 
@@ -101,28 +101,92 @@ Open [http://localhost:3000](http://localhost:3000) to view the app.
 
 Copy `.env.example` to `.env.local` and fill in your values. You can also run `vercel env pull .env.local` to pull from Vercel (then add `METALS_DEV_API_KEY` manually).
 
-| Variable | Service | Required |
-|----------|---------|----------|
-| `NEXT_PUBLIC_FIREBASE_API_KEY` | Firebase Client | Yes |
-| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase Client | Yes |
-| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firebase Client | Yes |
-| `FIREBASE_PROJECT_ID` | Firebase Admin | Yes |
-| `FIREBASE_CLIENT_EMAIL` | Firebase Admin | Yes |
-| `FIREBASE_PRIVATE_KEY` | Firebase Admin | Yes |
-| `POSTGRES_URL` | Vercel Postgres (pooled) | Yes |
-| `POSTGRES_URL_NON_POOLING` | Vercel Postgres (direct) | Yes |
-| `METALS_DEV_API_KEY` | metals.dev | No |
+| Variable                           | Service                  | Required   |
+| ---------------------------------- | ------------------------ | ---------- |
+| `NEXT_PUBLIC_FIREBASE_API_KEY`     | Firebase Client          | Yes        |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase Client          | Yes        |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID`  | Firebase Client          | Yes        |
+| `FIREBASE_PROJECT_ID`              | Firebase Admin           | Yes        |
+| `FIREBASE_CLIENT_EMAIL`            | Firebase Admin           | Yes        |
+| `FIREBASE_PRIVATE_KEY`             | Firebase Admin           | Yes        |
+| `POSTGRES_URL`                     | Vercel Postgres (pooled) | Yes        |
+| `POSTGRES_URL_NON_POOLING`         | Vercel Postgres (direct) | Yes        |
+| `METALS_DEV_API_KEY`               | metals.dev               | No         |
+| `BINANCE_API_KEY`                  | Binance Futures API      | For hedger |
+| `BINANCE_API_SECRET`               | Binance Futures API      | For hedger |
+
+## Market Maker & Hedger
+
+Two standalone scripts provide liquidity and risk management. They run independently of the Next.js app — only a `POSTGRES_URL` (and Binance keys for hedging) are required.
+
+### Market Maker
+
+Places 5 levels of bid/ask orders per pair (Gold & Silver), mirroring Binance prices with configurable spreads. Orders auto-refresh every 5 seconds.
+
+```bash
+npx tsx scripts/market-maker.ts                # default tag "local"
+npx tsx scripts/market-maker.ts --tag=aws-1    # multi-instance support
+```
+
+Each `--tag` creates a separate system user so multiple instances don't cancel each other's orders.
+
+**Deploying with PM2:**
+
+To run the Market Maker continuously in the background (e.g. on a VM), use PM2:
+
+1. Install `tsx` globally so PM2 can execute TypeScript:
+   ```bash
+   npm install -g tsx
+   ```
+2. Start the script with PM2 and save it to auto-restart:
+
+   ```bash
+   # For Development
+   npm install -g pm2
+   pm2 start scripts/market-maker.ts --interpreter tsx --name "openmandi-mm-dev"
+   pm2 save
+
+   # For Production (Recommended: Compile first to save memory)
+   npx tsc scripts/market-maker.ts
+   pm2 start scripts/market-maker.js --name "openmandi-mm-prod"
+   pm2 save
+   ```
+
+### Hedger
+
+Monitors fills against the market maker and automatically places hedge orders on Binance Futures to stay delta-neutral.
+
+```bash
+npx tsx scripts/hedger.ts --dry-run            # test mode (no real orders)
+npx tsx scripts/hedger.ts --testnet            # use Binance Futures testnet
+npx tsx scripts/hedger.ts                      # production (real Binance orders)
+```
+
+**Getting started with testnet:**
+
+1. Go to [testnet.binancefuture.com](https://testnet.binancefuture.com) and log in with GitHub
+2. Copy your testnet API key and secret
+3. Add to `.env.local`:
+   ```
+   BINANCE_API_KEY=your_testnet_key
+   BINANCE_API_SECRET=your_testnet_secret
+   ```
+4. Run: `npx tsx scripts/hedger.ts --testnet`
+
+For **production hedging**, use real Binance API keys from [Binance API Management](https://www.binance.com/en/my/settings/api-management) (enable Futures, disable Withdrawals) and omit the `--testnet` flag.
 
 ## Scripts
 
-| Command | Description |
-|---------|------------|
-| `npm run dev` | Start development server |
-| `npm run build` | Production build |
-| `npm run start` | Start production server |
-| `npm run lint` | Run ESLint |
-| `npx drizzle-kit push` | Push schema changes to database |
-| `npx drizzle-kit studio` | Open Drizzle Studio (DB browser) |
+| Command                           | Description                      |
+| --------------------------------- | -------------------------------- |
+| `npm run dev`                     | Start development server         |
+| `npm run build`                   | Production build                 |
+| `npm run start`                   | Start production server          |
+| `npm run lint`                    | Run ESLint                       |
+| `npx drizzle-kit push`            | Push schema changes to database  |
+| `npx drizzle-kit studio`          | Open Drizzle Studio (DB browser) |
+| `npx tsx scripts/market-maker.ts` | Start market maker bot           |
+| `npx tsx scripts/hedger.ts`       | Start Binance hedger             |
 
 ## Architecture
 

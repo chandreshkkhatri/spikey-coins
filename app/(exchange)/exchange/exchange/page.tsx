@@ -1,8 +1,10 @@
 import { getSession } from "@/lib/auth/session";
 import { getUserWallets } from "@/lib/db/queries/wallet";
 import { getOrderBook, getRecentTrades, getUserOpenOrders } from "@/lib/db/queries/trading";
+
+export const dynamic = "force-dynamic";
 import { PAIRS } from "@/lib/trading/constants";
-import OrderBook from "@/app/components/OrderBook";
+import LiveOrderBook from "@/app/components/LiveOrderBook";
 import TradeHistory from "@/app/components/TradeHistory";
 import TradingFormTabs from "@/app/components/TradingFormTabs";
 import OpenOrdersTable from "@/app/components/OpenOrdersTable";
@@ -30,10 +32,10 @@ export default async function StablecoinExchange() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Left: Order Book */}
         <div>
-          <OrderBook
-            bids={orderBook.bids}
-            asks={orderBook.asks}
+          <LiveOrderBook
             pair="USDT-USDC"
+            initialBids={orderBook.bids}
+            initialAsks={orderBook.asks}
             accentColor="gold"
           />
         </div>

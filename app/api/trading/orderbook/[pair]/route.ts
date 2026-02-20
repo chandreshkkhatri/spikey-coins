@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOrderBook } from "@/lib/db/queries/trading";
 
+export const dynamic = "force-dynamic";
+
 const VALID_PAIRS = ["USDT-USDC", "XAU-PERP", "XAG-PERP"];
 
 export async function GET(
@@ -23,10 +25,22 @@ export async function GET(
     );
     const orderBook = await getOrderBook(pair, Math.min(depth, 50));
 
-    return NextResponse.json({ success: true, ...orderBook });
-  } catch {
+    return NextResponse.json({ success: true, ...orderBook }, {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "CDN-Cache-Control": "no-store",
+        "Vercel-CDN-Cache-Control": "no-store",
+      },
+    });
+  } catch (error) {
+    console.error("Orderbook fetch error:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to fetch order book" },
+      { 
+        success: false, 
+        error: "Failed to fetch order book", 
+        details: error instanceof Error ? error.message : String(error),
+        cause: error instanceof Error ? (error as any).cause : undefined,
+      },
       { status: 500 }
     );
   }
