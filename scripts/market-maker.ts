@@ -26,7 +26,7 @@ import {
     decimal,
     unique,
 } from "drizzle-orm/pg-core";
-import { eq, and, like } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 import { matchOrder, settleSpotTrade, settleFuturesTrade } from "../lib/services/matching";
 import { calculateInitialMargin } from "../lib/services/margin";
@@ -108,15 +108,23 @@ const LEVELS: [number, number][] = [
     [0.0080, 8], // 0.80%  — 8x
 ];
 
-const BASE_QTY_XAU = 10; // contracts (~$27 notional)
-const BASE_QTY_XAG = 10; // contracts (~$32 notional)
-const BASE_QTY_USDT = 30; // base (~$30 notional)
+const BASE_QTY_XAU = 10;
+const BASE_QTY_XAG = 10;
+const BASE_QTY_USDT = 30;
 const LEVERAGE = 10;
 
+// If an existing order's price is within this fraction of the desired price,
+// keep it instead of replacing.  E.g. 0.0002 = 0.02% = ~$1 on gold.
+const REPRICE_THRESHOLD: Record<string, number> = {
+    "XAU-PERP": 0.0002,
+    "XAG-PERP": 0.0003,
+    "USDT-USDC": 0.00005,
+};
+
 const PAIR_CONFIG = {
-    "XAU-PERP": { binanceSymbol: "XAUUSDT", type: "futures", contracts: "0.001", spread: 0.0005, priceDec: 2, takerFeeRate: "0.0005" },
-    "XAG-PERP": { binanceSymbol: "XAGUSDT", type: "futures", contracts: "0.1", spread: 0.001, priceDec: 3, takerFeeRate: "0.0005" },
-    "USDT-USDC": { binanceSymbol: "USDCUSDT", type: "spot", contracts: "1", spread: 0.0002, priceDec: 4, takerFeeRate: "0.001" },
+    "XAU-PERP": { binanceSymbol: "XAUUSDT", type: "futures", contracts: "0.001", spread: 0.0005, priceDec: 2, takerFeeRate: "0.0005", baseQty: BASE_QTY_XAU },
+    "XAG-PERP": { binanceSymbol: "XAGUSDT", type: "futures", contracts: "0.1", spread: 0.001, priceDec: 3, takerFeeRate: "0.0005", baseQty: BASE_QTY_XAG },
+    "USDT-USDC": { binanceSymbol: "USDCUSDT", type: "spot", contracts: "1", spread: 0.0002, priceDec: 4, takerFeeRate: "0.001", baseQty: BASE_QTY_USDT },
 } as const;
 
 const SYSTEM_EMAIL = `system_mm_${TAG}@openmandi.com`;
@@ -192,7 +200,7 @@ async function ensureSystemUser() {
     return user;
 }
 
-// ─── Core loop ───────────────────────────────────────────────────────────────
+// ─── Core: Place a single MM limit order via matching engine ─────────────────
 
 async function placeMMLimitOrder(
   userId: string,
@@ -216,7 +224,7 @@ async function placeMMLimitOrder(
         const needed = side === "sell" 
           ? parseFloat(quantity) 
           : parseFloat(quantity) * parseFloat(price);
-        const currency = side === "sell" ? "USDT" : "USDC"; // base is USDT, quote is USDC
+        const currency = side === "sell" ? "USDT" : "USDC";
         
         const wallet = userWallets.find((w) => w.currency === currency);
         if (!wallet || parseFloat(wallet.availableBalance) < needed) {
@@ -334,6 +342,8 @@ async function placeMMLimitOrder(
   }
 }
 
+// ─── Core: Release locked funds when cancelling an order ─────────────────────
+
 async function releaseCancelledFunds(tx: any, order: any, pairConfig: any) {
   const remainingQty = parseFloat(order.quantity) - parseFloat(order.filledQuantity);
   if (remainingQty <= 0) return;
@@ -360,14 +370,142 @@ async function releaseCancelledFunds(tx: any, order: any, pairConfig: any) {
   }
 }
 
+// ─── Incremental rebalance: diff-based order management ──────────────────────
+
+interface DesiredLevel {
+  pair: string;
+  side: "buy" | "sell";
+  price: string;
+  quantity: string;
+}
+
+interface ExistingOrder {
+  id: string;
+  pair: string;
+  side: string;
+  price: string | null;
+  quantity: string;
+  filledQuantity: string;
+  status: string;
+  userId: string;
+}
+
+/**
+ * Build the desired grid of orders for a single pair given the mid price.
+ */
+function buildDesiredGrid(pair: keyof typeof PAIR_CONFIG, midPrice: number): DesiredLevel[] {
+  const cfg = PAIR_CONFIG[pair];
+  const grid: DesiredLevel[] = [];
+
+  for (const [spread, qtyMul] of LEVELS) {
+    const bidPrice = (midPrice * (1 - spread)).toFixed(cfg.priceDec);
+    const askPrice = (midPrice * (1 + spread)).toFixed(cfg.priceDec);
+    const qty = (cfg.baseQty * qtyMul).toString();
+
+    grid.push({ pair, side: "buy",  price: bidPrice, quantity: qty });
+    grid.push({ pair, side: "sell", price: askPrice, quantity: qty });
+  }
+
+  return grid;
+}
+
+/**
+ * Diff existing orders against desired grid.
+ * Returns: { toCancel: orders to remove, toPlace: levels to add, kept: count }
+ *
+ * Algorithm: For each desired level, find the best matching existing order
+ * (same side, price within threshold, same quantity). If found, keep it.
+ * Any existing order not claimed → cancel. Any desired level not matched → place.
+ */
+function diffOrders(
+  pair: string,
+  existing: ExistingOrder[],
+  desired: DesiredLevel[]
+): { toCancel: ExistingOrder[]; toPlace: DesiredLevel[]; kept: number } {
+  const threshold = REPRICE_THRESHOLD[pair] ?? 0.0003;
+  const claimed = new Set<string>(); // order IDs we keep
+  const matched = new Set<number>();  // desired indices that matched
+
+  for (let di = 0; di < desired.length; di++) {
+    const d = desired[di];
+    const dPrice = parseFloat(d.price);
+
+    // Find closest existing order on the same side that's within threshold
+    let bestIdx = -1;
+    let bestDist = Infinity;
+
+    for (let ei = 0; ei < existing.length; ei++) {
+      const e = existing[ei];
+      if (claimed.has(e.id)) continue;
+      if (e.side !== d.side) continue;
+      if (!e.price) continue;
+
+      const ePrice = parseFloat(e.price);
+      const dist = Math.abs(ePrice - dPrice) / dPrice;
+
+      // Also check quantity matches (unfilled portion)
+      const remainingQty = parseFloat(e.quantity) - parseFloat(e.filledQuantity);
+      const desiredQty = parseFloat(d.quantity);
+      const qtyMatch = Math.abs(remainingQty - desiredQty) / desiredQty < 0.01;
+
+      if (dist < threshold && qtyMatch && dist < bestDist) {
+        bestDist = dist;
+        bestIdx = ei;
+      }
+    }
+
+    if (bestIdx >= 0) {
+      claimed.add(existing[bestIdx].id);
+      matched.add(di);
+    }
+  }
+
+  const toCancel = existing.filter((e) => !claimed.has(e.id));
+  const toPlace = desired.filter((_, i) => !matched.has(i));
+
+  return { toCancel, toPlace, kept: claimed.size };
+}
+
+/**
+ * Cancel a batch of orders in a single transaction, releasing locked funds.
+ */
+async function cancelOrders(orderList: ExistingOrder[]): Promise<number> {
+  if (orderList.length === 0) return 0;
+
+  await db.transaction(async (tx) => {
+    // Lock wallets for all affected users (should be just the MM user)
+    const userIds = [...new Set(orderList.map((o) => o.userId))];
+    for (const uid of userIds) {
+      await tx.select().from(wallets).where(eq(wallets.userId, uid)).for("update");
+    }
+
+    for (const order of orderList) {
+      await tx
+        .update(orders)
+        .set({ status: "cancelled", updatedAt: new Date() })
+        .where(eq(orders.id, order.id));
+
+      const config = PAIR_CONFIG[order.pair as keyof typeof PAIR_CONFIG];
+      if (config) {
+        await releaseCancelledFunds(tx, order, config);
+      }
+    }
+  });
+
+  return orderList.length;
+}
+
+// ─── Tick: incremental rebalance ─────────────────────────────────────────────
+
 async function tick(userId: string) {
     const ts = new Date().toISOString().slice(11, 19);
     process.stdout.write(`[${ts}] `);
 
     // 1. Fetch prices in parallel
-    const [xau, xag] = await Promise.all([
+    const [xau, xag, usdc] = await Promise.all([
         getBinancePrice("XAUUSDT"),
         getBinancePrice("XAGUSDT"),
+        getBinancePrice("USDCUSDT"),
     ]);
 
     if (!xau || !xag) {
@@ -375,67 +513,83 @@ async function tick(userId: string) {
         return;
     }
 
-    // 2. Cancel open orders and release wallet funds safely
-    await db.transaction(async (tx) => {
-        const openOrders = await tx
-            .select()
-            .from(orders)
-            .where(and(eq(orders.userId, userId), sql`${orders.status} IN ('open', 'partial')`))
-            .for("update");
+    const midPrices: Record<string, number> = {
+        "XAU-PERP": xau.mid,
+        "XAG-PERP": xag.mid,
+        "USDT-USDC": usdc?.mid ?? 1.0,
+    };
 
-        for (const order of openOrders) {
-            await tx
-                .update(orders)
-                .set({ status: "cancelled", updatedAt: new Date() })
-                .where(eq(orders.id, order.id));
-            
-            const config = PAIR_CONFIG[order.pair as keyof typeof PAIR_CONFIG];
-            if (config) {
-               await releaseCancelledFunds(tx, order, config);
-            }
+    // 2. Build desired grid for all pairs
+    const allDesired: DesiredLevel[] = [];
+    for (const pair of Object.keys(PAIR_CONFIG) as (keyof typeof PAIR_CONFIG)[]) {
+        allDesired.push(...buildDesiredGrid(pair, midPrices[pair]));
+    }
+
+    // 3. Load current MM orders from DB
+    const existingOrders = await db
+        .select({
+            id: orders.id,
+            pair: orders.pair,
+            side: orders.side,
+            price: orders.price,
+            quantity: orders.quantity,
+            filledQuantity: orders.filledQuantity,
+            status: orders.status,
+            userId: orders.userId,
+        })
+        .from(orders)
+        .where(
+            and(
+                eq(orders.userId, userId),
+                sql`${orders.status} IN ('open', 'partial')`
+            )
+        );
+
+    // 4. Diff per pair
+    let totalCancelled = 0;
+    let totalPlaced = 0;
+    let totalKept = 0;
+
+    for (const pair of Object.keys(PAIR_CONFIG) as (keyof typeof PAIR_CONFIG)[]) {
+        const pairExisting = existingOrders.filter((o) => o.pair === pair);
+        const pairDesired = allDesired.filter((d) => d.pair === pair);
+
+        const { toCancel, toPlace, kept } = diffOrders(pair, pairExisting as ExistingOrder[], pairDesired);
+
+        // 5a. Cancel stale orders (single batch transaction)
+        totalCancelled += await cancelOrders(toCancel as ExistingOrder[]);
+        totalKept += kept;
+
+        // 5b. Place missing orders
+        for (const level of toPlace) {
+            const ok = await placeMMLimitOrder(
+                userId,
+                level.pair as PairKey,
+                level.side,
+                level.price,
+                level.quantity
+            );
+            if (ok) totalPlaced++;
         }
-    });
-
-    // 3. Place new orders level by level via matching engine
-    let placed = 0;
-    for (const [spread, qtyMul] of LEVELS) {
-        const xauBid = (xau.mid * (1 - spread)).toFixed(2);
-        const xauAsk = (xau.mid * (1 + spread)).toFixed(2);
-        const xauQty = (BASE_QTY_XAU * qtyMul).toString();
-        
-        if (await placeMMLimitOrder(userId, "XAU-PERP", "buy", xauBid, xauQty)) placed++;
-        if (await placeMMLimitOrder(userId, "XAU-PERP", "sell", xauAsk, xauQty)) placed++;
-
-        const xagBid = (xag.mid * (1 - spread)).toFixed(3);
-        const xagAsk = (xag.mid * (1 + spread)).toFixed(3);
-        const xagQty = (BASE_QTY_XAG * qtyMul).toString();
-        
-        if (await placeMMLimitOrder(userId, "XAG-PERP", "buy", xagBid, xagQty)) placed++;
-        if (await placeMMLimitOrder(userId, "XAG-PERP", "sell", xagAsk, xagQty)) placed++;
-
-        const usdtBid = (1.0 * (1 - spread)).toFixed(4); // USDT-USDC always around $1.00
-        const usdtAsk = (1.0 * (1 + spread)).toFixed(4);
-        const usdtQty = (BASE_QTY_USDT * qtyMul).toString();
-        
-        if (await placeMMLimitOrder(userId, "USDT-USDC", "buy", usdtBid, usdtQty)) placed++;
-        if (await placeMMLimitOrder(userId, "USDT-USDC", "sell", usdtAsk, usdtQty)) placed++;
     }
 
     console.log(
-        `${placed} orders placed | XAU ${xau.mid.toFixed(2)} | XAG ${xag.mid.toFixed(3)}`
+        `kept ${totalKept} | placed ${totalPlaced} | cancelled ${totalCancelled} | ` +
+        `XAU ${xau.mid.toFixed(2)} | XAG ${xag.mid.toFixed(3)}`
     );
 }
 
 // ─── Entry point ─────────────────────────────────────────────────────────────
 async function main() {
-    console.log(`\n🤖 Open Mandi Market Maker`);
-    console.log(`   Tag:      ${TAG}`);
-    console.log(`   User:     ${SYSTEM_EMAIL}`);
-    console.log(`   Levels:   ${LEVELS.length} per side`);
-    console.log(`   Interval: ${REFRESH_INTERVAL_MS / 1000}s\n`);
+    console.log(`\n🤖 Open Mandi Market Maker (incremental rebalance)`);
+    console.log(`   Tag:       ${TAG}`);
+    console.log(`   User:      ${SYSTEM_EMAIL}`);
+    console.log(`   Levels:    ${LEVELS.length} per side × 3 pairs = ${LEVELS.length * 2 * 3} target orders`);
+    console.log(`   Interval:  ${REFRESH_INTERVAL_MS / 1000}s`);
+    console.log(`   Threshold: XAU ${(REPRICE_THRESHOLD["XAU-PERP"] * 100).toFixed(2)}% | XAG ${(REPRICE_THRESHOLD["XAG-PERP"] * 100).toFixed(2)}% | USDT ${(REPRICE_THRESHOLD["USDT-USDC"] * 100).toFixed(3)}%\n`);
 
     const user = await ensureSystemUser();
-    console.log(`   User ID:  ${user.id}\n`);
+    console.log(`   User ID:   ${user.id}\n`);
 
     // Initial tick
     await tick(user.id);
