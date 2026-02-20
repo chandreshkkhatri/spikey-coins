@@ -9,7 +9,7 @@ import {
 import { getMarkPrice } from "@/lib/services/prices";
 import { calculateUnrealizedPnl } from "@/lib/services/margin";
 import { PAIRS } from "@/lib/trading/constants";
-import OrderBook from "@/app/components/OrderBook";
+import LiveOrderBook from "@/app/components/LiveOrderBook";
 import TradeHistory from "@/app/components/TradeHistory";
 import TradingFormTabs from "@/app/components/TradingFormTabs";
 import OpenOrdersTable from "@/app/components/OpenOrdersTable";
@@ -91,10 +91,10 @@ export default async function SilverFutures() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div>
-          <OrderBook
-            bids={orderBook.bids}
-            asks={orderBook.asks}
+          <LiveOrderBook
             pair="XAG-PERP"
+            initialBids={orderBook.bids}
+            initialAsks={orderBook.asks}
             accentColor="silver"
           />
         </div>
