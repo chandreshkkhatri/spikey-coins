@@ -16,6 +16,8 @@ import OpenOrdersTable from "@/app/components/OpenOrdersTable";
 import PriceDisplay from "@/app/components/PriceDisplay";
 import PositionCard from "@/app/components/PositionCard";
 
+export const dynamic = "force-dynamic";
+
 export default async function SilverFutures() {
   const user = await getSession();
   if (!user) return null;

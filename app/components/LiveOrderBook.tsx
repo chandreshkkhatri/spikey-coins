@@ -25,7 +25,7 @@ export default function LiveOrderBook({
 
     const fetchOrderBook = useCallback(async () => {
         try {
-            const res = await fetch(`/api/trading/orderbook/${pair}?depth=20`);
+            const res = await fetch(`/api/trading/orderbook/${pair}?depth=20&_t=${Date.now()}`, { cache: 'no-store' });
             if (!res.ok) return;
             const data = await res.json();
             if (data.success) {

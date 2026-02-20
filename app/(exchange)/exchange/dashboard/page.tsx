@@ -11,6 +11,8 @@ import { PAIRS } from "@/lib/trading/constants";
 import type { FuturesPair } from "@/lib/trading/constants";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 const TX_TYPE_LABELS: Record<string, string> = {
   deposit: "Deposit",
   withdrawal: "Withdrawal",

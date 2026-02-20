@@ -440,8 +440,17 @@ async function main() {
     // Initial tick
     await tick(user.id);
 
-    // Loop
-    setInterval(() => tick(user.id), REFRESH_INTERVAL_MS);
+    // Loop safely without overlapping executions
+    const loop = async () => {
+        try {
+            await tick(user.id);
+        } catch (err) {
+            console.error("Error in tick loop:", err);
+        }
+        setTimeout(loop, REFRESH_INTERVAL_MS);
+    };
+
+    setTimeout(loop, REFRESH_INTERVAL_MS);
 }
 
 main().catch((err) => {

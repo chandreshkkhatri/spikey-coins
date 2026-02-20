@@ -1,6 +1,8 @@
 import { getSession } from "@/lib/auth/session";
 import { getUserWallets } from "@/lib/db/queries/wallet";
 import { getOrderBook, getRecentTrades, getUserOpenOrders } from "@/lib/db/queries/trading";
+
+export const dynamic = "force-dynamic";
 import { PAIRS } from "@/lib/trading/constants";
 import LiveOrderBook from "@/app/components/LiveOrderBook";
 import TradeHistory from "@/app/components/TradeHistory";

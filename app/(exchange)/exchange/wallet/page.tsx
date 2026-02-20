@@ -6,6 +6,8 @@ import {
 } from "@/lib/db/queries/wallet";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 const TX_TYPE_LABELS: Record<string, string> = {
   deposit: "Deposit",
   withdrawal: "Withdrawal",
