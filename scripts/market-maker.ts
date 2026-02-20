@@ -28,6 +28,12 @@ import {
 } from "drizzle-orm/pg-core";
 import { eq, and, like } from "drizzle-orm";
 
+import { matchOrder, settleSpotTrade, settleFuturesTrade } from "../lib/services/matching";
+import { calculateInitialMargin } from "../lib/services/margin";
+import { trades as tradesTable } from "../lib/db/schema";
+import type { PairKey, FuturesPair } from "../lib/trading/constants";
+import { sql } from "drizzle-orm";
+
 // ─── Env check ───────────────────────────────────────────────────────────────
 if (!process.env.POSTGRES_URL) {
     console.error("❌  POSTGRES_URL is not set. Add it to .env or .env.local");
@@ -102,14 +108,16 @@ const LEVELS: [number, number][] = [
     [0.0080, 8], // 0.80%  — 8x
 ];
 
-const BASE_QTY_XAU = 1; // contracts
-const BASE_QTY_XAG = 1; // contracts
+const BASE_QTY_XAU = 10; // contracts (~$27 notional)
+const BASE_QTY_XAG = 10; // contracts (~$32 notional)
+const BASE_QTY_USDT = 30; // base (~$30 notional)
+const LEVERAGE = 10;
 
 const PAIR_CONFIG = {
-    "XAU-PERP": { binanceSymbol: "XAUUSDT", contracts: 10, spread: 0.0005, priceDec: 2 },
-    "XAG-PERP": { binanceSymbol: "XAGUSDT", contracts: 100, spread: 0.001, priceDec: 3 },
-    "USDT-USDC": { binanceSymbol: "USDCUSDT", contracts: 5000, spread: 0.0002, priceDec: 4 },
-};
+    "XAU-PERP": { binanceSymbol: "XAUUSDT", type: "futures", contracts: "0.001", spread: 0.0005, priceDec: 2, takerFeeRate: "0.0005" },
+    "XAG-PERP": { binanceSymbol: "XAGUSDT", type: "futures", contracts: "0.1", spread: 0.001, priceDec: 3, takerFeeRate: "0.0005" },
+    "USDT-USDC": { binanceSymbol: "USDCUSDT", type: "spot", contracts: "1", spread: 0.0002, priceDec: 4, takerFeeRate: "0.001" },
+} as const;
 
 const SYSTEM_EMAIL = `system_mm_${TAG}@openmandi.com`;
 
@@ -169,14 +177,14 @@ async function ensureSystemUser() {
             {
                 userId: user.id,
                 currency: "USDT",
-                balance: "1000000",
-                availableBalance: "1000000",
+                balance: "100",
+                availableBalance: "100",
             },
             {
                 userId: user.id,
                 currency: "USDC",
-                balance: "1000000",
-                availableBalance: "1000000",
+                balance: "100",
+                availableBalance: "100",
             },
         ]);
     }
@@ -185,44 +193,171 @@ async function ensureSystemUser() {
 }
 
 // ─── Core loop ───────────────────────────────────────────────────────────────
-function buildOrders(
-    userId: string,
-    pair: string,
-    mid: number,
-    baseQty: number,
-    priceDec: number
-) {
-    const rows: (typeof orders.$inferInsert)[] = [];
 
-    for (const [spread, qtyMul] of LEVELS) {
-        const bidPrice = mid * (1 - spread);
-        const askPrice = mid * (1 + spread);
-        const qty = (baseQty * qtyMul).toString();
+async function placeMMLimitOrder(
+  userId: string,
+  pair: PairKey,
+  side: "buy" | "sell",
+  price: string,
+  quantity: string
+): Promise<boolean> {
+  const config = PAIR_CONFIG[pair as keyof typeof PAIR_CONFIG];
+  
+  try {
+    await db.transaction(async (tx) => {
+      // 1. Lock wallet balance
+      const userWallets = await tx
+        .select()
+        .from(wallets)
+        .where(eq(wallets.userId, userId))
+        .for("update");
 
-        rows.push({
+      if (config.type === "spot") {
+        const needed = side === "sell" 
+          ? parseFloat(quantity) 
+          : parseFloat(quantity) * parseFloat(price);
+        const currency = side === "sell" ? "USDT" : "USDC"; // base is USDT, quote is USDC
+        
+        const wallet = userWallets.find((w) => w.currency === currency);
+        if (!wallet || parseFloat(wallet.availableBalance) < needed) {
+          throw new Error("SKIP: insufficient balance");
+        }
+        await tx
+          .update(wallets)
+          .set({
+            availableBalance: sql`${wallets.availableBalance} - ${needed.toFixed(8)}::decimal`,
+            updatedAt: new Date(),
+          })
+          .where(eq(wallets.id, wallet.id));
+      } else {
+        const margin = calculateInitialMargin(
+          quantity,
+          config.contracts.toString(),
+          price,
+          LEVERAGE
+        );
+        const estFee = margin * LEVERAGE * parseFloat(config.takerFeeRate);
+        const needed = margin + estFee;
+        const wallet = userWallets.find((w) => w.currency === "USDT");
+        
+        if (!wallet || parseFloat(wallet.availableBalance) < needed) {
+          throw new Error("SKIP: insufficient balance");
+        }
+        await tx
+          .update(wallets)
+          .set({
+            availableBalance: sql`${wallets.availableBalance} - ${needed.toFixed(8)}::decimal`,
+            updatedAt: new Date(),
+          })
+          .where(eq(wallets.id, wallet.id));
+      }
+
+      // 2. Insert order
+      const [order] = await tx
+        .insert(orders)
+        .values({
+          userId,
+          pair,
+          side,
+          type: "limit",
+          price,
+          quantity,
+          status: "open",
+          collateralCurrency: config.type === "futures" ? "USDT" : null,
+        })
+        .returning();
+
+      // 3. Match Order
+      const matchResult = await matchOrder(tx as any, {
+        id: order.id,
+        userId,
+        pair,
+        side,
+        type: "limit",
+        price,
+        quantity,
+      });
+
+      // 4. Settle Fills
+      for (const fill of matchResult.fills) {
+        await tx.insert(tradesTable as any).values({
+          pair,
+          makerOrderId: fill.makerOrderId,
+          takerOrderId: order.id,
+          makerUserId: fill.makerUserId,
+          takerUserId: userId,
+          price: fill.price,
+          quantity: fill.quantity,
+          makerFee: fill.makerFee,
+          takerFee: fill.takerFee,
+        } as any);
+
+        if (config.type === "spot") {
+          await settleSpotTrade(tx as any, fill, {
+            id: order.id,
             userId,
-            pair,
-            side: "buy",
-            type: "limit",
-            price: bidPrice.toFixed(priceDec),
-            quantity: qty,
-            status: "open",
-            collateralCurrency: "USDT",
-        });
+            side,
+          });
+        } else {
+          await settleFuturesTrade(
+            tx as any,
+            fill,
+            {
+              id: order.id,
+              userId,
+              side,
+              collateralCurrency: "USDT",
+              leverage: LEVERAGE,
+            },
+            pair as FuturesPair
+          );
+        }
+      }
 
-        rows.push({
-            userId,
-            pair,
-            side: "sell",
-            type: "limit",
-            price: askPrice.toFixed(priceDec),
-            quantity: qty,
-            status: "open",
-            collateralCurrency: "USDT",
-        });
+      // 5. Update Order Status
+      const filledQty = parseFloat(quantity) - parseFloat(matchResult.remainingQuantity);
+      await tx
+        .update(orders)
+        .set({
+          filledQuantity: filledQty.toFixed(8),
+          status: matchResult.orderStatus,
+          updatedAt: new Date(),
+        })
+        .where(eq(orders.id, order.id));
+    });
+    return true;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "";
+    if (msg.startsWith("SKIP:")) return false; 
+    console.error(`Error matching order for ${pair}:`, err);
+    return false;
+  }
+}
+
+async function releaseCancelledFunds(tx: any, order: any, pairConfig: any) {
+  const remainingQty = parseFloat(order.quantity) - parseFloat(order.filledQuantity);
+  if (remainingQty <= 0) return;
+
+  if (pairConfig.type === "spot") {
+    const lockedCurrency = order.side === "sell" ? "USDT" : "USDC";
+    const releaseAmount = order.side === "sell" ? remainingQty : remainingQty * parseFloat(order.price ?? "0");
+
+    if (releaseAmount > 0) {
+      await tx.update(wallets)
+        .set({ availableBalance: sql`${wallets.availableBalance} + ${releaseAmount.toFixed(8)}::decimal` })
+        .where(and(eq(wallets.userId, order.userId), eq(wallets.currency, lockedCurrency)));
     }
+  } else {
+    const margin = calculateInitialMargin(remainingQty.toString(), pairConfig.contracts.toString(), order.price ?? "0", LEVERAGE);
+    const estFee = margin * LEVERAGE * parseFloat(pairConfig.takerFeeRate);
+    const releaseAmount = margin + estFee;
 
-    return rows;
+    if (releaseAmount > 0) {
+      await tx.update(wallets)
+        .set({ availableBalance: sql`${wallets.availableBalance} + ${releaseAmount.toFixed(8)}::decimal` })
+        .where(and(eq(wallets.userId, order.userId), eq(wallets.currency, "USDT")));
+    }
+  }
 }
 
 async function tick(userId: string) {
@@ -240,23 +375,54 @@ async function tick(userId: string) {
         return;
     }
 
-    // 2. Cancel our own open orders (only this tag's user)
-    await db
-        .update(orders)
-        .set({ status: "cancelled", updatedAt: new Date() })
-        .where(and(eq(orders.userId, userId), eq(orders.status, "open")));
+    // 2. Cancel open orders and release wallet funds safely
+    await db.transaction(async (tx) => {
+        const openOrders = await tx
+            .select()
+            .from(orders)
+            .where(and(eq(orders.userId, userId), sql`${orders.status} IN ('open', 'partial')`))
+            .for("update");
 
-    // 3. Build dense order book
-    const newOrders = [
-        ...buildOrders(userId, "XAU-PERP", xau.mid, BASE_QTY_XAU, 2),
-        ...buildOrders(userId, "XAG-PERP", xag.mid, BASE_QTY_XAG, 3),
-    ];
+        for (const order of openOrders) {
+            await tx
+                .update(orders)
+                .set({ status: "cancelled", updatedAt: new Date() })
+                .where(eq(orders.id, order.id));
+            
+            const config = PAIR_CONFIG[order.pair as keyof typeof PAIR_CONFIG];
+            if (config) {
+               await releaseCancelledFunds(tx, order, config);
+            }
+        }
+    });
 
-    // 4. Insert all at once
-    await db.insert(orders).values(newOrders);
+    // 3. Place new orders level by level via matching engine
+    let placed = 0;
+    for (const [spread, qtyMul] of LEVELS) {
+        const xauBid = (xau.mid * (1 - spread)).toFixed(2);
+        const xauAsk = (xau.mid * (1 + spread)).toFixed(2);
+        const xauQty = (BASE_QTY_XAU * qtyMul).toString();
+        
+        if (await placeMMLimitOrder(userId, "XAU-PERP", "buy", xauBid, xauQty)) placed++;
+        if (await placeMMLimitOrder(userId, "XAU-PERP", "sell", xauAsk, xauQty)) placed++;
+
+        const xagBid = (xag.mid * (1 - spread)).toFixed(3);
+        const xagAsk = (xag.mid * (1 + spread)).toFixed(3);
+        const xagQty = (BASE_QTY_XAG * qtyMul).toString();
+        
+        if (await placeMMLimitOrder(userId, "XAG-PERP", "buy", xagBid, xagQty)) placed++;
+        if (await placeMMLimitOrder(userId, "XAG-PERP", "sell", xagAsk, xagQty)) placed++;
+
+        const usdtBid = (1.0 * (1 - spread)).toFixed(4); // USDT-USDC always around $1.00
+        const usdtAsk = (1.0 * (1 + spread)).toFixed(4);
+        const usdtQty = (BASE_QTY_USDT * qtyMul).toString();
+        
+        if (await placeMMLimitOrder(userId, "USDT-USDC", "buy", usdtBid, usdtQty)) placed++;
+        if (await placeMMLimitOrder(userId, "USDT-USDC", "sell", usdtAsk, usdtQty)) placed++;
+    }
 
     console.log(
-        `${newOrders.length} orders | XAU ${xau.mid.toFixed(2)} | XAG ${xag.mid.toFixed(3)}`
+        `${placed} orders placed | XAU ${xau.mid.toFixed(2)} | XAG ${xag.mid.toFixed(3)}`
     );
 }
 
