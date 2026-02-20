@@ -49,22 +49,40 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // New user — create user record + wallets
-      const [newUser] = await db
-        .insert(users)
-        .values({
-          firebaseUid: decoded.uid,
-          email: decoded.email,
-        })
-        .returning();
+      // Check if user exists by email (if they changed Firebase project and got a new UID)
+      const [existingUserByEmail] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, decoded.email))
+        .limit(1);
 
-      user = newUser;
+      if (existingUserByEmail) {
+        // Link the new Firebase UID to their existing account
+        const [updatedUser] = await db
+          .update(users)
+          .set({ firebaseUid: decoded.uid })
+          .where(eq(users.id, existingUserByEmail.id))
+          .returning();
 
-      // Create USDT and USDC wallets
-      await db.insert(wallets).values([
-        { userId: user.id, currency: "USDT" },
-        { userId: user.id, currency: "USDC" },
-      ]);
+        user = updatedUser;
+      } else {
+        // New user — create user record + wallets
+        const [newUser] = await db
+          .insert(users)
+          .values({
+            firebaseUid: decoded.uid,
+            email: decoded.email,
+          })
+          .returning();
+
+        user = newUser;
+
+        // Create USDT and USDC wallets
+        await db.insert(wallets).values([
+          { userId: user.id, currency: "USDT" },
+          { userId: user.id, currency: "USDC" },
+        ]);
+      }
     }
 
     // Set session cookie
