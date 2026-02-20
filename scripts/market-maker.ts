@@ -105,15 +105,37 @@ const LEVELS: [number, number][] = [
 const BASE_QTY_XAU = 1; // contracts
 const BASE_QTY_XAG = 1; // contracts
 
+const PAIR_CONFIG = {
+    "XAU-PERP": { binanceSymbol: "XAUUSDT", contracts: 10, spread: 0.0005, priceDec: 2 },
+    "XAG-PERP": { binanceSymbol: "XAGUSDT", contracts: 100, spread: 0.001, priceDec: 3 },
+    "USDT-USDC": { binanceSymbol: "USDCUSDT", contracts: 5000, spread: 0.0002, priceDec: 4 },
+};
+
 const SYSTEM_EMAIL = `system_mm_${TAG}@openmandi.com`;
 
 // ─── Binance API ─────────────────────────────────────────────────────────────
-const BINANCE_API = "https://fapi.binance.com/fapi/v1/ticker/bookTicker";
+const BINANCE_FUTURES_BOOK_TICKER_API = "https://fapi.binance.com/fapi/v1/ticker/bookTicker";
+const BINANCE_SPOT_PRICE_API = "https://api.binance.com/api/v3/ticker/price";
 
 async function getBinancePrice(symbol: string) {
+    if (symbol === "USDCUSDT") {
+        // For stablecoin pair, use a fixed price or fetch from spot
+        try {
+            const res = await fetch(`${BINANCE_SPOT_PRICE_API}?symbol=${symbol}`);
+            if (!res.ok) throw new Error(`Binance Spot ${res.status}`);
+            const data = await res.json();
+            const price = parseFloat(data.price);
+            return { bid: price, ask: price, mid: price };
+        } catch (err) {
+            console.error(`  ⚠  Failed to fetch spot price for ${symbol}:`, (err as Error).message);
+            // Fallback to fixed 1.00 if spot fetch fails
+            return { bid: 1.00, ask: 1.00, mid: 1.00 };
+        }
+    }
+
     try {
-        const res = await fetch(`${BINANCE_API}?symbol=${symbol}`);
-        if (!res.ok) throw new Error(`Binance ${res.status}`);
+        const res = await fetch(`${BINANCE_FUTURES_BOOK_TICKER_API}?symbol=${symbol}`);
+        if (!res.ok) throw new Error(`Binance Futures ${res.status}`);
         const data = await res.json();
         return {
             bid: parseFloat(data.bidPrice),
@@ -121,7 +143,7 @@ async function getBinancePrice(symbol: string) {
             mid: (parseFloat(data.bidPrice) + parseFloat(data.askPrice)) / 2,
         };
     } catch (err) {
-        console.error(`  ⚠  Failed to fetch ${symbol}:`, (err as Error).message);
+        console.error(`  ⚠  Failed to fetch futures price for ${symbol}:`, (err as Error).message);
         return null;
     }
 }
