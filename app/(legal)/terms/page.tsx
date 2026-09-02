@@ -320,7 +320,7 @@ export default function TermsAndConditions() {
       <h2>18. Contact Information</h2>
       <p>
         For questions regarding these Terms, please contact us at{" "}
-        <strong>legal@openmandis.com</strong>.
+        <strong>legal@openbullion.com</strong>.
       </p>
     </article>
   );

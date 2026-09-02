@@ -8,10 +8,10 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     // Extract just the host from the connection string (no credentials)
-    const connStr = process.env.OPENMANDI_DATABASE_URL || process.env.POSTGRES_URL || "";
+    const connStr = process.env.OPENBULLION_DATABASE_URL || process.env.POSTGRES_URL || "";
     const hostMatch = connStr.match(/@([^/]+)\//);
     const dbHost = hostMatch ? hostMatch[1] : "unknown";
-    const envVarUsed = process.env.OPENMANDI_DATABASE_URL ? "OPENMANDI_DATABASE_URL" : "POSTGRES_URL";
+    const envVarUsed = process.env.OPENBULLION_DATABASE_URL ? "OPENBULLION_DATABASE_URL" : "POSTGRES_URL";
 
     // Run a live count query to confirm DB connectivity
     const [result] = await db
@@ -55,7 +55,7 @@ export async function GET() {
     const mmUsers = await db.execute(sql`
       SELECT email, created_at
       FROM ${users}
-      WHERE email LIKE 'system_mm_%@openmandi.com'
+      WHERE email LIKE 'system_mm_%@openbullion.com'
       ORDER BY created_at
     `);
 
@@ -87,7 +87,7 @@ export async function GET() {
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : String(error),
-        dbHost: ((process.env.OPENMANDI_DATABASE_URL || process.env.POSTGRES_URL) ?? "").match(/@([^/]+)\//)?.[1] ?? "unknown",
+        dbHost: ((process.env.OPENBULLION_DATABASE_URL || process.env.POSTGRES_URL) ?? "").match(/@([^/]+)\//)?.[1] ?? "unknown",
       },
       { status: 500 }
     );

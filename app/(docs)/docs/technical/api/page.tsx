@@ -14,7 +14,7 @@ export default function ApiReference() {
 
       <h2>Base URL</h2>
       <pre>
-        <code>{`https://api.openmandis.com/api/v1  (Coming Soon)`}</code>
+        <code>{`https://api.openbullion.com/api/v1  (Coming Soon)`}</code>
       </pre>
 
       <h2>Authentication</h2>
@@ -244,7 +244,7 @@ export default function ApiReference() {
 
       <h2>WebSocket Feeds</h2>
       <pre>
-        <code>{`WebSocket URL: wss://api.openmandis.com/ws  (Coming Soon)
+        <code>{`WebSocket URL: wss://api.openbullion.com/ws  (Coming Soon)
 
 Subscription channels:
   - orderbook:<symbol>     Real-time order book updates

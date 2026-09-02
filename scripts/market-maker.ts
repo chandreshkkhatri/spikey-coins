@@ -10,7 +10,7 @@
  *   npx tsx scripts/market-maker.ts --tag=aws-1    # custom tag for multi-instance
  *
  * Env:
- *   OPENMANDI_DATABASE_URL or POSTGRES_URL  — Neon / Postgres connection string (required)
+ *   OPENBULLION_DATABASE_URL or POSTGRES_URL  — Neon / Postgres connection string (required)
  */
 
 import { config } from "dotenv";
@@ -36,8 +36,8 @@ import type { PairKey, FuturesPair } from "../lib/trading/constants";
 import { sql } from "drizzle-orm";
 
 // ─── Env check ───────────────────────────────────────────────────────────────
-const DATABASE_URL: string = process.env.OPENMANDI_DATABASE_URL || process.env.POSTGRES_URL || (() => {
-    console.error("❌  OPENMANDI_DATABASE_URL or POSTGRES_URL is not set. Add it to .env or .env.local");
+const DATABASE_URL: string = process.env.OPENBULLION_DATABASE_URL || process.env.POSTGRES_URL || (() => {
+    console.error("❌  OPENBULLION_DATABASE_URL or POSTGRES_URL is not set. Add it to .env or .env.local");
     process.exit(1);
 })();
 
@@ -153,7 +153,7 @@ const PAIR_CONFIG = {
 } as const;
 type PairConfig = (typeof PAIR_CONFIG)[keyof typeof PAIR_CONFIG];
 
-const SYSTEM_EMAIL = `system_mm_${TAG}@openmandi.com`;
+const SYSTEM_EMAIL = `system_mm_${TAG}@openbullion.com`;
 
 // ─── Hedge configuration ─────────────────────────────────────────────────────
 const HEDGE_PAIR_MAP: Record<string, {

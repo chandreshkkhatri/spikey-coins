@@ -355,7 +355,7 @@ async function main() {
     console.log(`  Dry Run:  ${DRY_RUN}`);
     console.log(`  Testnet:  ${TESTNET}`);
     console.log(`  Endpoint: ${BINANCE_BASE}`);
-    console.log(`  Matching: system_mm_*@openmandi.com`);
+    console.log(`  Matching: system_mm_*@openbullion.com`);
 
     // Verify Binance connectivity (skip in dry run)
     if (!DRY_RUN) {
@@ -374,7 +374,7 @@ async function main() {
     const systemUsers = await db
         .select()
         .from(users)
-        .where(like(users.email, "system_mm_%@openmandi.com"));
+        .where(like(users.email, "system_mm_%@openbullion.com"));
 
     if (systemUsers.length === 0) {
         console.error("❌ No system market maker users found. Start market-maker.ts first.");

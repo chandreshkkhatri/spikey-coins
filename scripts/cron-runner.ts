@@ -9,7 +9,7 @@
  *   npx tsx scripts/cron-runner.ts
  *
  * Env:
- *   CRON_BASE_URL  — Base URL of the deployed app (e.g. https://dev.openmandi.com)
+ *   CRON_BASE_URL  — Base URL of the deployed app (e.g. https://dev.openbullion.com)
  *   CRON_SECRET    — Bearer token for authenticating cron requests
  *
  * Intervals:
@@ -20,7 +20,7 @@
 import { config } from "dotenv";
 config({ path: ".env.local", override: true });
 
-const BASE_URL = process.env.CRON_BASE_URL ?? "https://dev.openmandi.com";
+const BASE_URL = process.env.CRON_BASE_URL ?? "https://dev.openbullion.com";
 const CRON_SECRET = process.env.CRON_SECRET;
 const VERCEL_BYPASS = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
 

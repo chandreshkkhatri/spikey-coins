@@ -10,7 +10,7 @@
  * 4. Log results
  *
  * Usage:
- *   OPENMANDI_DATABASE_URL="..." ETH_RPC_URL="..." npx tsx scripts/sweeper.ts
+ *   OPENBULLION_DATABASE_URL="..." ETH_RPC_URL="..." npx tsx scripts/sweeper.ts
  *
  * Phase 2: Not yet implemented. This is a skeleton for reference.
  */

@@ -77,8 +77,8 @@ lib/
 
 ```bash
 # Clone and install
-git clone https://github.com/chandreshkkhatri/openmandi.git
-cd openmandi
+git clone https://github.com/chandreshkkhatri/openbullion.git
+cd openbullion
 npm install
 
 # Configure environment
@@ -194,12 +194,12 @@ To run the Market Maker continuously in the background (e.g. on a VM), use PM2:
    ```bash
    # For Development
    npm install -g pm2
-   pm2 start scripts/market-maker.ts --interpreter tsx --name "openmandi-mm-dev"
+   pm2 start scripts/market-maker.ts --interpreter tsx --name "openbullion-mm-dev"
    pm2 save
 
    # For Production (Recommended: Compile first to save memory)
    npx tsc scripts/market-maker.ts
-   pm2 start scripts/market-maker.js --name "openmandi-mm-prod"
+   pm2 start scripts/market-maker.js --name "openbullion-mm-prod"
    pm2 save
    ```
 
