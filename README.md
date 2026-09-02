@@ -1,4 +1,4 @@
-# Open Mandi
+# Open Bullion
 
 An academic cryptocurrency-based commodities exchange for trading gold and silver futures with stablecoin settlement.
 
